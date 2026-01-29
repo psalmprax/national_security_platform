@@ -42,9 +42,58 @@ graph TD
 
 ### 2.2 Container Architecture
 
+#### 2.2.1 Current Implementation (Operational)
+
 ```mermaid
 C4Context
-    title Container Architecture
+    title Container Architecture (Current Phase)
+    
+    Person(Ruler, "Traditional Ruler", "Verified Community Leader")
+    Person(Analyst, "Intel Analyst", "Security Operator")
+    
+    System_Boundary(MobileClient, "Secure Mobile Client") {
+        Container(MobileApp, "Flutter App", "Dart", "Offline-first reporting tool")
+    }
+
+    System_Boundary(EdgeLayer, "Gateway Layer") {
+        Container(APIGateway, "Nginx Gateway", "Nginx", "Reverse Proxy & Static Serve")
+    }
+
+    System_Boundary(CorePlatform, "Backend Services") {
+        Container(CoreAPI, "Core API", "Go", "Ingestion, Auth, & Business Logic")
+        Container(IntelService, "Intelligence Service", "Python", "AI Analysis & NLP")
+        Container(EventBus, "Event Bus", "NATS JetStream", "Async Messaging")
+    }
+    
+    System_Boundary(DataLayer, "Data Storage") {
+        ContainerDb(OpsDB, "CockroachDB", "Distributed SQL", "Primary Datastore")
+        ContainerDb(MinIO, "MinIO", "Object Storage", "Media Assets")
+        ContainerDb(Redis, "Redis", "Cache", "Session & Hot Data")
+    }
+    
+    System_Boundary(OpsCenter, "Command Center") {
+        Container(Dashboard, "Web Dashboard", "Next.js", "Situational Awareness")
+    }
+
+    Rel(Ruler, MobileApp, "Submits Alert")
+    Rel(MobileApp, APIGateway, "HTTPS/WSS")
+    Rel(APIGateway, CoreAPI, "Proxies API Req")
+    Rel(APIGateway, Dashboard, "Serves UI")
+    
+    Rel(CoreAPI, OpsDB, "Persists Data")
+    Rel(CoreAPI, EventBus, "Publishes Events")
+    Rel(EventBus, IntelService, "Triggers Analysis")
+    Rel(IntelService, OpsDB, "Updates Severity")
+    
+    Rel(Analyst, Dashboard, "Views Map")
+    Rel(Dashboard, APIGateway, "Fetches Live Data")
+```
+
+#### 2.2.2 Future State (Target Architecture)
+
+```mermaid
+C4Context
+    title Container Architecture (Future/Target V2.0)
     
     Person(Ruler, "Traditional Ruler", "Verified Community Leader")
     Person(Analyst, "Intel Analyst", "Security Operator")
