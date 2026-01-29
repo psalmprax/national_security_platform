@@ -10,3 +10,7 @@ tmp/
 
 # OS
 Thumbs.db
+
+# Secrets
+.env
+.env.example

@@ -1,0 +1,23 @@
+[project]
+name = "intelligence-service"
+version = "0.1.0"
+description = "AI and Intelligence Analysis Service"
+readme = "README.md"
+requires-python = ">=3.11"
+
+[tool.poetry]
+packages = [{include = "backend"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.109.0"
+uvicorn = {extras = ["standard"], version = "^0.27.0"}
+pydantic = "^2.6.0"
+nats-py = "^2.7.0"
+cryptography = "^42.0.0"
+grpcio = "^1.60.0"
+grpcio-tools = "^1.60.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

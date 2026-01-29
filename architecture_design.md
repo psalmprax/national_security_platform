@@ -85,6 +85,68 @@ C4Context
     Rel(AI_Module, VectorDB, "Queries Pattern History")
     Rel(Analyst, Dashboard, "Monitors")
     Rel(Dashboard, GeoEngine, "Visualizes Heatmaps")
+
+---
+
+### 2.3 Database Entity Relationship Diagram (ERD)
+
+```mermaid
+erDiagram
+    USERS ||--o{ DEVICES : "binds to"
+    USERS ||--o{ ALERTS : "submits"
+    USERS ||--o{ AUDIT_LOGS : "performs"
+    USERS ||--o{ CORROBORATIONS : "verifies"
+    
+    ALERTS ||--o{ MEDIA_ATTACHMENTS : "contains"
+    ALERTS ||--o{ CORROBORATIONS : "receives"
+    
+    STATES ||--o{ LGAS : "contains"
+    LGAS ||--o{ VILLAGES : "contains"
+    
+    USERS {
+        uuid id PK
+        string phone_number UK
+        string role
+        string monarch_grade
+        uuid village_id FK
+    }
+    
+    ALERTS {
+        uuid id PK
+        uuid user_id FK
+        geometry location
+        string alert_type
+        string status
+    }
+    
+    DEVICES {
+        uuid id PK
+        uuid user_id FK
+        string hwid UK
+        string public_key
+        string status
+    }
+    
+    MEDIA_ATTACHMENTS {
+        uuid id PK
+        uuid alert_id FK
+        string content_hash_sha256
+        string storage_path
+    }
+    
+    CORROBORATIONS {
+        uuid id PK
+        uuid alert_id FK
+        uuid verifier_id FK
+        float confidence_score
+    }
+    
+    STATES {
+        uuid id PK
+        string name UK
+        geometry boundary_geom
+    }
+```
 ```
 
 ---

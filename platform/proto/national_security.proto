@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package national_security;
+
+option go_package = "national_security_platform/backend/core-api/pkg/proto";
+
+// Service Definition for the Python Intelligence Service
+service IntelligenceService {
+  // Analyze an alert for severity, keywords, and translation
+  rpc AnalyzeAlert (AnalyzeRequest) returns (AnalyzeResponse);
+}
+
+message AnalyzeRequest {
+  string alert_id = 1;
+  string content_text = 2; // Voice transcript or text
+  string language_code = 3; // e.g., "ha" (Hausa), "en" (English)
+}
+
+message AnalyzeResponse {
+  string alert_id = 1;
+  float severity_score = 2; // 0.0 to 1.0
+  repeated string risk_keywords = 3;
+  string english_translation = 4;
+  string category = 5; // "terrorism", "kidnap", "flood", etc.
+}
+
+// Service Definition for the Core API (Go)
+// Mobile App will likely use HTTP/JSON, but Backend-to-Backend uses gRPC
+service CoreService {
+  rpc SubmitAlert (Alert) returns (SubmitAlertResponse);
+}
+
+message Alert {
+  string id = 1;
+  string user_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+  string type = 5; // "voice", "text", "panic"
+  int64 timestamp = 6;
+  string content = 7;
+}
+
+message SubmitAlertResponse {
+  bool success = 1;
+  string tracking_id = 2;
+}
