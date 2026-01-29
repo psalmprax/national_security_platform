@@ -196,16 +196,19 @@ I have successfully connected the dashboard components to real-time data from th
 
 I have implemented User Level Access to restrict dashboard views based on the user's role.
 
-### Roles Defined
-- **ADMIN**: Access to all views.
-- **CYBER_ANALYST**: Access to **Cyber** and **Strategic** views.
-- **STRATEGIC_PLANNER**: Access to **Strategic** and **Tactical** views.
-- **TACTICAL_COMMAND**: Access to **Tactical** view only.
+### Roles Defined (v2.0)
+- **ADMIN**: Access to all views + Agency Command Portal.
+- **CYBER_ANALYST**: Access to **Cyber View ONLY** (Strict Isolation).
+- **STRATEGIC_PLANNER**: Access to **Strategic View ONLY** (Strict Isolation).
+- **TACTICAL_COMMAND**: Access to **Tactical View ONLY** (Strict Isolation).
+- **AGENCY_OFFICER**: Access to **Agency Command Portal ONLY**.
 
 ### Features
-- **View Locking**: Agency View buttons are visually locked and disabled for unauthorized roles.
-- **Logic Enforcement**: The view switcher logic enforces existing permissions to prevent unauthorized access.
-- **Debug Role Switcher**: A debug tool in the bottom right corner allows testing different role perspectives.
+- **Strict View Isolation**: Personnel are now locked into their specific operational dashboards based on their clearance level.
+- **Agency Command Portal**: A dedicated administrative dashboard for asset deployment and personnel management.
+- **View Locking**: Unauthorized dashboard views are visually locked and logically disabled in the UI.
+- **Login Portal Gateway**: A public link to the Agency Portal is now available directly from the login screen for authorized logistics officers.
+- **Debug Role Switcher**: A debug tool in the bottom right corner allows testing all five role perspectives.
 
 ### Verification status
 - [x] Compilation: Passing

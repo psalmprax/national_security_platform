@@ -137,12 +137,12 @@ export default function DashboardPage() {
                         </button>
                     </div>
 
-                    {/* Admin Tools */}
-                    {currentUserRole === 'ADMIN' && (
+                    {/* Admin & Portal Tools */}
+                    {(currentUserRole === 'ADMIN' || currentUserRole === 'AGENCY_OFFICER') && (
                         <div className="mt-4 pt-4 border-t border-white/10 flex justify-center">
                             <a
                                 href="/agency/portal"
-                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-lg text-white font-bold text-xs uppercase transition-all hover:scale-105 shadow-lg shadow-purple-500/20"
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-lg text-white font-bold text-xs uppercase transition-all hover:scale-105 shadow-lg shadow-blue-500/20"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-building-2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" /></svg>
                                 Agency Command Portal
@@ -174,6 +174,7 @@ export default function DashboardPage() {
                         <option value="TACTICAL_COMMAND">Tactical</option>
                         <option value="CYBER_ANALYST">Cyber Analyst</option>
                         <option value="STRATEGIC_PLANNER">Strategic</option>
+                        <option value="AGENCY_OFFICER">Agency Officer</option>
                         <option value="ADMIN">Admin</option>
                     </select>
                 </div>

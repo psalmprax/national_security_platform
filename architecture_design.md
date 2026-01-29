@@ -162,7 +162,7 @@ erDiagram
     USERS {
         uuid id PK
         string phone_number UK
-        string role
+        string role "ADMIN | CYBER_ANALYST | TACTICAL_COMMAND | STRATEGIC_PLANNER | AGENCY_OFFICER"
         string monarch_grade
         uuid village_id FK
     }
@@ -248,7 +248,8 @@ erDiagram
 
 ### 3.3 Secure Operations Dashboard (Web)
 *   **Framework**: Next.js (React) for high-performance Command & Control interface.
-*   **Security Middleware**: Integrated Edge-ready middleware handling RBAC enforcement and session verification.
+*   **RBAC Enforcement**: Strict view isolation policy. User sessions are verified via JWT, and UI components are conditionally rendered based on explicit operational mandates (e.g., Cyber Analysts are locked to Cyber views).
+*   **Agency Command Portal**: A specialized administrative gateway for asset deployment and personnel management, accessible only to `ADMIN` and `AGENCY_OFFICER` roles.
 *   **Observability & Auditing**:
     *   **Access Logging**: Structured JSON logging of every request (Public/Protected) to standard output for non-repudiation.
     *   **Traceability**: Captures IP, User Identity, Role, and Resource Access attempts for intrusion detection.

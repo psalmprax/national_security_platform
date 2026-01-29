@@ -6,18 +6,20 @@ export interface Session {
 
 export type AgencyView = 'cyber' | 'tactical' | 'strategic';
 
-export type UserRole = 'CYBER_ANALYST' | 'TACTICAL_COMMAND' | 'STRATEGIC_PLANNER' | 'ADMIN';
+export type UserRole = 'CYBER_ANALYST' | 'TACTICAL_COMMAND' | 'STRATEGIC_PLANNER' | 'ADMIN' | 'AGENCY_OFFICER';
 
 export function hasAccess(role: UserRole, view: AgencyView): boolean {
     if (role === 'ADMIN') return true;
 
     switch (role) {
         case 'CYBER_ANALYST':
-            return view === 'cyber' || view === 'strategic';
+            return view === 'cyber';
         case 'STRATEGIC_PLANNER':
-            return view === 'strategic' || view === 'tactical';
+            return view === 'strategic';
         case 'TACTICAL_COMMAND':
             return view === 'tactical';
+        case 'AGENCY_OFFICER':
+            return false; // Agency officers use the portal, not the main dashboards
         default:
             return false;
     }

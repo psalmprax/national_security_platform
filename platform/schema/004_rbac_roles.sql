@@ -27,3 +27,10 @@ INSERT INTO users (
 ) VALUES (
     '+2348000000103', 'Field Commander', 'TACTICAL_COMMAND', 85, 0.9, 'SECRET'
 ) ON CONFLICT (phone_number) DO NOTHING;
+
+-- 5. Agency Officer
+INSERT INTO users (
+    phone_number, full_name, role, hierarchy_weight, trust_score, clearance_level
+) VALUES (
+    '+2348000000104', 'Logistics Officer', 'AGENCY_OFFICER', 75, 0.85, 'CONFIDENTIAL'
+) ON CONFLICT (phone_number) DO NOTHING;

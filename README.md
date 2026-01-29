@@ -63,6 +63,7 @@ chmod +x seed_database.sh && ./seed_database.sh
 ### 4. Unified Service Access
 The platform is unified under a single entry point (Gateway) for consistency:
 - **Main Portal (Dashboard)**: [http://localhost:8085](http://localhost:8085)
+- **Agency Command Portal**: [http://localhost:8085/agency/portal](http://localhost:8085/agency/portal)
 - **Mobile Client (Simulation)**: [http://localhost:8085/mobile/](http://localhost:8085/mobile/)
 - **Security API (Backend)**: [http://localhost:8085/api/v1/alerts](http://localhost:8085/api/v1/alerts)
 - **CockroachDB UI**: [http://localhost:8081](http://localhost:8081)
@@ -74,10 +75,14 @@ All pre-seeded accounts use the default password: **`password`**
 
 | Role | Phone Number | View Access |
 | :--- | :--- | :--- |
-| **System Admin** | `+2348000000100` | Full Access (All Views) |
-| **Cyber Analyst** | `+2348000000101` | Cyber & Strategic Views |
-| **Strategic Planner**| `+2348000000102` | Strategic & Tactical Views |
-| **Tactical Command** | `+2348000000103` | Tactical View Only |
+| **System Admin** | `+2348000000100` | Full Access (All Views + Agency Portal) |
+| **Cyber Analyst** | `+2348000000101` | **Cyber View Only** (Strict Isolation) |
+| **Strategic Planner**| `+2348000000102` | **Strategic View Only** (Strict Isolation) |
+| **Tactical Command** | `+2348000000103` | **Tactical View Only** (Strict Isolation) |
+| **Agency Officer** | `+2348000000104` | **Agency Command Portal Only** |
+
+> [!IMPORTANT]
+> **Strict View Isolation**: Personnel are now restricted to their intended views based on their national security clearance. The dashboard will automatically lock views that fall outside of a user's specific operational mandate.
 
 ---
 

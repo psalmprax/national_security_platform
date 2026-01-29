@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save } from 'lucide-react';
+import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save, Loader2, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/lib/AuthContext';
+import { UserRole } from '@/lib/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -16,6 +18,7 @@ interface Asset {
 }
 
 export default function AgencyPortalPage() {
+    const { user, isLoading: isAuthLoading } = useAuth();
     const [assets, setAssets] = useState<Asset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showAssetForm, setShowAssetForm] = useState(false);
@@ -49,8 +52,47 @@ export default function AgencyPortalPage() {
     };
 
     useEffect(() => {
-        fetchAssets();
-    }, []);
+        if (!isAuthLoading && user) {
+            fetchAssets();
+        }
+    }, [user, isAuthLoading]);
+
+    if (isAuthLoading) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+                <AlertTriangle className="w-16 h-16 text-yellow-500 mb-4" />
+                <h1 className="text-2xl font-bold text-white mb-2">ACCESS DENIED</h1>
+                <p className="text-slate-400 text-center max-w-md">You must be logged in to access the Agency Command Portal.</p>
+                <a href="/login" className="mt-6 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-all">
+                    Return to Login
+                </a>
+            </div>
+        );
+    }
+
+    const role = user.role as UserRole;
+    const hasPortalAccess = role === 'ADMIN' || role === 'AGENCY_OFFICER';
+
+    if (!hasPortalAccess) {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+                <Shield className="w-16 h-16 text-red-500 mb-4" />
+                <h1 className="text-2xl font-bold text-white mb-2">UNAUTHORIZED</h1>
+                <p className="text-slate-400 text-center max-w-md">Your credentials do not grant access to the Agency Command Portal. Please contact system administration for clearance.</p>
+                <a href="/" className="mt-6 bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 rounded-xl font-bold transition-all">
+                    Back to Dashboard
+                </a>
+            </div>
+        );
+    }
 
     // Handle Submit
     const handleCreateAsset = async (e: React.FormEvent) => {

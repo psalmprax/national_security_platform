@@ -136,11 +136,16 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+                    <div className="mt-8 pt-6 border-t border-slate-800 text-center space-y-4">
                         <p className="text-slate-400 text-sm">
                             Personnel without credentials?{' '}
                             <Link href="/request-access" className="text-cyan-400 font-bold hover:text-cyan-300 transition-colors">
                                 Request Access Gate
+                            </Link>
+                        </p>
+                        <p className="text-slate-500 text-xs">
+                            <Link href="/agency/portal" className="hover:text-cyan-400 transition-colors flex items-center justify-center gap-1">
+                                <Shield className="w-3 h-3" /> Agency Portal Access
                             </Link>
                         </p>
                     </div>
