@@ -10,7 +10,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 export default function RequestAccessPage() {
     const [formData, setFormData] = useState({
         phoneNumber: '',
-        fullName: '',
+        firstName: '',
+        lastName: '',
         password: '',
         role: 'CITIZEN'
     });
@@ -31,7 +32,7 @@ export default function RequestAccessPage() {
                 },
                 body: JSON.stringify({
                     phone_number: formData.phoneNumber,
-                    full_name: formData.fullName,
+                    full_name: `${formData.firstName} ${formData.lastName}`.trim(),
                     password: formData.password,
                     role: formData.role
                 }),
@@ -116,20 +117,37 @@ export default function RequestAccessPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-slate-500 text-xs font-bold uppercase tracking-widest px-1">Full Identity</label>
+                                <label className="text-slate-500 text-xs font-bold uppercase tracking-widest px-1">First Name</label>
                                 <div className="relative">
                                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600" />
                                     <input
                                         type="text"
                                         required
-                                        value={formData.fullName}
-                                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                        placeholder="Full Official Name"
+                                        value={formData.firstName}
+                                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                        placeholder="First Name"
                                         className="w-full bg-slate-950/50 border border-slate-800 focus:border-cyan-500/50 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 outline-none transition-all"
                                     />
                                 </div>
                             </div>
 
+                            <div className="space-y-2">
+                                <label className="text-slate-500 text-xs font-bold uppercase tracking-widest px-1">Last Name</label>
+                                <div className="relative">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600" />
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.lastName}
+                                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                        placeholder="Last Name"
+                                        className="w-full bg-slate-950/50 border border-slate-800 focus:border-cyan-500/50 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-slate-500 text-xs font-bold uppercase tracking-widest px-1">Device Binding</label>
                                 <div className="relative">
@@ -144,22 +162,24 @@ export default function RequestAccessPage() {
                                     />
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-2">
-                            <label className="text-slate-500 text-xs font-bold uppercase tracking-widest px-1">Security Key</label>
-                            <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600" />
-                                <input
-                                    type="password"
-                                    required
-                                    value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    placeholder="Create Secure Password"
-                                    className="w-full bg-slate-950/50 border border-slate-800 focus:border-cyan-500/50 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 outline-none transition-all"
-                                />
+                            <div className="space-y-2">
+                                <label className="text-slate-500 text-xs font-bold uppercase tracking-widest px-1">Security Key</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600" />
+                                    <input
+                                        type="password"
+                                        required
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        placeholder="Create Secure Password"
+                                        className="w-full bg-slate-950/50 border border-slate-800 focus:border-cyan-500/50 rounded-2xl py-3.5 pl-12 pr-4 text-white placeholder:text-slate-600 outline-none transition-all"
+                                    />
+                                </div>
                             </div>
                         </div>
+
+
 
                         <div className="space-y-3">
                             <label className="text-slate-500 text-xs font-bold uppercase tracking-widest px-1">Personnel Classification</label>
@@ -170,8 +190,8 @@ export default function RequestAccessPage() {
                                         type="button"
                                         onClick={() => setFormData({ ...formData, role: role.value })}
                                         className={`text-left p-4 rounded-2xl border transition-all ${formData.role === role.value
-                                                ? 'bg-cyan-500/10 border-cyan-500/50 ring-1 ring-cyan-500/50'
-                                                : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
+                                            ? 'bg-cyan-500/10 border-cyan-500/50 ring-1 ring-cyan-500/50'
+                                            : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
                                             }`}
                                     >
                                         <div className="flex items-center gap-2 mb-1">

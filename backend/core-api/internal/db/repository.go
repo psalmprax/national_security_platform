@@ -172,6 +172,59 @@ func CreateUserRequest(ctx context.Context, user *models.User) error {
 	return nil
 }
 
+// CreateAgency inserts a new agency
+func CreateAgency(ctx context.Context, agency models.Agency) error {
+	query := `
+		INSERT INTO agencies (id, name, acronym, type, jurisdiction_scope, hq_address, contact_phone, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`
+	_, err := Pool.Exec(ctx, query, agency.ID, agency.Name, agency.Acronym, agency.Type, agency.JurisdictionScope, agency.HQAddress, agency.ContactPhone, agency.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to create agency: %w", err)
+	}
+	return nil
+}
+
+// CreateAsset inserts a new asset
+func CreateAsset(ctx context.Context, asset models.Asset) error {
+	query := `
+		INSERT INTO assets (id, agency_id, name, type, location, status, description, call_sign, capacity_level, last_updated_at, created_at)
+		VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8, $9, $10, $11, $12)
+	`
+	_, err := Pool.Exec(ctx, query, asset.ID, asset.AgencyID, asset.Name, asset.Type, asset.Longitude, asset.Latitude, asset.Status, asset.Description, asset.CallSign, asset.CapacityLevel, asset.LastUpdatedAt, asset.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to create asset: %w", err)
+	}
+	return nil
+}
+
+// GetAllAssets retrieves all assets
+func GetAllAssets(ctx context.Context) ([]models.Asset, error) {
+	query := `
+		SELECT id, agency_id, name, type, st_x(location), st_y(location), status, description, call_sign, capacity_level, last_updated_at, created_at
+		FROM assets
+	`
+	rows, err := Pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query assets: %w", err)
+	}
+	defer rows.Close()
+
+	var assets []models.Asset
+	for rows.Next() {
+		var a models.Asset
+		err := rows.Scan(&a.ID, &a.AgencyID, &a.Name, &a.Type, &a.Longitude, &a.Latitude, &a.Status, &a.Description, &a.CallSign, &a.CapacityLevel, &a.LastUpdatedAt, &a.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan asset: %w", err)
+		}
+		assets = append(assets, a)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating assets: %w", err)
+	}
+	return assets, nil
+}
+
 // GetRecentAlerts retrieves the most recent alerts with a limit
 func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
 	query := `

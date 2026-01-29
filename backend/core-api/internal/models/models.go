@@ -103,3 +103,29 @@ type SystemStats struct {
 	ActiveAlerts   int `json:"active_alerts"`
 	CriticalAlerts int `json:"critical_alerts"`
 }
+
+type Agency struct {
+	ID                uuid.UUID `json:"id"`
+	Name              string    `json:"name"`
+	Acronym           *string   `json:"acronym,omitempty"`
+	Type              string    `json:"type"`
+	JurisdictionScope string    `json:"jurisdiction_scope"`
+	HQAddress         *string   `json:"hq_address,omitempty"`
+	ContactPhone      *string   `json:"contact_phone,omitempty"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+type Asset struct {
+	ID            uuid.UUID `json:"id"`
+	AgencyID      uuid.UUID `json:"agency_id"`
+	Name          string    `json:"name"`
+	Type          string    `json:"type"`
+	Latitude      float64   `json:"latitude"`
+	Longitude     float64   `json:"longitude"`
+	Status        string    `json:"status"`
+	Description   *string   `json:"description,omitempty"`
+	CallSign      *string   `json:"call_sign,omitempty"`
+	CapacityLevel int       `json:"capacity_level"`
+	LastUpdatedAt time.Time `json:"last_updated_at"`
+	CreatedAt     time.Time `json:"created_at"`
+}

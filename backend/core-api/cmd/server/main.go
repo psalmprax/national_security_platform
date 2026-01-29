@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"national_security_platform/backend/core-api/internal/agency"
 	"national_security_platform/backend/core-api/internal/db"
 	igrpc "national_security_platform/backend/core-api/internal/grpc"
 	"national_security_platform/backend/core-api/internal/middleware"
@@ -534,6 +535,23 @@ func main() {
 		}
 
 		respondJSON(w, http.StatusOK, devices)
+	})
+
+	// Agency & Asset Management Routes
+	http.HandleFunc("/api/v1/agencies", agency.RegisterAgencyHandler)
+	http.HandleFunc("/api/v1/assets", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			agency.ListAssetsHandler(w, r)
+			return
+		}
+		if r.Method == http.MethodPost {
+			agency.CreateAssetHandler(w, r)
+			return
+		}
+		// OPTIONS handled by individual handlers usually, but here we dispatch.
+		// If method is OPTIONS, we can default to one or handle explicitly.
+		// ListAssetsHandler handles OPTIONS.
+		agency.ListAssetsHandler(w, r)
 	})
 
 	port := os.Getenv("PORT")

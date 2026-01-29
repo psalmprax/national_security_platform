@@ -38,6 +38,7 @@ This is the most powerful part of the expansion.
 2.  **UI Update**: Add the new buttons to the Flutter `PanicScreen`.
 3.  **Intelligence Tuning**: Add a new branch in the Python `AnalyzeAlert` function to calculate severity for these specific categories.
 4.  **Dashboard Filter**: Add a "Category Filter" to the Next.js Dashboard so analysts can focus on their specific domain (e.g., only viewing "Fire" alerts).
+5.  **Resource Integration (Done)**: Mapped critical infrastructure (Police, Medical) to enable asset-aware decision making via the new Agency Portal.
 
 **The platform is essentially a "National Nervous System"—you can plug in any new "sensory input" (alert type) whenever needed.**
 

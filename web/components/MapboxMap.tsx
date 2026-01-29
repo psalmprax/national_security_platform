@@ -3,12 +3,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Target, Activity, Plus, Minus, Move } from 'lucide-react';
+import { Target, Activity, Plus, Minus, Move, Shield, Briefcase } from 'lucide-react';
 import { Alert } from '../lib/api';
 
 // IMPORTANT: A Mapbox public access token is required.
 // Replace this with your token or ensure it is set in process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1IjoicHNhbG1wcmF4IiwiYSI6ImNta3lsdnNtajA4M2ozZXM2Mnd0cWF0OHMifQ.mI66qXgyqyh6kRVSoJYLhQ'; // User provided token as fallback
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1IjoicHNhbG1wcmF4IiwiYSI6ImNta3lsdnNtajA4M2ozZXM2Mnd0cWF0OHMifQ.mI66qXgyqyh6kRVSoJYLhQ';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
@@ -16,6 +17,8 @@ const isValidCoordinate = (lng: number, lat: number) => {
     return typeof lng === 'number' && !isNaN(lng) && Math.abs(lng) <= 180 &&
         typeof lat === 'number' && !isNaN(lat) && Math.abs(lat) <= 90;
 };
+
+
 
 interface MapboxMapProps {
     alerts: Alert[];
@@ -29,7 +32,9 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+    const resourceMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
     const [isMapSupported, setIsMapSupported] = useState(true);
+    const [showResources, setShowResources] = useState(false);
     const [tokenError, setTokenError] = useState(false);
     const hasAttemptedInit = useRef(false);
     const isCyber = mode === 'cyber';
@@ -153,6 +158,60 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
         });
     }, [alerts, isCyber, onSelect, isMapSupported]);
 
+    // Handle Resource Markers
+    useEffect(() => {
+        if (!isMapSupported || !mapRef.current) return;
+
+        // Clear existing resource markers
+        Object.values(resourceMarkersRef.current).forEach(marker => marker.remove());
+        resourceMarkersRef.current = {};
+
+        if (!showResources) return;
+
+        const fetchResources = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/v1/assets`);
+                if (!res.ok) return;
+                const resources = await res.json();
+
+                resources.forEach((res: any) => {
+                    const el = document.createElement('div');
+                    el.className = 'resource-marker';
+
+                    // Resource Style: Blue Shield (Police) vs Red Briefcase (Medical) using pure CSS/SVG
+                    const color = res.type === 'POLICE' ? '#3B82F6' : '#EF4444';
+                    const iconSvg = res.type === 'POLICE'
+                        ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' // Shield
+                        : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>'; // Briefcase
+
+                    el.innerHTML = `
+                         <div style="background: ${color}; padding: 6px; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; transform-origin: bottom center; transition: all 0.2s;">
+                             ${iconSvg}
+                             <div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid ${color};"></div>
+                         </div>
+                     `;
+
+                    // Simple tooltip on hover
+                    el.title = `${res.name} (${res.description || 'No Details'})`;
+
+                    if (mapRef.current) {
+                        const marker = new mapboxgl.Marker(el)
+                            .setLngLat([res.longitude, res.latitude])
+                            .addTo(mapRef.current);
+
+                        resourceMarkersRef.current[res.id] = marker;
+                    }
+                });
+
+            } catch (err) {
+                console.error("Failed to fetch resources", err);
+            }
+        };
+
+        fetchResources();
+
+    }, [showResources, isMapSupported]);
+
     // Handle Selection Fly-To
     useEffect(() => {
         if (!isMapSupported || !mapRef.current || !selectedAlert) return;
@@ -261,6 +320,17 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
                         }`}
                 >
                     <Move className="w-5 h-5" />
+                </button>
+                <div className="h-4"></div> {/* Spacer */}
+                <button
+                    onClick={() => setShowResources(!showResources)}
+                    title="Toggle Critical Resources"
+                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${showResources
+                        ? (isCyber ? 'border-[#00FF95] bg-[#00FF95]/20 text-[#00FF95] shadow-[0_0_15px_rgba(0,255,149,0.3)]' : 'border-blue-500 bg-blue-500 text-white shadow-lg')
+                        : (isCyber ? 'border-[#00FF95]/40 bg-black/60 text-[#00FF95]' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm')
+                        }`}
+                >
+                    {showResources ? <Shield className="w-5 h-5 fill-current" /> : <Shield className="w-5 h-5" />}
                 </button>
             </div>
 

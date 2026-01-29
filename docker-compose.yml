@@ -116,9 +116,11 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_MAPBOX_TOKEN=${NEXT_PUBLIC_MAPBOX_TOKEN:-pk.eyJ1IjoicHNhbG1wcmF4IiwiYSI6ImNta3lsdnNtajA4M2ozZXM2Mnd0cWF0OHMifQ.mI66qXgyqyh6kRVSoJYLhQ}
+        - NEXT_PUBLIC_API_URL=
     # Ports removed: Now accessible via gateway
     environment:
       - NEXT_PUBLIC_MAPBOX_TOKEN=${NEXT_PUBLIC_MAPBOX_TOKEN:-pk.eyJ1IjoicHNhbG1wcmF4IiwiYSI6ImNta3lsdnNtajA4M2ozZXM2Mnd0cWF0OHMifQ.mI66qXgyqyh6kRVSoJYLhQ}
+      - NEXT_PUBLIC_API_URL=
       - JWT_SECRET=${JWT_SECRET:-insecure_default_secret_for_dev_only}
     depends_on:
       - core-api

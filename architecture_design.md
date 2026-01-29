@@ -35,7 +35,9 @@ graph TD
         Id[NIN/Identity DB]
     end
     
-    Core <--> External Integrations
+    Core <--> Sat
+    Core <--> Telco
+    Core <--> Id
 ```
 
 ### 2.2 Container Architecture
@@ -85,6 +87,7 @@ C4Context
     Rel(AI_Module, VectorDB, "Queries Pattern History")
     Rel(Analyst, Dashboard, "Monitors")
     Rel(Dashboard, GeoEngine, "Visualizes Heatmaps")
+```
 
 ---
 
@@ -99,6 +102,10 @@ erDiagram
     
     ALERTS ||--o{ MEDIA_ATTACHMENTS : "contains"
     ALERTS ||--o{ CORROBORATIONS : "receives"
+
+    AGENCIES ||--o{ ASSETS : "owns"
+    AGENCIES ||--o{ AGENCY_PERSONNEL : "employs"
+    USERS ||--o{ AGENCY_PERSONNEL : "assigned_to"
     
     STATES ||--o{ LGAS : "contains"
     LGAS ||--o{ VILLAGES : "contains"
@@ -117,6 +124,29 @@ erDiagram
         geometry location
         string alert_type
         string status
+    }
+
+    AGENCIES {
+        uuid id PK
+        string name
+        string type
+        string jurisdiction_scope
+    }
+
+    ASSETS {
+        uuid id PK
+        uuid agency_id FK
+        string type
+        geometry location
+        string status
+    }
+
+    AGENCY_PERSONNEL {
+        uuid id PK
+        uuid agency_id FK
+        uuid user_id FK
+        string rank
+        string department
     }
     
     DEVICES {
@@ -211,6 +241,7 @@ erDiagram
 
 ### 6.2 Geospatial Features
 *   **Incident Triangulation**: If multiple rulers report from similar coords, system auto-generates a "Confirmed Incident Zone" polygon.
+*   **Asset Tracking Layer**: Real-time visualization of friendly resources (Police Stations, Hospitals) to aid in rapid dispatch and logistics.
 *   **Resource Proximity**: Spatial query to identify nearest certified response units (Police/Army checkpoints) relative to the incident.
 
 ---
