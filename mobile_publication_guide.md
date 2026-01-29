@@ -5,7 +5,8 @@ This document outlines the steps to take the **National Security Platform (Mobil
 ## 1. Browser Testing (Current State)
 You can currently test the mobile app as a web application via Docker.
 - **URL**: `http://localhost:8082`
-- **Purpose**: Verify UI, logic, and integration without needing an emulator or real device.
+- **Purpose**: Verify UI, logic, and integration.
+- **Note**: The Docker build now includes source maps, making it easier to debug Dart code directly in the browser console.
 
 ---
 

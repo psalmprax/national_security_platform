@@ -8,6 +8,7 @@ The platform is pre-configured to build the Flutter app as a web application ins
 1.  **Start the Platform**:
     ```bash
     docker-compose up --build
+    # Note: The mobile build now includes '--source-maps' for easier debugging in browser devtools.
     ```
 2.  **Access the App**:
     Open `http://localhost:8082` in your browser.

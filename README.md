@@ -26,6 +26,7 @@ This platform meeting national security standards through multiple defensive lay
     - **Transit**: Enforced TLS 1.3 (HTTPS) and Service-to-Service mTLS (gRPC).
 - **Access Control**: JWT-based Role-Based Access Control (RBAC) enforced via Go middleware.
 - **Integrity**: SHA-256 hashing of all evidence items stored in an immutable audit ledger.
+- **Observability**: Structured JSON access logging for all Dashboard requests (audit trail).
 - **Resilience**: Offline-first mobile persistence for "Network Dark Zones."
 
 ---

@@ -15,7 +15,7 @@ COPY . .
 # Ensure web platform is configured and build
 RUN flutter config --enable-web
 RUN flutter create . --platforms web
-RUN flutter build web --base-href /mobile/
+RUN flutter build web --base-href /mobile/ --source-maps
 
 # Stage 2 - Serve
 FROM nginx:alpine

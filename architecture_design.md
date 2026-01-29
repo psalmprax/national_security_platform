@@ -167,6 +167,13 @@ erDiagram
 *   **Real-time Processing**: Stream processing (Apache Flink or similar light alternative) to correlate incoming alerts with active incidents.
 *   **Map/Vis**: Mapbox GL JS (Self-hosted/Vector tiles) or Cesium for 3D terrain understanding.
 
+### 3.3 Secure Operations Dashboard (Web)
+*   **Framework**: Next.js (React) for high-performance Command & Control interface.
+*   **Security Middleware**: Integrated Edge-ready middleware handling RBAC enforcement and session verification.
+*   **Observability & Auditing**:
+    *   **Access Logging**: Structured JSON logging of every request (Public/Protected) to standard output for non-repudiation.
+    *   **Traceability**: Captures IP, User Identity, Role, and Resource Access attempts for intrusion detection.
+
 ---
 
 ## 4. Technology Stack Recommendations
