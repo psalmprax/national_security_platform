@@ -141,6 +141,19 @@ services:
     networks:
       - national-security-net
 
+  # Security Sentinel (Continuous Compliance Scanner)
+  security-sentinel:
+    build:
+      context: ./backend/security-sentinel
+      dockerfile: Dockerfile
+    environment:
+      - CORE_API_URL=http://core-api:8080
+      - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
+    depends_on:
+      - core-api
+    networks:
+      - national-security-net
+
 # Note: In production, these volumes should be backed by encrypted storage (e.g., AWS EBS with KMS)
 volumes:
   cockroach_data:

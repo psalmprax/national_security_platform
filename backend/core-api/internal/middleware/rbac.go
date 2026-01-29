@@ -15,8 +15,9 @@ const (
 	UserRoleKey contextKey = "userRole"
 )
 
-func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+// AuthMiddleware is chi-compatible middleware for JWT verification
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			http.Error(w, "Authorization header required", http.StatusUnauthorized)
@@ -38,16 +39,19 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 		ctx = context.WithValue(ctx, UserRoleKey, claims.Role)
 		next.ServeHTTP(w, r.WithContext(ctx))
-	}
+	})
 }
 
-func RequireRole(role string, next http.HandlerFunc) http.HandlerFunc {
-	return AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		userRole, ok := r.Context().Value(UserRoleKey).(string)
-		if !ok || userRole != role {
-			http.Error(w, "Forbidden: insufficient permissions", http.StatusForbidden)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+// RequireRole enforces a specific role. Must be used AFTER AuthMiddleware.
+func RequireRole(role string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userRole, ok := r.Context().Value(UserRoleKey).(string)
+			if !ok || userRole != role {
+				http.Error(w, "Forbidden: insufficient permissions", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }

@@ -2,6 +2,7 @@ package security
 
 import (
 	"errors"
+	"log"
 	"os"
 	"time"
 
@@ -23,6 +24,7 @@ type Claims struct {
 func GenerateToken(userID uuid.UUID, role string) (string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
+		log.Fatalf("FATAL ERROR: JWT_SECRET environment variable is not set. Refusing to start in insecure state.")
 		return "", errors.New("JWT_SECRET environment variable is not set")
 	}
 

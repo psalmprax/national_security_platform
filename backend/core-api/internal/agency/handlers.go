@@ -1,7 +1,6 @@
 package agency
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -48,21 +47,6 @@ func respondJSON(w http.ResponseWriter, status int, payload interface{}) {
 
 // RegisterAgencyHandler handles the creation of a new agency
 func RegisterAgencyHandler(w http.ResponseWriter, r *http.Request) {
-	// CORS
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req CreateAgencyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request body"})
@@ -80,7 +64,7 @@ func RegisterAgencyHandler(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:         time.Now(),
 	}
 
-	if err := db.CreateAgency(context.Background(), agency); err != nil {
+	if err := db.CreateAgency(r.Context(), agency); err != nil {
 		log.Printf("Failed to create agency: %v", err)
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to create agency"})
 		return
@@ -91,21 +75,6 @@ func RegisterAgencyHandler(w http.ResponseWriter, r *http.Request) {
 
 // CreateAssetHandler handles the creation of a new asset
 func CreateAssetHandler(w http.ResponseWriter, r *http.Request) {
-	// CORS
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req CreateAssetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request body"})
@@ -133,7 +102,7 @@ func CreateAssetHandler(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:     time.Now(),
 	}
 
-	if err := db.CreateAsset(context.Background(), asset); err != nil {
+	if err := db.CreateAsset(r.Context(), asset); err != nil {
 		log.Printf("Failed to create asset: %v", err)
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to create asset"})
 		return
@@ -144,22 +113,7 @@ func CreateAssetHandler(w http.ResponseWriter, r *http.Request) {
 
 // ListAssetsHandler retrieves all assets
 func ListAssetsHandler(w http.ResponseWriter, r *http.Request) {
-	// CORS
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	assets, err := db.GetAllAssets(context.Background())
+	assets, err := db.GetAllAssets(r.Context())
 	if err != nil {
 		log.Printf("Failed to retrieve assets: %v", err)
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve assets"})

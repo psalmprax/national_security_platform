@@ -129,3 +129,12 @@ type Asset struct {
 	LastUpdatedAt time.Time `json:"last_updated_at"`
 	CreatedAt     time.Time `json:"created_at"`
 }
+
+type SecurityScan struct {
+	ID            uuid.UUID   `json:"id"`
+	ScanTime      time.Time   `json:"scan_time"`
+	TargetService string      `json:"target_service"`
+	Status        string      `json:"status"`
+	Findings      interface{} `json:"findings"`  // JSONB
+	MetaData      interface{} `json:"meta_data"` // JSONB
+}

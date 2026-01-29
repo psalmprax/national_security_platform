@@ -41,6 +41,16 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/', request.url))
         }
 
+        // 3. Edge-based Role Protection
+        // Protecting Agency Portal from non-authorized roles
+        if (pathname.startsWith('/agency/portal')) {
+            const authorizedRoles = ['ADMIN', 'AGENCY_OFFICER'];
+            if (!session.role || !authorizedRoles.includes(session.role)) {
+                logAccess(request, 'redirect_home', session); // Unauthorized role attempt
+                return NextResponse.redirect(new URL('/', request.url))
+            }
+        }
+
         // Log successful authenticated access
         logAccess(request, 'authenticated', session);
 

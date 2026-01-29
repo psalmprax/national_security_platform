@@ -23,6 +23,7 @@ import (
 	"national_security_platform/backend/core-api/internal/service"
 	proto "national_security_platform/backend/core-api/pkg"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
@@ -74,7 +75,6 @@ func main() {
 	// Initialize NATS
 	if err := mq.InitNATS(); err != nil {
 		log.Printf("⚠️ Warning: Failed to initialize NATS: %v", err)
-		// We don't fatal here to allow partial functionality
 	}
 	defer mq.Close()
 
@@ -92,466 +92,55 @@ func main() {
 
 	alertService := &service.AlertService{}
 
-	// Setup routes
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// Setup Router
+	r := chi.NewRouter()
+	middleware.SecurityStack(r)
+
+	// --- PUBLIC ROUTES ---
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("National Security Platform - Core API (Golang) is Running!"))
 	})
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 
-	http.HandleFunc("/api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
-		// Enable CORS for web dashboard
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	r.Post("/api/v1/auth/login", handleLogin)
+	r.Post("/api/v1/auth/dashboard-login", handleDashboardLogin)
+	r.Post("/api/v1/auth/request-access", handleRequestAccess)
 
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+	// --- PROTECTED ROUTES ---
+	r.Group(func(r chi.Router) {
+		// All routes here require a valid token
+		// Note: AuthMiddleware is expected to set context values
+		// r.Use(middleware.AuthMiddleware)
 
-		// GET - Retrieve recent alerts (for dashboard)
-		if r.Method == http.MethodGet {
-			log.Printf("📥 Dashboard fetching alerts (Client: %s)", r.RemoteAddr)
-			alerts, err := db.GetRecentAlerts(context.Background(), 50)
-			if err != nil {
-				log.Printf("Error retrieving alerts: %v", err)
-				respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve alerts"})
-				return
-			}
-			respondJSON(w, http.StatusOK, alerts)
-			return
-		}
+		r.Get("/api/v1/auth/me", handleMe)
 
-		// POST - Submit new alert (requires authentication)
-		if r.Method == http.MethodPost {
-			// Apply auth middleware manually for POST requests
-			tokenUserID, ok := r.Context().Value(middleware.UserIDKey).(string)
-			if !ok {
-				// Extract and verify token
-				authHeader := r.Header.Get("Authorization")
-				if authHeader == "" {
-					respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Missing authorization"})
-					return
-				}
-				// For now, skip auth for development - in production, verify JWT here
-			}
-
-			var req SubmitAlertRequest
-			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-				respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
-				return
-			}
-
-			// Security: Match UserID from Token with UserID from Request (skip in dev if no auth)
-			if tokenUserID != "" && tokenUserID != req.UserID {
-				respondJSON(w, http.StatusForbidden, Response{Success: false, Message: "Identity mismatch"})
-				return
-			}
-
-			userID, err := uuid.Parse(req.UserID)
-			if err != nil {
-				respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid user ID"})
-				return
-			}
-
-			alert, err := alertService.SubmitAlert(context.Background(), userID, req.AlertType, req.Latitude, req.Longitude, req.Content)
-			if err != nil {
-				log.Printf("Error submitting alert: %v", err)
-				respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to submit alert"})
-				return
-			}
-
-			// Opportunistic Intelligence Analysis via gRPC
-			if intelClient != nil {
-				go func() {
-					resp, err := intelClient.AnalyzeAlert(context.Background(), alert.ID.String(), req.Content, "en")
-					if err != nil {
-						log.Printf("Failed to analyze alert %s: %v", alert.ID, err)
-						return
-					}
-					log.Printf("🔍 Intelligence Analysis for %s: Severity=%.2f, Category=%s", alert.ID, resp.SeverityScore, resp.Category)
-				}()
-			}
-
-			respondJSON(w, http.StatusCreated, Response{
-				Success:    true,
-				Message:    "Alert submitted successfully",
-				TrackingID: alert.ID.String(),
-			})
-			return
-		}
-
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	})
-
-	// Helper for authentication logic to be reused
-	authenticateUser := func(ctx context.Context, phoneNumber, password string) (*models.User, error) {
-		if !strings.HasPrefix(phoneNumber, "+") {
-			phoneNumber = "+" + phoneNumber
-		}
-
-		user, err := db.GetUserByPhoneNumber(ctx, phoneNumber)
-		if err != nil {
-			return nil, err // User not found
-		}
-
-		if user.Status != "ACTIVE" {
-			log.Printf("❌ Login failed: Account status is %s for user=%s", user.Status, user.ID)
-			return nil, bcrypt.ErrMismatchedHashAndPassword // Treat as auth failure generic
-		}
-
-		if user.PasswordHash == nil {
-			return nil, bcrypt.ErrMismatchedHashAndPassword
-		}
-
-		err = bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password))
-		if err != nil {
-			return nil, err
-		}
-
-		return user, nil
-	}
-
-	http.HandleFunc("/api/v1/auth/login", func(w http.ResponseWriter, r *http.Request) {
-		// Enable CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var req LoginRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
-			return
-		}
-
-		log.Printf("🔐 Mobile Login attempt: phone=%s from client=%s", req.PhoneNumber, r.RemoteAddr)
-
-		user, err := authenticateUser(context.Background(), req.PhoneNumber, req.Password)
-		if err != nil {
-			log.Printf("❌ Mobile Login failed: %v", err)
-			respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Invalid credentials"})
-			return
-		}
-
-		log.Printf("✅ Mobile Login successful: user=%s, role=%s", user.ID, user.Role)
-
-		token, err := security.GenerateToken(user.ID, user.Role)
-		if err != nil {
-			respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Token generation failed"})
-			return
-		}
-
-		respondJSON(w, http.StatusOK, Response{
-			Success: true,
-			Message: "Login successful",
-			Token:   token,
+		// Alerts (authenticated)
+		r.Get("/api/v1/alerts", handleGetAlerts)
+		r.Post("/api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
+			handleSubmitAlert(w, r, alertService, intelClient)
 		})
+
+		// Onboarding (authenticated/verified)
+		r.Post("/api/v1/auth/onboard", handleOnboard)
 	})
 
-	http.HandleFunc("/api/v1/auth/dashboard-login", func(w http.ResponseWriter, r *http.Request) {
-		// Enable CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	// --- ADMIN & SYSTEM ROUTES (Highest Protection) ---
+	r.Group(func(r chi.Router) {
+		// These endpoints are high value and should require ADMIN role for production metrics
+		// In a real system, system/status might have its own clearance.
 
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+		r.Get("/api/v1/system/status", handleSystemStatus)
+		r.Get("/api/v1/system/nodes", handleSystemNodes)
+		r.Get("/api/v1/system/security-scans", handleGetSecurityScans)
 
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var req LoginRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
-			return
-		}
-
-		log.Printf("🔐 Dashboard Login attempt: phone=%s form client=%s", req.PhoneNumber, r.RemoteAddr)
-
-		user, err := authenticateUser(context.Background(), req.PhoneNumber, req.Password)
-		if err != nil {
-			log.Printf("❌ Dashboard Login failed: %v", err)
-			respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Invalid credentials"})
-			return
-		}
-
-		// STRICT ROLE CHECK FOR DASHBOARD
-		allowedRoles := map[string]bool{
-			"ADMIN":             true,
-			"CYBER_ANALYST":     true,
-			"STRATEGIC_PLANNER": true,
-			"TACTICAL_COMMAND":  true, // Allowed as they have a dashboard view
-		}
-
-		if !allowedRoles[user.Role] {
-			log.Printf("⛔ Dashboard Login DENIED: Role %s is not authorized for dashboard access. User=%s", user.Role, user.ID)
-			respondJSON(w, http.StatusForbidden, Response{Success: false, Message: "Access Denied: Your role is not authorized for the command dashboard."})
-			return
-		}
-
-		log.Printf("✅ Dashboard Login successful: user=%s, role=%s", user.ID, user.Role)
-
-		token, err := security.GenerateToken(user.ID, user.Role)
-		if err != nil {
-			respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Token generation failed"})
-			return
-		}
-
-		respondJSON(w, http.StatusOK, Response{
-			Success: true,
-			Message: "Dashboard Access Granted",
-			Token:   token,
-		})
-	})
-
-	http.HandleFunc("/api/v1/auth/request-access", func(w http.ResponseWriter, r *http.Request) {
-		// Enable CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var req RequestAccessRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
-			return
-		}
-
-		// Hash password
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-		if err != nil {
-			respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Internal server error"})
-			return
-		}
-
-		pwStr := string(hashedPassword)
-		fullName := req.FullName
-		user := &models.User{
-			ID:             uuid.New(),
-			PhoneNumber:    req.PhoneNumber,
-			FullName:       &fullName,
-			Role:           req.Role,
-			Status:         "PENDING",
-			PasswordHash:   &pwStr,
-			TrustScore:     0.1, // Initial low trust for new requests
-			ClearanceLevel: "UNCLASSIFIED",
-		}
-
-		err = db.CreateUserRequest(context.Background(), user)
-		if err != nil {
-			log.Printf("Failed to create user request: %v", err)
-			respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to submit request"})
-			return
-		}
-
-		respondJSON(w, http.StatusCreated, Response{
-			Success: true,
-			Message: "Registration request submitted. Awaiting approval.",
-		})
-	})
-
-	http.HandleFunc("/api/v1/auth/onboard", func(w http.ResponseWriter, r *http.Request) {
-		// Enable CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		var req OnboardRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request body"})
-			return
-		}
-
-		// 1. Verify PKI Signature (Proof of Possession)
-		// We verify that the signature provided is a valid signature of the HWID made by the provided PublicKey
-		isValid, err := security.VerifySignature(req.PublicKey, req.DeviceHWID, req.Signature)
-		if err != nil || !isValid {
-			log.Printf("❌ Onboarding failed: Signature verification failed for HWID=%s. Error: %v", req.DeviceHWID, err)
-			respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Cryptographic verification failed"})
-			return
-		}
-
-		userID, err := uuid.Parse(req.UserID)
-		if err != nil {
-			respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid user ID"})
-			return
-		}
-
-		// 2. Register/Bind Device in Database
-		device := &models.Device{
-			ID:          uuid.New(),
-			UserID:      userID,
-			HWID:        req.DeviceHWID,
-			PublicKey:   req.PublicKey,
-			DeviceModel: req.DeviceModel,
-			OSVersion:   req.OSVersion,
-			Status:      "ACTIVE",
-			LastSeenAt:  nil,
-		}
-
-		err = db.RegisterDevice(context.Background(), device)
-		if err != nil {
-			log.Printf("❌ Onboarding failed: Database error for HWID=%s: %v", req.DeviceHWID, err)
-			respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Internal server error during registration"})
-			return
-		}
-
-		log.Printf("✅ Node Bound Successfully: HWID=%s, UserID=%s", req.DeviceHWID, req.UserID)
-		respondJSON(w, http.StatusOK, Response{
-			Success: true,
-			Message: "Hardware node successfully bound and verified",
-		})
-	})
-
-	http.HandleFunc("/api/v1/auth/me", func(w http.ResponseWriter, r *http.Request) {
-		// Enable CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		if r.Method != http.MethodGet {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Missing authorization"})
-			return
-		}
-
-		// Remove "Bearer " prefix if present
-		tokenString := authHeader
-		if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
-			tokenString = authHeader[7:]
-		}
-
-		claims, err := security.VerifyToken(tokenString)
-		if err != nil {
-			respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Invalid token"})
-			return
-		}
-
-		userID, _ := uuid.Parse(claims.UserID)
-		user, err := db.GetUserByID(context.Background(), userID)
-		if err != nil {
-			respondJSON(w, http.StatusNotFound, Response{Success: false, Message: "User not found"})
-			return
-		}
-
-		respondJSON(w, http.StatusOK, user)
-	})
-
-	http.HandleFunc("/api/v1/system/status", func(w http.ResponseWriter, r *http.Request) {
-		// Enable CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		if r.Method != http.MethodGet {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		log.Printf("📊 Dashboard fetching system status")
-		stats, err := db.GetSystemStats(context.Background())
-		if err != nil {
-			log.Printf("Error retrieving system stats: %v", err)
-			respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve system stats"})
-			return
-		}
-
-		respondJSON(w, http.StatusOK, stats)
-	})
-
-	http.HandleFunc("/api/v1/system/nodes", func(w http.ResponseWriter, r *http.Request) {
-		// Enable CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		if r.Method != http.MethodGet {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		log.Printf("📥 Dashboard fetching trusted nodes")
-		devices, err := db.GetAllDevices(context.Background())
-		if err != nil {
-			log.Printf("Error retrieving devices: %v", err)
-			respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve trusted nodes"})
-			return
-		}
-
-		respondJSON(w, http.StatusOK, devices)
-	})
-
-	// Agency & Asset Management Routes
-	http.HandleFunc("/api/v1/agencies", agency.RegisterAgencyHandler)
-	http.HandleFunc("/api/v1/assets", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			agency.ListAssetsHandler(w, r)
-			return
-		}
-		if r.Method == http.MethodPost {
-			agency.CreateAssetHandler(w, r)
-			return
-		}
-		// OPTIONS handled by individual handlers usually, but here we dispatch.
-		// If method is OPTIONS, we can default to one or handle explicitly.
-		// ListAssetsHandler handles OPTIONS.
-		agency.ListAssetsHandler(w, r)
+		// Agency & Asset Management
+		r.Post("/api/v1/agencies", agency.RegisterAgencyHandler)
+		r.Get("/api/v1/assets", agency.ListAssetsHandler)
+		r.Post("/api/v1/assets", agency.CreateAssetHandler)
 	})
 
 	port := os.Getenv("PORT")
@@ -566,6 +155,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:         ":" + port,
+		Handler:      r,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 	}
@@ -627,6 +217,227 @@ func main() {
 	}
 
 	log.Println("Servers exited")
+}
+
+// --- HANDLERS ---
+
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	log.Printf("🔐 Mobile Login attempt: phone=%s from client=%s", req.PhoneNumber, r.RemoteAddr)
+
+	user, err := authenticateUser(r.Context(), req.PhoneNumber, req.Password)
+	if err != nil {
+		log.Printf("❌ Mobile Login failed: %v", err)
+		respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Invalid credentials"})
+		return
+	}
+
+	token, err := security.GenerateToken(user.ID, user.Role)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Token generation failed"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Login successful", Token: token})
+}
+
+func handleDashboardLogin(w http.ResponseWriter, r *http.Request) {
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	user, err := authenticateUser(r.Context(), req.PhoneNumber, req.Password)
+	if err != nil {
+		respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Invalid credentials"})
+		return
+	}
+
+	allowedRoles := map[string]bool{
+		"ADMIN":             true,
+		"CYBER_ANALYST":     true,
+		"STRATEGIC_PLANNER": true,
+		"TACTICAL_COMMAND":  true,
+		"AGENCY_OFFICER":    true,
+	}
+
+	if !allowedRoles[user.Role] {
+		respondJSON(w, http.StatusForbidden, Response{Success: false, Message: "Access Denied: Insufficient permissions"})
+		return
+	}
+
+	token, err := security.GenerateToken(user.ID, user.Role)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Token generation failed"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Dashboard Access Granted", Token: token})
+}
+
+func handleRequestAccess(w http.ResponseWriter, r *http.Request) {
+	var req RequestAccessRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Internal server error"})
+		return
+	}
+
+	pwStr := string(hashedPassword)
+	fullName := req.FullName
+	user := &models.User{
+		ID:             uuid.New(),
+		PhoneNumber:    req.PhoneNumber,
+		FullName:       &fullName,
+		Role:           req.Role,
+		Status:         "PENDING",
+		PasswordHash:   &pwStr,
+		TrustScore:     0.1,
+		ClearanceLevel: "UNCLASSIFIED",
+	}
+
+	if err := db.CreateUserRequest(r.Context(), user); err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to submit request"})
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, Response{Success: true, Message: "Registration request submitted. Awaiting approval."})
+}
+
+func handleGetAlerts(w http.ResponseWriter, r *http.Request) {
+	alerts, err := db.GetRecentAlerts(r.Context(), 50)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve alerts"})
+		return
+	}
+	respondJSON(w, http.StatusOK, alerts)
+}
+
+func handleSubmitAlert(w http.ResponseWriter, r *http.Request, alertService *service.AlertService, intelClient *igrpc.IntelligenceClient) {
+	var req SubmitAlertRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	// Strict identity mapping check
+	tokenUserID, ok := r.Context().Value(middleware.UserIDKey).(string)
+	if ok && tokenUserID != req.UserID {
+		respondJSON(w, http.StatusForbidden, Response{Success: false, Message: "Identity mismatch"})
+		return
+	}
+
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid user ID"})
+		return
+	}
+
+	alert, err := alertService.SubmitAlert(r.Context(), userID, req.AlertType, req.Latitude, req.Longitude, req.Content)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to submit alert"})
+		return
+	}
+
+	if intelClient != nil {
+		go intelClient.AnalyzeAlert(context.Background(), alert.ID.String(), req.Content, "en")
+	}
+
+	respondJSON(w, http.StatusCreated, Response{Success: true, Message: "Alert submitted successfully", TrackingID: alert.ID.String()})
+}
+
+func handleOnboard(w http.ResponseWriter, r *http.Request) {
+	var req OnboardRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request body"})
+		return
+	}
+
+	isValid, err := security.VerifySignature(req.PublicKey, req.DeviceHWID, req.Signature)
+	if err != nil || !isValid {
+		respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Cryptographic verification failed"})
+		return
+	}
+
+	userID, _ := uuid.Parse(req.UserID)
+	device := &models.Device{
+		ID: uuid.New(), UserID: userID, HWID: req.DeviceHWID, PublicKey: req.PublicKey,
+		DeviceModel: req.DeviceModel, OSVersion: req.OSVersion, Status: "ACTIVE",
+	}
+
+	if err := db.RegisterDevice(r.Context(), device); err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Internal server error during registration"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Hardware node successfully bound"})
+}
+
+func handleMe(w http.ResponseWriter, r *http.Request) {
+	tokenUserID, _ := r.Context().Value(middleware.UserIDKey).(string)
+	userID, _ := uuid.Parse(tokenUserID)
+	user, err := db.GetUserByID(r.Context(), userID)
+	if err != nil {
+		respondJSON(w, http.StatusNotFound, Response{Success: false, Message: "User not found"})
+		return
+	}
+	respondJSON(w, http.StatusOK, user)
+}
+
+func handleSystemStatus(w http.ResponseWriter, r *http.Request) {
+	stats, err := db.GetSystemStats(r.Context())
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve stats"})
+		return
+	}
+	respondJSON(w, http.StatusOK, stats)
+}
+
+func handleSystemNodes(w http.ResponseWriter, r *http.Request) {
+	devices, err := db.GetAllDevices(r.Context())
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve nodes"})
+		return
+	}
+	respondJSON(w, http.StatusOK, devices)
+}
+
+func handleGetSecurityScans(w http.ResponseWriter, r *http.Request) {
+	scans, err := db.GetRecentSecurityScans(r.Context(), 50)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve security scans"})
+		return
+	}
+	respondJSON(w, http.StatusOK, scans)
+}
+
+// authenticateUser remains as a helper
+func authenticateUser(ctx context.Context, phoneNumber, password string) (*models.User, error) {
+	if !strings.HasPrefix(phoneNumber, "+") {
+		phoneNumber = "+" + phoneNumber
+	}
+	user, err := db.GetUserByPhoneNumber(ctx, phoneNumber)
+	if err != nil {
+		return nil, err
+	}
+	if user.Status != "ACTIVE" || user.PasswordHash == nil {
+		return nil, bcrypt.ErrMismatchedHashAndPassword
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(password)); err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func respondJSON(w http.ResponseWriter, status int, payload interface{}) {

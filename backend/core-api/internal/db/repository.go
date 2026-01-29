@@ -399,3 +399,38 @@ func GetDeviceByHWID(ctx context.Context, hwid string) (*models.Device, error) {
 
 	return &d, nil
 }
+
+// GetRecentSecurityScans retrieves recent security scans
+func GetRecentSecurityScans(ctx context.Context, limit int) ([]models.SecurityScan, error) {
+	query := `
+		SELECT id, scan_time, target_service, status, findings, meta_data
+		FROM security_scans
+		ORDER BY scan_time DESC
+		LIMIT $1
+	`
+
+	rows, err := Pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query security scans: %w", err)
+	}
+	defer rows.Close()
+
+	var scans []models.SecurityScan
+	for rows.Next() {
+		var s models.SecurityScan
+		err := rows.Scan(
+			&s.ID,
+			&s.ScanTime,
+			&s.TargetService,
+			&s.Status,
+			&s.Findings,
+			&s.MetaData,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan security scan: %w", err)
+		}
+		scans = append(scans, s)
+	}
+
+	return scans, nil
+}

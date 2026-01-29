@@ -17,15 +17,13 @@ var masterKey []byte
 func init() {
 	keyBase64 := os.Getenv("MASTER_ENCRYPTION_KEY")
 	if keyBase64 == "" {
-		// In a real app, we'd fail hard. For dev, we log a warning.
-		// Never use a static fallback in production.
-		fmt.Println("⚠️  WARNING: MASTER_ENCRYPTION_KEY not set. Using insecure default for development.")
-		masterKey = make([]byte, 32) // 32 bytes for AES-256
+		fmt.Println("❌ FATAL ERROR: MASTER_ENCRYPTION_KEY not set. Refusing to start in insecure state.")
+		os.Exit(1)
 	} else {
 		var err error
 		masterKey, err = base64.StdEncoding.DecodeString(keyBase64)
 		if err != nil || len(masterKey) != 32 {
-			fmt.Printf("❌ ERROR: Invalid MASTER_ENCRYPTION_KEY. Must be 32-byte base64 string. Error: %v\n", err)
+			fmt.Printf("❌ FATAL ERROR: Invalid MASTER_ENCRYPTION_KEY. Must be 32-byte base64 string. Error: %v\n", err)
 			os.Exit(1)
 		}
 	}
