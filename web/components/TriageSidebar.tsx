@@ -1,17 +1,35 @@
 "use client";
 
-import React from 'react';
-import { AlertCircle, Clock, CheckCircle2, ShieldAlert, Activity } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle2, ShieldAlert, Activity, Shield, FileDown, X, TrendingUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
-import { Alert } from '../lib/api';
+import { Alert, SectorReport, fetchSectorReport } from '../lib/api';
+import { useAuth } from '../lib/AuthContext';
 
 export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts: Alert[], onSelect?: (alert: Alert) => void, selectedId?: string | null }) {
+    const { token, user } = useAuth();
     const [isMounted, setIsMounted] = React.useState(false);
+    const [report, setReport] = React.useState<SectorReport | null>(null);
+    const [isGenerating, setIsGenerating] = React.useState(false);
 
     React.useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    const handleGenerateReport = async () => {
+        if (!token) return;
+        setIsGenerating(true);
+        // Artificial delay for "premium" feel
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            const data = await fetchSectorReport(token);
+            setReport(data);
+        } catch (error) {
+            console.error('Failed to generate report:', error);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
     return (
         <aside className="w-96 glass-surface flex flex-col z-30">
@@ -106,10 +124,123 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
             </div>
 
             <div className="p-6 border-t border-white/5 bg-white/[0.02] backdrop-blur-md">
-                <button className="w-full h-12 rounded-xl bg-[#00FF95] text-black text-[11px] font-black tracking-[0.2em] uppercase hover:scale-[1.02] active:scale-[0.98] transition-all glow-green">
-                    Generate Sector Report
+                <button
+                    onClick={handleGenerateReport}
+                    disabled={isGenerating || user?.role !== 'ADMIN'}
+                    className={`w-full h-12 rounded-xl text-black text-[11px] font-black tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2
+                        ${isGenerating ? 'bg-white/10 text-white/40 cursor-wait' : 'bg-[#00FF95] hover:scale-[1.02] active:scale-[0.98] glow-green'}
+                        ${user?.role !== 'ADMIN' ? 'opacity-50 cursor-not-allowed' : ''}
+                    `}
+                >
+                    {isGenerating ? (
+                        <>
+                            <div className="w-4 h-4 border-2 border-white/20 border-t-[#00FF95] rounded-full animate-spin" />
+                            Analyzing Assets...
+                        </>
+                    ) : (
+                        <>
+                            <Shield className="w-4 h-4" />
+                            Generate Sector Report
+                        </>
+                    )}
                 </button>
             </div>
+
+            {/* SECTOR REPORT MODAL */}
+            {report && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-[#121212] border-2 border-[#00FF95]/30 rounded-3xl w-full max-w-xl shadow-[0_0_100px_rgba(0,255,149,0.1)] overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="relative p-8 border-b border-white/5 bg-gradient-to-r from-[#00FF95]/5 to-transparent">
+                            <button
+                                onClick={() => setReport(null)}
+                                className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/10"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="w-12 h-12 rounded-2xl bg-[#00FF95]/10 border border-[#00FF95]/20 flex items-center justify-center">
+                                    <Shield className="w-6 h-6 text-[#00FF95]" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-white uppercase tracking-wider">Sector Intelligence Report</h3>
+                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{report.sector_id} • {new Date(report.timestamp).toLocaleString()}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Threat Level</p>
+                                    <p className={`text-xl font-black ${report.threat_level === 'CRITICAL' || report.threat_level === 'HIGH' ? 'text-red-500' : 'text-[#00FF95]'}`}>
+                                        {report.threat_level}
+                                    </p>
+                                </div>
+                                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">System Integrity</p>
+                                    <p className="text-xl font-black text-[#00FF95]">{report.system_integrity.toFixed(1)}%</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-8 space-y-8">
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Alert Composition</h4>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="text-center">
+                                        <p className="text-2xl font-black text-white">{report.total_alerts}</p>
+                                        <p className="text-[9px] font-bold text-white/40 uppercase">Total</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-2xl font-black text-red-500">{report.critical_threats}</p>
+                                        <p className="text-[9px] font-bold text-white/40 uppercase">Critical</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-2xl font-black text-[#00FF95]">{report.routine_alerts}</p>
+                                        <p className="text-[9px] font-bold text-white/40 uppercase">Routine</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">
+                                    <span>Average Trust Factor</span>
+                                    <span className="text-[#00FF95]">{Math.round(report.trust_score_avg * 10)}%</span>
+                                </div>
+                                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-[#00FF95]/50 to-[#00FF95]"
+                                        style={{ width: `${Math.min(report.trust_score_avg * 10, 100)}%` }}
+                                    />
+                                </div>
+                                <p className="text-[9px] text-white/40 italic">
+                                    Last known vector: <span className="text-white font-bold uppercase">{report.last_incident_type}</span>
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3 pt-4 border-t border-white/5">
+                                <button
+                                    onClick={() => {
+                                        const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `sector-report-${report.sector_id.toLowerCase()}.json`;
+                                        a.click();
+                                    }}
+                                    className="flex-1 h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2"
+                                >
+                                    <FileDown className="w-4 h-4" /> Export Data
+                                </button>
+                                <button
+                                    onClick={() => window.print()}
+                                    className="flex-1 h-12 rounded-xl bg-[#00FF95] text-black text-[10px] font-black tracking-widest uppercase hover:scale-[1.02] active:scale-[0.98] transition-all glow-green flex items-center justify-center gap-2"
+                                >
+                                    <TrendingUp className="w-4 h-4" /> Full Analytics
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </aside>
     );
 }

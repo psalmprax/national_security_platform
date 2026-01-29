@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -113,8 +114,7 @@ func main() {
 	// --- PROTECTED ROUTES ---
 	r.Group(func(r chi.Router) {
 		// All routes here require a valid token
-		// Note: AuthMiddleware is expected to set context values
-		// r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.AuthMiddleware)
 
 		r.Get("/api/v1/auth/me", handleMe)
 
@@ -130,12 +130,13 @@ func main() {
 
 	// --- ADMIN & SYSTEM ROUTES (Highest Protection) ---
 	r.Group(func(r chi.Router) {
-		// These endpoints are high value and should require ADMIN role for production metrics
-		// In a real system, system/status might have its own clearance.
+		r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.RequireRole("ADMIN"))
 
 		r.Get("/api/v1/system/status", handleSystemStatus)
 		r.Get("/api/v1/system/nodes", handleSystemNodes)
 		r.Get("/api/v1/system/security-scans", handleGetSecurityScans)
+		r.Get("/api/v1/system/reports/sector", handleGetSectorReport)
 
 		// Agency & Asset Management
 		r.Post("/api/v1/agencies", agency.RegisterAgencyHandler)
@@ -414,12 +415,73 @@ func handleSystemNodes(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetSecurityScans(w http.ResponseWriter, r *http.Request) {
-	scans, err := db.GetRecentSecurityScans(r.Context(), 50)
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page := 1
+	limit := 10
+
+	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		page = p
+	}
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+		limit = l
+	}
+
+	offset := (page - 1) * limit
+
+	scans, err := db.GetRecentSecurityScans(r.Context(), limit, offset)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve security scans"})
 		return
 	}
 	respondJSON(w, http.StatusOK, scans)
+}
+
+func handleGetSectorReport(w http.ResponseWriter, r *http.Request) {
+	alerts, err := db.GetRecentAlerts(r.Context(), 100)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to gather alert data"})
+		return
+	}
+
+	report := models.SectorReport{
+		SectorID:  "LAGOS_CENTRAL_COMMAND",
+		Timestamp: time.Now(),
+	}
+
+	for _, a := range alerts {
+		report.TotalAlerts++
+		if a.SeverityScore != nil && *a.SeverityScore > 0.8 {
+			report.CriticalThreats++
+		} else if a.SeverityScore != nil && *a.SeverityScore > 0.4 {
+			report.RoutineAlerts++
+		}
+
+		if a.SeverityScore != nil {
+			report.TrustScoreAvg += float64(a.VerificationCount)
+		}
+		report.LastIncidentType = a.AlertType
+	}
+
+	if report.TotalAlerts > 0 {
+		report.TrustScoreAvg /= float64(report.TotalAlerts)
+		report.SystemIntegrity = 100.0 - (float64(report.CriticalThreats) / float64(report.TotalAlerts) * 20.0)
+	} else {
+		report.SystemIntegrity = 100.0
+	}
+
+	if report.CriticalThreats > 2 {
+		report.ThreatLevel = "CRITICAL"
+	} else if report.CriticalThreats > 0 {
+		report.ThreatLevel = "HIGH"
+	} else if report.TotalAlerts > 5 {
+		report.ThreatLevel = "MEDIUM"
+	} else {
+		report.ThreatLevel = "LOW"
+	}
+
+	respondJSON(w, http.StatusOK, report)
 }
 
 // authenticateUser remains as a helper

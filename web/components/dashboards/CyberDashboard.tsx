@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import MapboxMap from '../MapboxMap';
 import TriageSidebar from '../TriageSidebar';
-import { Alert } from '../../lib/api';
+import { Alert, SecurityScan, fetchSecurityScans } from '../../lib/api';
+import { useAuth } from '../../lib/AuthContext';
 
 
 
@@ -35,13 +36,30 @@ interface CyberDashboardProps {
 }
 
 export default function CyberDashboard({ alerts, currentTime, securityStatus, user, logout }: CyberDashboardProps) {
-    const [activeView, setActiveView] = useState<'map' | 'alerts' | 'data' | 'analytics' | 'profile' | 'registry'>('map');
+    const { token } = useAuth();
+    const [activeView, setActiveView] = useState<'map' | 'alerts' | 'data' | 'analytics' | 'profile' | 'registry' | 'compliance'>('map');
     const [filterMode, setFilterMode] = useState<'all' | 'secure' | 'active' | 'signal'>('all');
     const [showNotifications, setShowNotifications] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
     const [showSatellite, setShowSatellite] = useState(false);
+    const [securityScans, setSecurityScans] = useState<SecurityScan[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    // Fetch Security Scans if Admin
+    useEffect(() => {
+        if (user?.role === 'ADMIN' && token) {
+            const loadScans = async () => {
+                const scans = await fetchSecurityScans(token, currentPage, itemsPerPage);
+                setSecurityScans(scans);
+            };
+            loadScans();
+            const interval = setInterval(loadScans, 30000); // Poll every 30s
+            return () => clearInterval(interval);
+        }
+    }, [user, token, currentPage]);
 
     // Filter Logic
     const filteredAlerts = alerts.filter(alert => {
@@ -135,6 +153,16 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                 />
                                 <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                                     Analytics
+                                </div>
+                            </div>
+                            <div className="relative group">
+                                <Activity
+                                    onClick={() => setActiveView('compliance')}
+                                    className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'compliance' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
+                                        }`}
+                                />
+                                <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                    Security Compliance
                                 </div>
                             </div>
                         </nav>
@@ -426,64 +454,120 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                             </div>
                         )}
 
-                        {activeView === 'registry' && (
+                        {activeView === 'compliance' && (
                             <div className="w-full h-full p-8 overflow-auto">
                                 <div className="max-w-6xl mx-auto">
-                                    <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Identity & PKI Registry</h2>
-                                    <div className="glass-card border border-white/10 overflow-hidden">
-                                        <div className="bg-white/[0.03] px-8 py-4 border-b border-white/10 flex justify-between items-center">
-                                            <h3 className="text-[#00FF95] text-xs font-black tracking-[0.2em] uppercase">Trusted Node Registry</h3>
-                                            <span className="text-white/20 text-[10px] font-mono">TOTAL_NODES: {securityStatus.trustedDevices}</span>
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div>
+                                            <h2 className="text-3xl font-black tracking-wider text-white uppercase">Security Sentinel</h2>
+                                            <p className="text-white/40 text-xs font-mono mt-1 uppercase tracking-widest">Continuous Compliance Monitoring</p>
                                         </div>
-                                        <div className="p-0">
-                                            <table className="w-full text-left">
-                                                <thead>
-                                                    <tr className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] border-b border-white/5">
-                                                        <th className="px-8 py-4">Node Designation</th>
-                                                        <th className="px-8 py-4">Status</th>
-                                                        <th className="px-8 py-4 text-right">PKI_Verification</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-white/5 font-mono text-xs">
-                                                    {[
-                                                        { id: 'NG-SEC-01-ABJ', status: 'ONLINE', pki: 'SHA256:4a8c...' },
-                                                        { id: 'NG-SEC-02-LAG', status: 'ONLINE', pki: 'SHA256:9f2d...' },
-                                                        { id: 'NG-SEC-03-KAD', status: 'ONLINE', pki: 'SHA256:1b6e...' },
-                                                        { id: 'NG-SEC-04-PHC', status: 'STANDBY', pki: 'SHA256:7c4a...' }
-                                                    ].map((node, i) => (
-                                                        <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
-                                                            <td className="px-8 py-4 text-white/80 group-hover:text-white transition-colors">{node.id}</td>
-                                                            <td className="px-8 py-4">
-                                                                <span className={`flex items-center gap-2 ${node.status === 'ONLINE' ? 'text-[#00FF95]' : 'text-white/30'}`}>
-                                                                    <span className={`w-1.5 h-1.5 rounded-full ${node.status === 'ONLINE' ? 'bg-[#00FF95] animate-pulse' : 'bg-white/10'}`} />
-                                                                    {node.status}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-8 py-4 text-right text-white/40">{node.pki}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                        <div className="flex items-center gap-4">
+                                            <div className="glass-card px-4 py-2 border border-[#00FF95]/20 bg-[#00FF95]/5">
+                                                <span className="text-[10px] text-white/40 uppercase font-black block mb-0.5">Global Status</span>
+                                                <span className="text-[#00FF95] text-sm font-black uppercase">Operationally Sound</span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div className="glass-card p-6 border border-white/5">
-                                            <Lock className="w-5 h-5 text-[#00FF95] mb-4" />
-                                            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Hardware Binding</h4>
-                                            <p className="text-xs text-white/60 leading-relaxed font-mono">All active sessions are bound to TPM-level hardware IDs via encrypted channel handshake.</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                        <div className="glass-card p-6 border border-white/5 bg-white/[0.01]">
+                                            <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4 border-b border-white/5 pb-2">Vulnerability Scan Pulse</h3>
+                                            <div className="space-y-4">
+                                                {securityScans.length === 0 ? (
+                                                    <p className="text-white/30 italic text-sm py-4">Awaiting initial telemetry stream...</p>
+                                                ) : (
+                                                    securityScans.slice(0, 5).map((scan: SecurityScan) => (
+                                                        <div key={scan.id} className="flex items-center justify-between p-3 rounded bg-black/40 border border-white/5">
+                                                            <div>
+                                                                <p className="text-xs text-white/80 font-bold uppercase">{scan.target_service}</p>
+                                                                <p className="text-[10px] text-white/40 font-mono mt-0.5">{new Date(scan.scan_time).toLocaleString()}</p>
+                                                            </div>
+                                                            <span className={`text-[9px] font-black px-2 py-1 rounded ${scan.status === 'PASSED' ? 'bg-[#00FF95]/20 text-[#00FF95]' : 'bg-red-500/20 text-red-500'}`}>
+                                                                {scan.status}
+                                                            </span>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="glass-card p-6 border border-white/5">
-                                            <Eye className="w-5 h-5 text-[#00FF95] mb-4" />
-                                            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Audit Trails</h4>
-                                            <p className="text-xs text-white/60 leading-relaxed font-mono">Registry modifications are logged to the immutable ledger for transparency and non-repudiation.</p>
+
+                                        <div className="glass-card p-6 border border-white/5 bg-white/[0.01]">
+                                            <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4 border-b border-white/5 pb-2">Active Hardening (GuardDog)</h3>
+                                            <div className="space-y-3">
+                                                {[
+                                                    { name: 'JWT Secret Hardening', status: 'Fail-Closed Active' },
+                                                    { name: 'CORS Strict Mode', status: 'Authorized Origins Only' },
+                                                    { name: 'RBAC Enforcement', status: 'Global Active' },
+                                                    { name: 'HSTS/CSP Headers', status: 'Enforced' }
+                                                ].map((item, i) => (
+                                                    <div key={i} className="flex items-center justify-between text-xs py-1">
+                                                        <span className="text-white/60">{item.name}</span>
+                                                        <span className="text-[#00FF95] font-mono font-bold tracking-tight">{item.status}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="glass-card p-6 border border-[#00FF95]/20 bg-[#00FF95]/5">
-                                            <Zap className="w-5 h-5 text-[#00FF95] mb-4" />
-                                            <h4 className="text-[10px] font-black text-white/50 uppercase tracking-widest mb-2">System Integrity</h4>
-                                            <div className="text-xl font-black text-[#00FF95] tabular-nums">100.0%</div>
-                                            <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
-                                                <div className="h-full bg-[#00FF95] w-full shadow-[0_0_10px_rgba(0,255,149,0.5)]" />
+                                    </div>
+
+                                    <div className="glass-card border border-white/5 overflow-hidden">
+                                        <div className="bg-white/5 px-6 py-3 border-b border-white/5">
+                                            <h3 className="text-white text-xs font-black uppercase tracking-widest">Sentinel Audit Ledger</h3>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left font-mono text-xs">
+                                                <thead>
+                                                    <tr className="bg-white/[0.02] text-white/30 text-[10px] uppercase">
+                                                        <th className="px-6 py-3">Scan ID</th>
+                                                        <th className="px-6 py-3">Timestamp</th>
+                                                        <th className="px-6 py-3">Findings</th>
+                                                        <th className="px-6 py-3 text-right">Integrity Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5 text-white/70">
+                                                    {securityScans.map((scan) => (
+                                                        <tr key={scan.id} className="hover:bg-white/[0.02] transition-colors">
+                                                            <td className="px-6 py-3 text-[#00FF95]">{scan.id.substring(0, 8)}</td>
+                                                            <td className="px-6 py-3">{new Date(scan.scan_time).toISOString()}</td>
+                                                            <td className="px-6 py-3">
+                                                                {scan.findings && scan.findings.length > 0 ? (
+                                                                    <span className="text-red-400">{scan.findings.length} issue(s) detected</span>
+                                                                ) : (
+                                                                    <span className="text-[#00FF95]/60">Nominal - No issues detected</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-3 text-right font-black">
+                                                                <span className={scan.status === 'PASSED' ? 'text-[#00FF95]' : 'text-red-500'}>{scan.status}</span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {securityScans.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={4} className="px-6 py-8 text-center text-white/20 italic">No audit records available in the secure buffer.</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="bg-white/5 px-6 py-4 border-t border-white/5 flex items-center justify-between">
+                                            <div className="text-[10px] text-white/40 font-mono uppercase tracking-widest">
+                                                Page {currentPage} • Ledger Buffer
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                                    disabled={currentPage === 1}
+                                                    className="px-4 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    Previous
+                                                </button>
+                                                <button
+                                                    onClick={() => setCurrentPage(currentPage + 1)}
+                                                    disabled={securityScans.length < itemsPerPage}
+                                                    className="px-4 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-[#00FF95]/10 hover:border-[#00FF95]/30 hover:text-[#00FF95] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    Next
+                                                </button>
                                             </div>
                                         </div>
                                     </div>

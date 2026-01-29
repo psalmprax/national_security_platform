@@ -14,6 +14,7 @@ services:
       - NATS_URL=nats://nats_token@nats:4222
       - INTELLIGENCE_SERVICE_URL=http://intelligence-service:8000
       - JWT_SECRET=${JWT_SECRET:-insecure_default_secret_for_dev_only}
+      - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY:-rm64BAqWbq9WidDBHZZ4zAnTHPnwjg+SDsPAfLQUHDo=}
     depends_on:
       intelligence-service:
         condition: service_started

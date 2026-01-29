@@ -10,7 +10,7 @@ import { Layout, Users, ShieldAlert, LogOut } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 
 export default function DashboardPage() {
-    const { user, logout } = useAuth();
+    const { user, logout, token } = useAuth();
     const [currentUserRole, setCurrentUserRole] = useState<UserRole>((user?.role as UserRole) || 'TACTICAL_COMMAND');
     const [alerts, setAlerts] = useState<any[]>([]);
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -42,7 +42,7 @@ export default function DashboardPage() {
     useEffect(() => {
         const loadAlerts = async () => {
             try {
-                const rawAlerts = await fetchAlerts();
+                const rawAlerts = await fetchAlerts(token || undefined);
 
                 const transformedAlerts = await Promise.all(rawAlerts.map(async (a: ApiAlert) => {
                     const mockSignature = a.priority_class === 'CRITICAL' ? 'sig_trusted_' + a.id.substring(0, 8) : 'invalid_sig';
@@ -53,10 +53,10 @@ export default function DashboardPage() {
                     };
                 }));
 
-                const systemStatus = await fetchSystemStatus();
+                const systemStatus = await fetchSystemStatus(token || undefined);
 
                 setAlerts(transformedAlerts);
-                setSecurityStatus(prev => ({
+                setSecurityStatus((prev: any) => ({
                     ...prev,
                     isAuthenticated: true,
                     trustedDevices: systemStatus ? systemStatus.total_users : prev.trustedDevices
@@ -66,10 +66,12 @@ export default function DashboardPage() {
             }
         };
 
-        loadAlerts();
-        const interval = setInterval(loadAlerts, 10000);
-        return () => clearInterval(interval);
-    }, []);
+        if (token) {
+            loadAlerts();
+            const interval = setInterval(loadAlerts, 10000);
+            return () => clearInterval(interval);
+        }
+    }, [token]);
 
     const toggleAgencyView = (view: AgencyView) => {
         if (!hasAccess(currentUserRole, view)) return;

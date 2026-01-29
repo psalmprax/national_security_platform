@@ -138,3 +138,15 @@ type SecurityScan struct {
 	Findings      interface{} `json:"findings"`  // JSONB
 	MetaData      interface{} `json:"meta_data"` // JSONB
 }
+
+type SectorReport struct {
+	SectorID         string    `json:"sector_id"`
+	Timestamp        time.Time `json:"timestamp"`
+	TotalAlerts      int       `json:"total_alerts"`
+	CriticalThreats  int       `json:"critical_threats"`
+	RoutineAlerts    int       `json:"routine_alerts"`
+	SystemIntegrity  float64   `json:"system_integrity"`
+	TrustScoreAvg    float64   `json:"trust_score_avg"`
+	ThreatLevel      string    `json:"threat_level"` // LOW, MEDIUM, HIGH, CRITICAL
+	LastIncidentType string    `json:"last_incident_type"`
+}

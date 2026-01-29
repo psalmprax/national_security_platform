@@ -232,7 +232,7 @@ func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
 		       ST_X(location::geometry) as longitude, 
 		       ST_Y(location::geometry) as latitude,
 		       impact_radius_meters, alert_type,
-		       content_text, content_media_url, verification_count,
+		       content_text, content_media_url, severity_score, verification_count,
 		       created_at
 		FROM alerts
 		ORDER BY created_at DESC
@@ -259,6 +259,7 @@ func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
 			&alert.AlertType,
 			&alert.ContentText,
 			&alert.ContentMediaURL,
+			&alert.SeverityScore,
 			&alert.VerificationCount,
 			&alert.CreatedAt,
 		)
@@ -401,15 +402,15 @@ func GetDeviceByHWID(ctx context.Context, hwid string) (*models.Device, error) {
 }
 
 // GetRecentSecurityScans retrieves recent security scans
-func GetRecentSecurityScans(ctx context.Context, limit int) ([]models.SecurityScan, error) {
+func GetRecentSecurityScans(ctx context.Context, limit, offset int) ([]models.SecurityScan, error) {
 	query := `
 		SELECT id, scan_time, target_service, status, findings, meta_data
 		FROM security_scans
 		ORDER BY scan_time DESC
-		LIMIT $1
+		LIMIT $1 OFFSET $2
 	`
 
-	rows, err := Pool.Query(ctx, query, limit)
+	rows, err := Pool.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query security scans: %w", err)
 	}
