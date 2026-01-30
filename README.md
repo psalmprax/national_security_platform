@@ -12,7 +12,7 @@ The system follows a resilient, distributed, and event-driven architecture:
 - **Command Dashboard (Next.js)**: Real-time geospatial triage center for intelligence analysts.
 - **Infrastructure**: NATS JetStream (Message Bus), CockroachDB (Distributed SQL), Redis (Cache).
 
-Detailed design specs: [Architecture Design Document](architecture_design.md)
+Detailed design specs: [Architecture Design Document](docs/architecture_design.md)
 
 ---
 
@@ -118,12 +118,14 @@ If you see "WebGL is not supported" in Chrome, follow these steps to enable hard
 ---
 
 ## 📂 Key Documentation
-- [Full Project Walkthrough](walkthrough.md)
-- [Architecture Design Document](architecture_design.md)
-- [API Documentation](api_documentation.md)
-- [Scaling & Deployment Guide](scaling_guide.md)
-- [Mobile Testing Guide](mobile_testing_guide.md)
-- [Mobile App Store Publication Guide](mobile_publication_guide.md)
-- [Feature Expansion Blueprint](expansion_blueprint.md)
+- [Full Project Walkthrough](docs/walkthrough.md)
+- [Architecture Design Document](docs/architecture_design.md)
+- [API Documentation](docs/api_documentation.md)
+- [Scaling & Deployment Guide](docs/scaling_guide.md)
+- [Mobile Testing Guide](docs/mobile_testing_guide.md)
+- [Mobile App Store Publication Guide](docs/mobile_publication_guide.md)
+- [Feature Expansion Blueprint](docs/expansion_blueprint.md)
+- [Implementation Plan](docs/implementation_plan.md)
+- [Active Task Checklist](docs/task.md)
 - [Web Troubleshooting Guide](web/TROUBLESHOOTING.md)
 - [Database Schema](platform/schema/001_initial_schema.sql)
