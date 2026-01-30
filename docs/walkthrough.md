@@ -51,7 +51,9 @@ A custom, high-fidelity scrollbar (`.scrollbar-cyber`) has been implemented acro
 The **Settings** dialog box (Display Mode) has been enhanced with `framer-motion` to be fully **draggable**. It also now defaults to a **bottom-left** position to improve accessibility and keep the main viewport clear.
 
 ### 6. Draggable Notifications Panel
-The **Notifications** panel is now fully draggable and behaves similarly to the Settings panel. It defaults to a position stacked just above the Settings panel in the bottom-left corner, ensuring important alerts are visible but unobtrusive.
+The **Notifications** panel is now fully draggable and behaves similarly to the Settings panel. It defaults to a position stacked just above the Settings panel in the bottom-left corner.
+- **Real-time Updates**: The panel is now listening to the SSE (Server-Sent Events) pipeline.
+- **Dynamic Content**: It displays incoming alerts and mode changes in real-time, replacing the static system status message.
 
 ## Role-Based Access Control & Strict Isolation
 

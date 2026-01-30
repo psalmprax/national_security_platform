@@ -51,6 +51,15 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
+    interface Notification {
+        message: string;
+        timestamp: Date;
+        type: 'info' | 'alert' | 'system';
+    }
+    const [notifications, setNotifications] = useState<Notification[]>([
+        { message: "System initialized. Secure connection established.", timestamp: new Date(), type: 'system' }
+    ]);
+
     // Sync with props
     useEffect(() => {
         setLiveAlerts(alerts);
@@ -78,6 +87,15 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                 setLiveAlerts((prev: Alert[]) => {
                     // Avoid duplicates
                     if (prev.find((a: Alert) => a.id === newAlert.id)) return prev;
+
+                    // Add Notification
+                    setNotifications((prevNotifs: Notification[]) => [
+                        { message: `New Alert Detected: ${newAlert.alert_type} - ${newAlert.location || 'Unknown Location'}`, timestamp: new Date(), type: 'alert' },
+                        ...prevNotifs
+                    ]);
+                    // Show notification badge/toast if panel is closed (optional enhancement later)
+                    if (!showNotifications) setShowNotifications(true);
+
                     return [newAlert, ...prev];
                 });
             } catch (e) {
@@ -917,11 +935,20 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     ✕
                                 </button>
                             </div>
-                            <div className="space-y-3">
-                                <div className="bg-white/5 p-4 rounded border border-white/10">
-                                    <p className="text-sm text-white/80">System operational - All services running</p>
-                                    <span className="text-xs text-white/40">Now</span>
-                                </div>
+                            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                {notifications.length === 0 ? (
+                                    <div className="bg-white/5 p-4 rounded border border-white/10">
+                                        <p className="text-sm text-white/80">System operational - All services running</p>
+                                        <span className="text-xs text-white/40">Now</span>
+                                    </div>
+                                ) : (
+                                    notifications.map((notif, idx) => (
+                                        <div key={idx} className="bg-white/5 p-3 rounded border border-white/10 animate-fade-in-up">
+                                            <p className="text-sm text-white/90">{notif.message}</p>
+                                            <span className="text-xs text-white/40">{notif.timestamp.toLocaleTimeString()}</span>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </motion.div>
                     </div>
