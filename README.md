@@ -62,15 +62,15 @@ chmod +x seed_database.sh && ./seed_database.sh
 
 ### 4. Unified Service Access
 The platform is unified under a single entry point (Gateway) for consistency:
-- **Main Portal (Dashboard)**: [http://localhost:8085](http://localhost:8085)
-- **Agency Command Portal**: [http://localhost:8085/agency/portal](http://localhost:8085/agency/portal)
-- **Mobile Client (Simulation)**: [http://localhost:8085/mobile/](http://localhost:8085/mobile/)
-- **Security API (Alerts)**: [http://localhost:8085/api/v1/alerts](http://localhost:8085/api/v1/alerts)
-- **Security Compliance (Admin)**: [http://localhost:8085/api/v1/system/security-scans](http://localhost:8085/api/v1/system/security-scans)
-- **System Pulse (Health)**: [http://localhost:8085/api/v1/system/status](http://localhost:8085/api/v1/system/status)
+- **Main Portal (Dashboard)**: [https://localhost:8443](https://localhost:8443)
+- **Agency Command Portal**: [https://localhost:8443/agency/portal](https://localhost:8443/agency/portal)
+- **Mobile Client (Simulation)**: [https://localhost:8443/mobile/](https://localhost:8443/mobile/)
+- **Security API (Alerts)**: [https://localhost:8443/api/v1/alerts](https://localhost:8443/api/v1/alerts)
+- **Security Compliance (Admin)**: [https://localhost:8443/api/v1/system/security-scans](https://localhost:8443/api/v1/system/security-scans)
+- **System Pulse (Health)**: [https://localhost:8443/api/v1/system/status](https://localhost:8443/api/v1/system/status)
 - **CockroachDB UI**: [http://localhost:8081](http://localhost:8081)
 - **MinIO Console**: [http://localhost:9001](http://localhost:9001)
-- **Login Portal**: [http://localhost:8085/login](http://localhost:8085/login)
+- **Login Portal**: [https://localhost:8443/login](https://localhost:8443/login)
 
 ### 5. Test Credentials
 All pre-seeded accounts use the default password: **`password`**
