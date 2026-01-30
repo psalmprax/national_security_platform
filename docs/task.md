@@ -45,3 +45,8 @@
     - [x] Move all project-level documentation (except README.md) into `docs/`
     - [x] Update root `README.md` with centralized documentation links
     - [x] Finalize and push all documentation changes to GitHub
+- [x] Phase 6: System Operational Modes & Access Control [x]
+    - [x] Implement Dynamic System Operational Modes (NOMINAL, SURGICAL, TACTICAL, DARK_OPS)
+    - [x] Restrict Role-Based View Switching to System Admins only
+    - [x] Implement automatic dashboard routing for non-admin roles
+    - [x] Add access enforcement and portal redirection for Agency Officers

@@ -57,3 +57,16 @@ Addressed complex UI conflicts to ensure a premium "Active Command" experience.
 
 ---
 *This walkthrough covers the project evolution from Blueprint to V1.0 Hardening.*
+
+## 10. Dynamic System Operational Modes
+Implemented a centralized theme engine that dynamically adjusts the entire Cyber View based on mission context.
+- **Thematic Cohesion**: Linked the 3D Mapbox map, triage sidebar, and telemetry modals to a master `operationMode` state.
+- **Mission Postures**: Four distinct modes (NOMINAL, SURGICAL, TACTICAL, DARK_OPS) with mode-specific visuals and logic.
+- **Propagated Visuals**: Purged hardcoded colors; all elements now respond to primary theme overrides.
+
+## 11. Role-Based Access Control & View Isolation
+Hardened the dashboard against unauthorized lateral navigation and view switching.
+- **Admin Lockout**: Interface for switching roles and views (Agency Switcher/Role Debugger) is now strictly restricted to `ADMIN` users.
+- **Auto-Routing**: Non-admin users are automatically locked into their respective dashboards (Cyber, Tactical, Strategic) upon login.
+- **Clearance Enforcement**: Implemented "Clearance Restricted" interface to handle unauthorized access attempts.
+- **Portal Redirection**: `AGENCY_OFFICER` role is seamlessly directed to the Agency Command Portal via an integrated gateway interface.

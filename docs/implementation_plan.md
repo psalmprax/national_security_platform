@@ -1,27 +1,25 @@
-# Draggable Modal & Dynamic Naming for Cyber Dashboard
+# System Operational Modes & Access Control (Completed)
 
-Enhance the Cyber Dashboard's "Tactical Analysis Locked" modal with draggable functionality and more descriptive naming to improve usability and clarity.
+Implementation of dynamic situational awareness modes and strict role-based access control.
 
-## Proposed Changes
+## Completed Changes
 
-### Web Dashboard
+### 1. Dynamic System Operational Modes
+- **Centralized Theming**: Implemented `themes` configuration and `operationMode` state in `CyberDashboard.tsx`.
+- **Mapbox Integration**: Propagated dynamic theme colors to map markers, grid lines, and HUD elements.
+- **Sidebar Integration**: Updated `TriageSidebar.tsx` to inherit active theme colors.
+- **Visual Feedback**: Replaced hardcoded default colors with reactive theme properties.
 
-#### [MODIFY] [CyberDashboard.tsx](file:///home/psalmprax/national_security_platform/web/components/dashboards/CyberDashboard.tsx)
-- Import `motion` from `framer-motion`.
-- Wrap the "Selection Detail Overlay Modal" content in a `motion.div`.
-- Add `drag` and `dragMomentum={false}` props to the `motion.div`.
-- Add `cursor-grab active:cursor-grabbing` classes to the modal header area (or entire modal) to indicate draggability.
-- Update the modal's `h2` title to dynamically include the alert ID: 
-    ```tsx
-### Dashboard Layout & Layering
+### 2. Dashboard Access Control
+- **Admin-Only Switching**: Restricted "Agency View Switcher" and "Debug Role Switcher" visibility to `ADMIN` users in `page.tsx`.
+- **Auto-Routing**: Implemented logic to automatically set the correct dashboard view for `CYBER_ANALYST`, `TACTICAL_COMMAND`, and `STRATEGIC_PLANNER` roles.
+- **Access Enforcement**: Added an "Access Restricted" screen for unauthorized view attempts.
+- **Portal Link**: Providing a direct link to the Agency Command Portal for `AGENCY_OFFICER` users.
 
-#### [MODIFY] [page.tsx](file:///home/psalmprax/national_security_platform/web/app/page.tsx)
-- Increase `z-index` of the `Agency View Switcher` and `View Switcher UI` from `z-[100]` to `z-[110]` to ensure they appear above all dashboard-level overlays (like the Tactical Warning Banner).
-
-#### [MODIFY] [MapboxMap.tsx](file:///home/psalmprax/national_security_platform/web/components/MapboxMap.tsx)
-- Update `addLayer` for `triangulation-lines-layer` to use a `beforeId` corresponding to the first map label layer (e.g., `road-label`). This moves tactical vector lines "behind" city names and roads for a more integrated appearance.
-
-## Verification Plan
+## Verification
+- Validated theme changes across NOMINAL, SURGICAL, TACTICAL, and DARK_OPS modes.
+- Verified that non-admin users cannot access the switcher UI.
+- Confirmed that Agency Officers are redirected appropriately.
 
 ### Manual Verification
 1. **Launch Dashboard**: Run `docker compose up --build web-dashboard`.
