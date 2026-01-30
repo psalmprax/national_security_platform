@@ -120,6 +120,7 @@ If you see "WebGL is not supported" in Chrome, follow these steps to enable hard
 ## 📂 Key Documentation
 - [Full Project Walkthrough](walkthrough.md)
 - [Architecture Design Document](architecture_design.md)
+- [API Documentation](api_documentation.md)
 - [Scaling & Deployment Guide](scaling_guide.md)
 - [Mobile Testing Guide](mobile_testing_guide.md)
 - [Mobile App Store Publication Guide](mobile_publication_guide.md)
