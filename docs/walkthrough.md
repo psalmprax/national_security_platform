@@ -47,6 +47,9 @@ The sidebar's progress bars, telemetry streams, and the **Sector Intelligence Re
 ### 4. Professional Cyber Scrollbars
 A custom, high-fidelity scrollbar (`.scrollbar-cyber`) has been implemented across the Alert Triage, System Analytics, and Profile views. This unifying design features a glassy track, a glowing gradient thumb, and hover effects that align perfectly with the platform's futuristic aesthetic.
 
+### 5. Draggable Settings Panel
+The **Settings** dialog box (Display Mode) has been enhanced with `framer-motion` to be fully **draggable**. It also now defaults to a **bottom-left** position to improve accessibility and keep the main viewport clear.
+
 ## Role-Based Access Control & Strict Isolation
 
 To ensure mission integrity, the dashboard now enforces strict isolation for non-admin users:

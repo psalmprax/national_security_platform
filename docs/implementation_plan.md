@@ -41,3 +41,4 @@ This plan addresses the user's request to adjust the alignment of scrollbars in 
 - [x] Standardize "Intelligence Triage" sidebar across views
 - [x] Implement consistent `.scrollbar-cyber` styling
 - [x] Adjust scrollbar positioning to align with Triage Sidebar
+- [x] Make Settings Box Draggable (Framer Motion)

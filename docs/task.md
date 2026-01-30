@@ -4,6 +4,7 @@
     - [X] Standardize "Intelligence Triage" sidebar across views
     - [x] Implement consistent `.scrollbar-cyber` styling
     - [x] Adjust scrollbar positioning to align with Triage Sidebar (Alerts, Data, Analytics, Compliance)
+    - [x] Make Settings Box Draggable (Framer Motion)
     - [ ] Add tooltips to sidebar navigation icons
     - [ ] Polish transitions between different "System Operational Modes"
 
