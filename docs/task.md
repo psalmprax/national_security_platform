@@ -41,3 +41,7 @@
     - [x] Re-apply `SystemStatus` type fixes to dashboard components
     - [x] Fix UI layering: Move View Switcher above Warning Banner
     - [x] Move Mapbox triangulation lines behind map labels
+- [x] Phase 5: Project Organization [x]
+    - [x] Move all project-level documentation (except README.md) into `docs/`
+    - [x] Update root `README.md` with centralized documentation links
+    - [x] Finalize and push all documentation changes to GitHub
