@@ -15,17 +15,13 @@ import {
     Users
 } from 'lucide-react';
 import MapboxMap from '../MapboxMap';
-import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset } from '../../lib/api';
+import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset, SystemStatus } from '../../lib/api';
 import { useAuth, User } from '../../lib/AuthContext';
 
 interface TacticalDashboardProps {
     alerts: Alert[];
     currentTime: Date | null;
-    securityStatus: {
-        isAuthenticated: boolean;
-        isEncrypted: boolean;
-        trustedDevices: number;
-    };
+    securityStatus: SystemStatus;
     user: User | null;
     logout: () => void;
 }

@@ -23,7 +23,7 @@ ENDPOINTS_TO_SCAN = [
     {"path": "/api/v1/system/status", "expected_status": 401, "protected": True},
     {"path": "/api/v1/system/nodes", "expected_status": 401, "protected": True},
     {"path": "/api/v1/alerts", "expected_status": 401, "protected": True},
-    {"path": "/api/v1/agencies", "expected_status": 401, "protected": True},
+    {"path": "/api/v1/agencies", "expected_status": 405, "protected": True},
     {"path": "/api/v1/assets", "expected_status": 401, "protected": True},
 ]
 

@@ -19,19 +19,16 @@ import {
 } from 'lucide-react';
 import MapboxMap from '../MapboxMap';
 import TriageSidebar from '../TriageSidebar';
-import { Alert, SecurityScan, fetchSecurityScans, TriangulatedAsset, fetchTriangulatedAssets, dispatchAsset, API_BASE_URL } from '../../lib/api';
+import { Alert, SecurityScan, fetchSecurityScans, TriangulatedAsset, fetchTriangulatedAssets, dispatchAsset, API_BASE_URL, SystemStatus } from '../../lib/api';
 import { useAuth, User as UserType } from '../../lib/AuthContext';
+import { motion } from 'framer-motion';
 
 
 
 interface CyberDashboardProps {
     alerts: Alert[];
     currentTime: Date | null;
-    securityStatus: {
-        isAuthenticated: boolean;
-        isEncrypted: boolean;
-        trustedDevices: number;
-    };
+    securityStatus: SystemStatus;
     user: UserType | null;
     logout: () => void;
 }
@@ -741,15 +738,23 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
             {/* Selection Detail Overlay Modal */}
             {selectedAlert && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
-                    <div className="bg-black/80 backdrop-blur-xl border border-white/10 p-8 rounded-2xl w-full max-w-xl pointer-events-auto shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-8 duration-500"
-                        style={{ borderColor: currentTheme.primary + '4d', boxShadow: `0 0 50px ${currentTheme.secondary}` }}>
+                    <motion.div
+                        drag
+                        dragMomentum={false}
+                        className="bg-black/80 backdrop-blur-xl border border-white/10 p-8 rounded-2xl w-full max-w-xl pointer-events-auto shadow-[0_0_50px_rgba(0,0,0,0.5)] cursor-grab active:cursor-grabbing"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{ borderColor: currentTheme.primary + '4d', boxShadow: `0 0 50px ${currentTheme.secondary}` }}
+                    >
                         <div className="flex justify-between items-start mb-8">
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: currentTheme.primary }} />
                                     <span className="text-[10px] font-black tracking-[0.3em] uppercase" style={{ color: currentTheme.primary }}>Tactical Analysis Locked</span>
                                 </div>
-                                <h2 className="text-2xl font-black text-white uppercase tracking-tight">{selectedAlert.type}</h2>
+                                <h2 className="text-2xl font-black text-white uppercase tracking-tight">
+                                    {selectedAlert.type} // {selectedAlert.id.substring(0, 8).toUpperCase()}
+                                </h2>
                             </div>
                             <button
                                 onClick={() => setSelectedAlert(null)}
@@ -862,103 +867,109 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                 Verify Integrity
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             )}
 
             {/* Notifications Panel */}
-            {showNotifications && (
-                <div className="fixed inset-0 z-50 flex items-start justify-end pointer-events-none">
-                    <div className="pointer-events-auto mt-20 mr-20 w-96 glass-card border border-white/10 p-6 animate-slide-in">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <Bell className="w-5 h-5" style={{ color: currentTheme.primary }} />
-                                <h3 className="text-white font-bold uppercase tracking-wide">Notifications</h3>
+            {
+                showNotifications && (
+                    <div className="fixed inset-0 z-50 flex items-start justify-end pointer-events-none">
+                        <div className="pointer-events-auto mt-20 mr-20 w-96 glass-card border border-white/10 p-6 animate-slide-in">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <Bell className="w-5 h-5" style={{ color: currentTheme.primary }} />
+                                    <h3 className="text-white font-bold uppercase tracking-wide">Notifications</h3>
+                                </div>
+                                <button onClick={() => setShowNotifications(false)} className="text-white/40 hover:text-white transition-colors">
+                                    ✕
+                                </button>
                             </div>
-                            <button onClick={() => setShowNotifications(false)} className="text-white/40 hover:text-white transition-colors">
-                                ✕
-                            </button>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="bg-white/5 p-4 rounded border border-white/10">
-                                <p className="text-sm text-white/80">System operational - All services running</p>
-                                <span className="text-xs text-white/40">Now</span>
+                            <div className="space-y-3">
+                                <div className="bg-white/5 p-4 rounded border border-white/10">
+                                    <p className="text-sm text-white/80">System operational - All services running</p>
+                                    <span className="text-xs text-white/40">Now</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Settings Panel */}
-            {showSettings && (
-                <div className="fixed inset-0 z-50 flex items-start justify-end pointer-events-none">
-                    <div className="pointer-events-auto mt-20 mr-20 w-96 glass-card border border-white/10 p-6 animate-slide-in">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <Settings className="w-5 h-5" style={{ color: currentTheme.primary }} />
-                                <h3 className="text-white font-bold uppercase tracking-wide">Settings</h3>
+            {
+                showSettings && (
+                    <div className="fixed inset-0 z-50 flex items-start justify-end pointer-events-none">
+                        <div className="pointer-events-auto mt-20 mr-20 w-96 glass-card border border-white/10 p-6 animate-slide-in">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <Settings className="w-5 h-5" style={{ color: currentTheme.primary }} />
+                                    <h3 className="text-white font-bold uppercase tracking-wide">Settings</h3>
+                                </div>
+                                <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white transition-colors">
+                                    ✕
+                                </button>
                             </div>
-                            <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white transition-colors">
-                                ✕
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-sm text-white/60 block mb-2">Display Mode</label>
-                                <select className="bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm w-full outline-none">
-                                    <option>Dark Mode</option>
-                                    <option>High Contrast</option>
-                                </select>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm text-white/60 block mb-2">Display Mode</label>
+                                    <select className="bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm w-full outline-none">
+                                        <option>Dark Mode</option>
+                                        <option>High Contrast</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* User Menu */}
-            {showUserMenu && (
-                <div className="fixed bottom-24 left-20 z-50">
-                    <div className="w-64 glass-card border border-white/10 p-4 shadow-2xl">
-                        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
-                            <div className="p-2 rounded-lg" style={{ backgroundColor: currentTheme.primary + '1a', color: currentTheme.primary }}>
-                                <User className="w-5 h-5" />
+            {
+                showUserMenu && (
+                    <div className="fixed bottom-24 left-20 z-50">
+                        <div className="w-64 glass-card border border-white/10 p-4 shadow-2xl">
+                            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
+                                <div className="p-2 rounded-lg" style={{ backgroundColor: currentTheme.primary + '1a', color: currentTheme.primary }}>
+                                    <User className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-bold text-sm tracking-tight">{user?.full_name || 'Anonymous'}</p>
+                                    <p className="text-white/40 text-[10px] uppercase font-bold">{user?.role || 'Guest'}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-white font-bold text-sm tracking-tight">{user?.full_name || 'Anonymous'}</p>
-                                <p className="text-white/40 text-[10px] uppercase font-bold">{user?.role || 'Guest'}</p>
+                            <div className="space-y-1">
+                                <button
+                                    onClick={() => {
+                                        setActiveView('profile');
+                                        setShowUserMenu(false);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'profile' ? 'bg-white/5' : 'text-white/60 hover:bg-white/5'}`}
+                                    style={activeView === 'profile' ? { color: currentTheme.primary } : {}}
+                                >
+                                    Profile
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setActiveView('registry');
+                                        setShowUserMenu(false);
+                                    }}
+                                    className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'registry' ? 'bg-white/5' : 'text-white/60 hover:bg-white/5'}`}
+                                    style={activeView === 'registry' ? { color: currentTheme.primary } : {}}
+                                >
+                                    Identity Registry
+                                </button>
+                                <button
+                                    onClick={logout}
+                                    className="w-full text-left text-xs text-red-500 hover:bg-red-500/10 px-3 py-2 rounded transition-all cursor-pointer"
+                                >
+                                    Sign Out / Disconnect
+                                </button>
                             </div>
-                        </div>
-                        <div className="space-y-1">
-                            <button
-                                onClick={() => {
-                                    setActiveView('profile');
-                                    setShowUserMenu(false);
-                                }}
-                                className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'profile' ? 'bg-white/5' : 'text-white/60 hover:bg-white/5'}`}
-                                style={activeView === 'profile' ? { color: currentTheme.primary } : {}}
-                            >
-                                Profile
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setActiveView('registry');
-                                    setShowUserMenu(false);
-                                }}
-                                className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'registry' ? 'bg-white/5' : 'text-white/60 hover:bg-white/5'}`}
-                                style={activeView === 'registry' ? { color: currentTheme.primary } : {}}
-                            >
-                                Identity Registry
-                            </button>
-                            <button
-                                onClick={logout}
-                                className="w-full text-left text-xs text-red-500 hover:bg-red-500/10 px-3 py-2 rounded transition-all cursor-pointer"
-                            >
-                                Sign Out / Disconnect
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

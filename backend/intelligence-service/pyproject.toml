@@ -17,6 +17,7 @@ nats-py = "^2.7.0"
 cryptography = "^42.0.0"
 grpcio = "^1.60.0"
 grpcio-tools = "^1.60.0"
+asyncpg = "^0.29.0"
 
 [build-system]
 requires = ["poetry-core"]

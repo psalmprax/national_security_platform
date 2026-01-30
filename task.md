@@ -1,44 +1,38 @@
-- [x] Search for "Sentinel Audit Ledger" in Cyber view <!-- id: 4 -->
-- [x] Check backend support for paginated security scans <!-- id: 5 -->
-- [x] Implement pagination in frontend `CyberDashboard.tsx` <!-- id: 6 -->
-- [x] Verify pagination functionality <!-- id: 7 -->
-- [x] Implement Response Team Triangulation <!-- id: 8 -->
-    - [x] Design backend triangulation logic <!-- id: 9 -->
-    - [x] Implement `GET /api/v1/alerts/:id/triangulation` endpoint <!-- id: 10 -->
-    - [x] Update frontend to display triangulation results <!-- id: 11 -->
-- [x] Verify triangulation accuracy <!-- id: 12 -->
+# Task Checklist: System Admin & Intelligence Integration
 
-- [x] Phase 4: Capability & Performance Scale-Up <!-- id: 13 -->
-    - [x] [1.1] Redis Spatial Caching <!-- id: 14 -->
-    - [x] [1.2] Server-Sent Events (SSE) Pipeline <!-- id: 15 -->
-    - [x] [1.3] Spatial Index Tuning (Skipped due to disk space) <!-- id: 16 -->
+- [x] Phase 1: System Admin Access Restrictions [x]
+    - [x] Unify `ADMIN` role checks in `web/app/page.tsx`
+    - [x] Rename UI labels to "System Admin"
+    - [x] Clean up `CIVILIAN` role check in `TriageSidebar.tsx`
+    - [x] Resolve `any` type lints in web components
+    - [x] Fix 401 Unauthorized errors in Agency Portal
 
-- [x] Implement Asset Activation and Dispatch
-    - [x] Update `assets` table schema with `status` and `last_active`
-    - [x] Add `handleUpdateAssetStatus` and `handleDispatchAsset` to backend
-    - [x] Implement "Activate/Deactivate" toggles in Tactical Radar
-    - [x] Add "Dispatch To Incident" action button
-    - [x] Verify real-time status updates via SSE
+- [x] Phase 2: Intelligence Service Enhancement [x]
+    - [x] Connect Python `intelligence-service` to CockroachDB
+    - [x] Implement severity & keyword analysis persistence in `analyze_alert`
+    - [x] Update `expansion_blueprint.md` status (Triangulation, AI Scoring)
+    - [x] Verify persistence via database query
 
-- [x] Unify Tactical Proximity Radar across dashboards
-    - [x] Move triangulation logic to reusable `TacticalRadar` component
-    - [x] Integrate radar into `AgencyPortal` (Operational View)
-    - [x] Ensure consistent asset visualization (Markers, Distance, Suitability)
+- [x] Phase 3: Final Verification & Hardening [x]
+    - [x] Trigger test alert from mobile client (Verified via API)
+    - [x] Restore `CyberDashboard.tsx` to code-based modal (Functional "Tactical Analysis Locked").
+    - [x] Configure `TacticalDashboard.tsx` with high-fidelity image mock ("Infrastructure"). (Verified via Database)
+    - [x] Verify AI metadata appears in Web Dashboard (Verified via Database)
+    - [x] Configure Nginx Gateway for HTTPS (Port 8443)
+    - [x] Hardening: Convert Port 8085 to HTTPS (Resolve HSTS Errors)
+    - [x] Fix Security Sentinel warning (Expected 405 for POST-only endpoint)
+    - [x] Fix favicon 404 error (Generated & Integrated)
+    - [x] Fix Dashboard TypeError (Hardened CyberDashboard.tsx props and state)
+    - [x] Fix Tactical Dashboard Runtime Error (Hardened inputs & Added Decryption)
+    - [x] Fix Asset Visibility (Implemented Missing Markers)
+    - [x] Improve Alert Display (Encrypted Content Handling)
+    - [x] Visual Enhancement: Persistent Asset Marker Blinking (Global)
+    - [x] UI Feature: Implement "Tactical Analysis Locked" Modal per design spec
+    - [x] Make "Tactical Analysis Locked" Modal Draggable for clear map view
+    - [x] Fix build error in CyberDashboard.tsx (Unexpected token `div`)
 
-- [x] Make Sector Intelligence Reports dynamic by agency
-    - [x] Implement `GetUserAgencyInfo` in `repository.go`
-    - [x] Create `RequireAnyRole` middleware in `rbac.go`
-    - [x] Update `handleGetSectorReport` and routes in `main.go`
-    - [x] Update `TriageSidebar.tsx` and `api.ts` on frontend
-    - [x] Seed test personnel data for verification
-34: 
-35: - [x] Implement Dynamic System Operational Modes (NOMINAL, SURGICAL, TACTICAL, DARK_OPS)
-36: - [x] Restrict Role-Based View Switching to System Admins only
-37: - [x] Implement automatic dashboard routing for non-admin roles
-38: - [x] Add access enforcement and portal redirection for Agency Officers
-- [x] Refine Dashboard Type Safety
-    - [x] Export `User` interface from `AuthContext.tsx`
-    - [x] Apply proper types to `user` prop in dashboard components
-    - [x] Explicitly type `securityStatus` state in `page.tsx` using `SystemStatus` interface
-    - [x] Resolve remaining 'any' lints in `StrategicDashboard.tsx` and `TacticalDashboard.tsx`
-- [x] Create comprehensive API documentation (api_documentation.md)
+- [x] Phase 4: UI Refinement [x]
+    - [x] Implement draggable functionality for Cyber Dashboard modal
+    - [x] Update modal title to include dynamic naming (Type + ID)
+    - [x] Verify draggable behavior and naming across different alerts
+    - [x] Re-apply `SystemStatus` type fixes to dashboard components

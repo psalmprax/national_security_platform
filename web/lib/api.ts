@@ -1,4 +1,5 @@
 // API client for Core API
+declare var process: any;
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export interface Alert {
@@ -23,6 +24,17 @@ export interface Alert {
     timestamp: string;
     isTrusted: boolean;
     isDuress?: boolean;
+    isEncrypted?: boolean;
+    source_device_id?: string;
+}
+
+// Helper to detect Base64 strings (simple heuristic)
+function isBase64(str: string) {
+    if (!str || str.length % 4 !== 0 || /[^A-Z0-9+\/=]/i.test(str)) {
+        return false;
+    }
+    const firstPaddingChar = str.indexOf('=');
+    return firstPaddingChar === -1 || firstPaddingChar === str.length - 1 || (firstPaddingChar === str.length - 2 && str[str.length - 1] === '=');
 }
 
 export async function fetchAlerts(token?: string): Promise<Alert[]> {
@@ -50,14 +62,16 @@ export async function fetchAlerts(token?: string): Promise<Alert[]> {
 
         return rawAlerts.map(alert => ({
             ...alert,
-            latitude: Number(alert.latitude),
-            longitude: Number(alert.longitude),
+            id: alert.id || '',
+            latitude: Number(alert.latitude || 0),
+            longitude: Number(alert.longitude || 0),
             type: alert.alert_type || 'Unknown',
             content: alert.content_text || 'No description available.',
             location: `${Number(alert.latitude || 0).toFixed(2)}, ${Number(alert.longitude || 0).toFixed(2)}`,
-            timestamp: alert.created_at,
-            isTrusted: alert.verification_count > 0,
-            severity: mapPriorityToSeverity(alert.priority_class)
+            timestamp: alert.created_at || new Date().toISOString(),
+            isTrusted: (alert.verification_count || 0) > 0,
+            severity: mapPriorityToSeverity(alert.priority_class || 'LOW'),
+            isEncrypted: isBase64(alert.content_text || '') && (alert.content_text || '').length > 30 && !(alert.content_text || '').includes(' ')
         }));
     } catch (error) {
         console.error('Failed to fetch alerts:', error);
@@ -76,9 +90,14 @@ function mapPriorityToSeverity(priority: string): number {
 }
 
 export interface SystemStatus {
-    total_users: number;
-    active_alerts: number;
-    critical_alerts: number;
+    total_users?: number;
+    active_alerts?: number;
+    critical_alerts?: number;
+    // UI state fields
+    isAuthenticated?: boolean;
+    isEncrypted?: boolean;
+    trustedDevices?: number;
+    systemIntegrity?: number;
 }
 
 export async function fetchSystemStatus(token?: string): Promise<SystemStatus | null> {

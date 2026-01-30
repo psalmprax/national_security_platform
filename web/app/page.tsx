@@ -33,7 +33,12 @@ export default function DashboardPage() {
 
     // Initial view selection and enforcement
     useEffect(() => {
-        if (currentUserRole !== 'ADMIN') {
+        const params = new URLSearchParams(window.location.search);
+        const requestedView = params.get('view') as AgencyView;
+
+        if (currentUserRole === 'ADMIN' && requestedView && ['cyber', 'tactical', 'strategic'].includes(requestedView)) {
+            setAgencyView(requestedView);
+        } else if (currentUserRole !== 'ADMIN') {
             if (currentUserRole === 'CYBER_ANALYST') setAgencyView('cyber');
             else if (currentUserRole === 'STRATEGIC_PLANNER') setAgencyView('strategic');
             else if (currentUserRole === 'TACTICAL_COMMAND') setAgencyView('tactical');

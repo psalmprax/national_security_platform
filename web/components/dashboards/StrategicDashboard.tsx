@@ -2,17 +2,13 @@
 
 import React from 'react';
 import { PieChart, FileText, Activity, Shield, TrendingUp } from 'lucide-react';
-import { getIncidentTrends, getThreatDistribution, Alert } from '../../lib/api';
+import { getIncidentTrends, getThreatDistribution, Alert, SystemStatus } from '../../lib/api';
 import { User } from '../../lib/AuthContext';
 
 interface StrategicDashboardProps {
     alerts: Alert[];
     currentTime: Date | null;
-    securityStatus: {
-        isAuthenticated: boolean;
-        isEncrypted: boolean;
-        trustedDevices: number;
-    };
+    securityStatus: SystemStatus;
     user: User | null;
     logout: () => void;
 }
@@ -147,7 +143,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                         <span className="text-xs font-semibold uppercase text-slate-400 mb-2 tracking-wider">Active Agents</span>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-bold text-slate-900">{securityStatus.trustedDevices}</span>
+                            <span className="text-3xl font-bold text-slate-900">{securityStatus.trustedDevices ?? 0}</span>
                             <span className="text-sm font-medium text-green-600">● Online</span>
                         </div>
                     </div>
@@ -278,7 +274,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                 </div>
                                 <div className="flex items-center justify-between text-sm mt-2">
                                     <span className="opacity-70">Active Nodes</span>
-                                    <span className="font-mono font-bold">{securityStatus.trustedDevices}</span>
+                                    <span className="font-mono font-bold">{securityStatus.trustedDevices ?? 0}</span>
                                 </div>
                             </div>
                         </div>

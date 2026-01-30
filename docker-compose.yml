@@ -12,7 +12,7 @@ services:
       - GRPC_PORT=50051
       - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
       - NATS_URL=nats://nats_token@nats:4222
-      - INTELLIGENCE_SERVICE_URL=http://intelligence-service:8000
+      - INTELLIGENCE_SERVICE_URL=intelligence-service:50051
       - JWT_SECRET=${JWT_SECRET:-insecure_default_secret_for_dev_only}
       - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY:-rm64BAqWbq9WidDBHZZ4zAnTHPnwjg+SDsPAfLQUHDo=}
     depends_on:
@@ -133,8 +133,10 @@ services:
     image: nginx:alpine
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./gateway/certs:/etc/nginx/certs:ro
     ports:
-      - "8085:80"
+      - "8085:443"
+      - "8443:443"
     depends_on:
       - core-api
       - web-dashboard

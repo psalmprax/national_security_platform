@@ -82,7 +82,7 @@ Based on the **Architecture Design Document (Sections 5-11)**, the following tab
 | **Security** | End-to-End Encryption | **ROADMAP** | V2.0 (Target) |
 | **Intelligence** | Severity Scoring (AI) | **DONE** | Phase 2 (Intel Layer) |
 | **Intelligence** | Asset Tracking Layer | **DONE** | Phase 2 (Intel Layer) |
-| **Intelligence** | Incident Triangulation | **ROADMAP** | Phase 2 (Intel Layer) |
+| **Intelligence** | Incident Triangulation | **DONE** | Phase 2 (Intel Layer) |
 | **Resilience** | SMS Fallback (No Internet) | **ROADMAP** | Phase 2 (Intel Layer) |
 | **Trust** | Web of Trust (Peer Verification) | **ROADMAP** | Phase 3 (National Rollout) |
 | **Trust** | Immutable Ledger (Blockchain) | **ROADMAP** | V2.0 (Target) |

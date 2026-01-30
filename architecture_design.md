@@ -256,6 +256,7 @@ erDiagram
 *   **Agency-Aware Reporting**: Sector intelligence reports are dynamically scoped to the user's assigned command unit (e.g., Nigerian Army 7th Division) via the `agency_personnel` mapping, ensuring data silo integrity and localized command oversight.
 *   **Asset Dispatch**: Integrated tactical command for real-time activation and deployment of response units (Assets) based on geospatial suitability and operational status.
 *   **Identity Layer Integrity**: The frontend leverages a strictly typed `User` identity schema, preventing role-spoofing and ensuring that RBAC enforcement is checked at both the UI rendering and API consumption layers.
+*   **Active Command UX**: Implementation of "Tactical Analysis Locked" overlays as draggable objects. This design choice ensures that detailed intelligence analysis does not obscure the primary situational awareness layer (map), allowing operators to maintain visual lock on moving targets while reviewing triage metadata.
 *   **Situational Awareness (Operational Modes)**: Implementation of dynamic platform "Operational Modes" (e.g., NOMINAL, TACTICAL, DARK_OPS). This design pattern uses a centralized theme engine to propagate visual cues and triage logic across the 3D map, telemetry streams, and intelligence sidebars, ensuring thematic cohesion during critical incidents.
 *   **Observability & Auditing**:
     *   **Access Logging**: Structured JSON logging of every request (Public/Protected) to standard output for non-repudiation.

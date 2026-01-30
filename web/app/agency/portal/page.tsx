@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save, Loader2, AlertTriangle } from 'lucide-react';
+import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save, Loader2, AlertTriangle, User, LogOut, Layout, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
 import { UserRole } from '@/lib/auth';
@@ -18,10 +18,11 @@ interface Asset {
 }
 
 export default function AgencyPortalPage() {
-    const { user, isLoading: isAuthLoading } = useAuth();
+    const { user, token, logout, isLoading: isAuthLoading } = useAuth();
     const [assets, setAssets] = useState<Asset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showAssetForm, setShowAssetForm] = useState(false);
+    const [showAgencyPicker, setShowAgencyPicker] = useState(false);
 
     // New Asset Form State
     const [newAsset, setNewAsset] = useState({
@@ -39,7 +40,11 @@ export default function AgencyPortalPage() {
     // Fetch Assets
     const fetchAssets = async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/api/v1/assets`);
+            const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setAssets(data || []);
@@ -100,7 +105,10 @@ export default function AgencyPortalPage() {
         try {
             const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(newAsset)
             });
             if (res.ok) {
@@ -115,25 +123,99 @@ export default function AgencyPortalPage() {
         }
     };
 
+    // Handle View Switching for Admins
+    const toggleAgencyView = (view: string) => {
+        window.location.href = `/?view=${view}`;
+    };
+
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6">
+        <div className="min-h-screen bg-slate-950 text-white p-6 relative">
+            {/* Agency View Switcher - Only for System Admin */}
+            {user?.role === 'ADMIN' && (
+                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] group">
+                    <button
+                        className="h-8 px-6 bg-slate-900 border-b border-x border-slate-800 hover:border-blue-500 rounded-b-lg flex items-center justify-center gap-2 cursor-pointer backdrop-blur-md transition-all hover:bg-black"
+                        onClick={() => setShowAgencyPicker(!showAgencyPicker)}
+                    >
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest group-hover:text-blue-400">
+                            Command View
+                        </span>
+                        <div className="w-0 h-0 border-l-[3px] border-l-transparent border-t-[4px] border-t-white/60 border-r-[3px] border-r-transparent group-hover:border-t-blue-400" />
+                    </button>
+
+                    {showAgencyPicker && (
+                        <div className="absolute top-10 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200 min-w-[320px]">
+                            <div className="flex items-center gap-4 text-white">
+                                <button
+                                    onClick={() => toggleAgencyView('cyber')}
+                                    className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                                >
+                                    <Layout className="w-6 h-6" />
+                                    <span className="text-xs font-bold uppercase">Cyber</span>
+                                </button>
+                                <button
+                                    onClick={() => toggleAgencyView('tactical')}
+                                    className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                                >
+                                    <Layout className="w-6 h-6" />
+                                    <span className="text-xs font-bold uppercase">Tactical</span>
+                                </button>
+                                <button
+                                    onClick={() => toggleAgencyView('strategic')}
+                                    className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                                >
+                                    <Layout className="w-6 h-6" />
+                                    <span className="text-xs font-bold uppercase">Strategic</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
             <header className="flex justify-between items-center mb-8 border-b border-slate-800 pb-6">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20">
                         <Shield className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold">Agency Command Portal</h1>
-                        <p className="text-slate-400 text-sm">Asset Administration & Logistics</p>
+                        <h1 className="text-2xl font-bold italic tracking-tight">Agency Command Portal</h1>
+                        <p className="text-slate-400 text-sm font-medium">Logistics & Asset Administration</p>
                     </div>
                 </div>
-                <button
-                    onClick={() => setShowAssetForm(!showAssetForm)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium transition-all"
-                >
-                    <Plus className="w-4 h-4" />
-                    Deploy New Asset
-                </button>
+
+                <div className="flex items-center gap-6">
+                    <button
+                        onClick={() => setShowAssetForm(!showAssetForm)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium transition-all shadow-lg shadow-blue-900/20"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Deploy New Asset
+                    </button>
+
+                    <div className="flex items-center gap-4 pl-6 border-l border-slate-800">
+                        <div className="text-right">
+                            <p className="text-sm font-bold text-slate-200">{user.full_name || user.phone_number}</p>
+                            <div className="flex items-center justify-end gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+                                    {user.role}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center text-slate-400">
+                            <User className="w-5 h-5" />
+                        </div>
+                        <button
+                            onClick={() => logout()}
+                            className="w-10 h-10 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg flex items-center justify-center transition-all border border-red-500/20"
+                            title="Log Out"
+                        >
+                            <LogOut className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
             </header>
 
             <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">

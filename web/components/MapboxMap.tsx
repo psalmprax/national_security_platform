@@ -190,6 +190,45 @@ export default function MapboxMap({
 
     }, [selectedAlert, triangulatedAssets, isMapSupported]);
 
+    // NEW: Handle Triangulated Asset Markers (The missing piece!)
+    const triangulatedAssetMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+
+    useEffect(() => {
+        if (!isMapSupported || !mapRef.current) return;
+
+        // Cleanup old asset markers
+        Object.values(triangulatedAssetMarkersRef.current).forEach(marker => marker.remove());
+        triangulatedAssetMarkersRef.current = {};
+
+        if (!triangulatedAssets || triangulatedAssets.length === 0) return;
+
+        triangulatedAssets.forEach(ta => {
+            const asset = ta.asset;
+            const el = document.createElement('div');
+            el.className = 'triangulated-asset-marker';
+
+            // Cyan blinking style for "Active Response Unit"
+            el.innerHTML = `
+                <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+                    <div style="position: absolute; width: 24px; height: 24px; border: 2px solid #06b6d4; border-radius: 50%; opacity: 0; animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                    <div style="width: 10px; height: 10px; background: #06b6d4; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px #06b6d4; animation: blink 1s ease-in-out infinite;"></div>
+                    <div style="position: absolute; bottom: 120%; background: rgba(0,0,0,0.8); color: #06b6d4; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 900; white-space: nowrap; border: 1px solid rgba(6,182,212,0.3);">
+                        ETA: 4m
+                    </div>
+                </div>
+            `;
+
+            if (mapRef.current) {
+                const marker = new mapboxgl.Marker(el)
+                    .setLngLat([asset.longitude, asset.latitude])
+                    .addTo(mapRef.current);
+
+                triangulatedAssetMarkersRef.current[asset.id] = marker;
+            }
+        });
+
+    }, [triangulatedAssets, isMapSupported]);
+
 
 
     // Handle Alert Markers
@@ -284,7 +323,7 @@ export default function MapboxMap({
                         : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>'; // Briefcase
 
                     el.innerHTML = `
-                         <div style="background: ${color}; padding: 6px; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; transform-origin: bottom center; transition: all 0.2s;">
+                         <div style="background: ${color}; padding: 6px; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; transform-origin: bottom center; transition: all 0.2s; animation: blink-generic 2s ease-in-out infinite;">
                              ${iconSvg}
                              <div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid ${color};"></div>
                          </div>
@@ -469,6 +508,14 @@ export default function MapboxMap({
                 @keyframes ping {
                     0% { transform: scale(1); opacity: 0.8; }
                     100% { transform: scale(2.5); opacity: 0; }
+                }
+                @keyframes blink {
+                    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 10px #06b6d4; }
+                    50% { opacity: 0.4; transform: scale(0.8); box-shadow: 0 0 20px #06b6d4; }
+                }
+                @keyframes blink-generic {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.6; transform: scale(0.92); }
                 }
                 .mapboxgl-ctrl-bottom-right, .mapboxgl-ctrl-bottom-left {
                     display: none !important;

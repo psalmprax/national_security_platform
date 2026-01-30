@@ -2,6 +2,7 @@ import asyncio
 import os
 import json
 import logging
+import asyncpg
 from fastapi import FastAPI
 from nats.aio.client import Client as NATS
 import grpc_server
@@ -16,16 +17,29 @@ NATS_URL = os.getenv("NATS_URL", "nats://nats:4222")
 
 @app.on_event("startup")
 async def startup_event():
+    # Initialize database pool
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        logger.error("❌ DATABASE_URL not set. Database integration disabled.")
+    else:
+        try:
+            app.state.db_pool = await asyncpg.create_pool(database_url)
+            logger.info("✅ Connected to CockroachDB")
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to database: {e}")
+
     # Start NATS listener in the background
     asyncio.create_task(run_nats_listener())
-    # Start gRPC server in a separate thread (or just run it)
-    # Since gRPC's server.start() is non-blocking, we can just call it
-    app.state.grpc_server = grpc_server.serve()
+    # Start gRPC server
+    db_pool = getattr(app.state, 'db_pool', None)
+    app.state.grpc_server = await grpc_server.serve(db_pool=db_pool)
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    if hasattr(app.state, 'db_pool'):
+        await app.state.db_pool.close()
     if hasattr(app.state, 'grpc_server'):
-        app.state.grpc_server.stop(0)
+        await app.state.grpc_server.stop(0)
 
 async def run_nats_listener():
     nc = NATS()
@@ -60,9 +74,47 @@ async def run_nats_listener():
         logger.error(f"Failed to connect to NATS: {e}")
 
 async def analyze_alert(alert_data):
-    # Mock AI analysis: scoring and tagging
-    logger.info(f"✅ AI Analysis complete for Alert {alert_data.get('id')}")
-    # TODO: Update database with severity_score and risk_keywords using shared postgres pool
+    # AI Analysis logic
+    content = alert_data.get('content_text', "").lower()
+    alert_id = alert_data.get('id')
+    
+    severity_score = 0.1
+    risk_keywords = []
+    
+    # Critical keywords
+    critical_terms = ['gunshot', 'bomb', 'explosion', 'fire', 'terrorist', 'attack', 'kidnap', 'emergency']
+    # High risk keywords
+    high_risk_terms = ['suspicious', 'threat', 'fighting', 'robbery', 'riot', 'protest']
+    
+    for term in critical_terms:
+        if term in content:
+            severity_score = max(severity_score, 0.95)
+            risk_keywords.append(term)
+            
+    for term in high_risk_terms:
+        if term in content:
+            severity_score = max(severity_score, 0.75)
+            risk_keywords.append(term)
+            
+    if not risk_keywords and content:
+        severity_score = 0.3 # Default for non-empty content
+        risk_keywords = ["general_alert"]
+
+    logger.info(f"✅ AI Analysis complete for Alert {alert_id}: Score={severity_score}, Keywords={risk_keywords}")
+    
+    # Update database
+    if hasattr(app.state, 'db_pool'):
+        try:
+            async with app.state.db_pool.acquire() as conn:
+                await conn.execute(
+                    "UPDATE alerts SET severity_score = $1, risk_keywords = $2 WHERE id = $3",
+                    severity_score, risk_keywords, alert_id
+                )
+                logger.info(f"💾 Updated alert {alert_id} in database.")
+        except Exception as e:
+            logger.error(f"❌ Failed to update alert in database: {e}")
+    else:
+        logger.warning("⚠️ Database pool not available, skipping update.")
 
 @app.get("/")
 def read_root():

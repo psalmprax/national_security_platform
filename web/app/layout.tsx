@@ -6,6 +6,9 @@ import { AuthProvider } from '@/lib/AuthContext'
 export const metadata: Metadata = {
     title: 'National Security Platform - Dashboard',
     description: 'AI-Augmented Situational Awareness',
+    icons: {
+        icon: '/favicon.ico',
+    },
 }
 
 export default function RootLayout({
