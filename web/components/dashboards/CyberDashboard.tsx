@@ -40,12 +40,14 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
     const [operationMode, setOperationMode] = useState<'NOMINAL' | 'SURGICAL' | 'TACTICAL' | 'DARK_OPS'>('NOMINAL');
     const [showNotifications, setShowNotifications] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [displayMode, setDisplayMode] = useState<'dark' | 'light' | 'contrast' | 'oled' | 'terminal'>('dark');
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
     const [showSatellite, setShowSatellite] = useState(false);
     const [securityScans, setSecurityScans] = useState<SecurityScan[]>([]);
     const [triangulatedAssets, setTriangulatedAssets] = useState<TriangulatedAsset[]>([]);
     const [liveAlerts, setLiveAlerts] = useState<Alert[]>(alerts);
+    const [showGrid, setShowGrid] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
@@ -117,6 +119,19 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
         }
     }, [operationMode]);
 
+    // Display Mode Functional Logic
+    useEffect(() => {
+        if (displayMode === 'terminal') {
+            setShowGrid(true);
+            setShowSatellite(false);
+        } else if (displayMode === 'oled') {
+            setShowGrid(false);
+            setShowSatellite(false);
+        } else {
+            setShowGrid(true);
+        }
+    }, [displayMode]);
+
     const handleAlertSelect = (alert: Alert) => {
         setSelectedAlert(alert);
         if (token) {
@@ -162,21 +177,23 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
     });
 
     return (
-        <div className="relative w-full h-full">
+        <div className="relative w-full h-full" data-theme={displayMode}>
             {/* Animated Background Grid - Specific to Cyber Theme */}
-            <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-900 to-black" />
-                <div className="absolute inset-0" style={{
-                    backgroundImage: `
+            {showGrid && (
+                <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+                    <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-900 to-black" />
+                    <div className="absolute inset-0" style={{
+                        backgroundImage: `
                         linear-gradient(${currentTheme.primary}08 1px, transparent 1px),
                         linear-gradient(90deg, ${currentTheme.primary}08 1px, transparent 1px)
                     `,
-                    backgroundSize: '50px 50px',
-                    animation: 'gridMove 20s linear infinite'
-                }} />
-                <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ backgroundColor: `${currentTheme.primary}0d` }} />
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s', backgroundColor: `${currentTheme.primary}0d` }} />
-            </div>
+                        backgroundSize: '50px 50px',
+                        animation: 'gridMove 20s linear infinite'
+                    }} />
+                    <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ backgroundColor: `${currentTheme.primary}0d` }} />
+                    <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s', backgroundColor: `${currentTheme.primary}0d` }} />
+                </div>
+            )}
 
             <style jsx global>{`
                 @keyframes gridMove {
@@ -391,8 +408,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         )}
 
                         {activeView === 'alerts' && (
-                            <div className="w-full h-full p-8 overflow-auto">
-                                <div className="max-w-6xl mx-auto">
+                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
+                                <div className="max-w-6xl mx-auto p-8">
                                     <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Alert Triage {filterMode !== 'all' && <span className="text-[#00FF95] text-sm ml-2">[{filterMode.toUpperCase()}_FILTER]</span>}</h2>
                                     <div className="grid gap-4">
                                         {filteredAlerts.length === 0 ? (
@@ -401,17 +418,26 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                             </div>
                                         ) : (
                                             filteredAlerts.map((alert) => (
-                                                <div key={alert.id} className="glass-card p-6 border border-white/5 hover:border-[#00FF95]/20 transition-all">
+                                                <div
+                                                    key={alert.id}
+                                                    onClick={() => {
+                                                        handleAlertSelect(alert);
+                                                        setActiveView('map');
+                                                    }}
+                                                    className="glass-card p-6 border border-white/5 hover:border-[#00FF95]/20 hover:bg-white/5 transition-all cursor-pointer group"
+                                                >
                                                     <div className="flex items-start justify-between mb-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`w-3 h-3 rounded-full ${alert.severity > 0.8 ? 'bg-red-500' : alert.severity > 0.6 ? 'bg-orange-500' : 'bg-yellow-500'}`} />
-                                                            <h3 className="text-white font-bold text-lg uppercase tracking-wide">{alert.type}</h3>
+                                                            <div className={`w-3 h-3 rounded-full ${alert.severity > 0.8 ? 'bg-red-500 animate-pulse' : alert.severity > 0.6 ? 'bg-orange-500' : 'bg-yellow-500'}`} />
+                                                            <h3 className="text-white font-bold text-lg uppercase tracking-wide group-hover:text-[#00FF95] transition-colors">{alert.type}</h3>
                                                         </div>
                                                         <span className="text-xs text-white/40 font-mono">{new Date(alert.timestamp).toLocaleString()}</span>
                                                     </div>
-                                                    <p className="text-white/70 mb-3">{alert.content}</p>
-                                                    <div className="flex items-center gap-4 text-xs text-white/40">
-                                                        <span>📍 {alert.location}</span>
+                                                    <p className="text-white/70 mb-3 line-clamp-2">{alert.content}</p>
+                                                    <div className="flex items-center gap-4 text-xs text-white/40 font-mono">
+                                                        <span className="group-hover:text-white transition-colors">
+                                                            📍 {(alert.lga_name && alert.lga_name !== 'Unknown') ? `${alert.lga_name}, ${alert.state_name}` : alert.location}
+                                                        </span>
                                                         {alert.isTrusted && <span className="text-[#00FF95]">✓ VERIFIED</span>}
                                                     </div>
                                                 </div>
@@ -477,8 +503,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         )}
 
                         {activeView === 'analytics' && (
-                            <div className="w-full h-full p-8 overflow-auto">
-                                <div className="max-w-6xl mx-auto">
+                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
+                                <div className="max-w-6xl mx-auto p-8">
                                     <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">System Analytics</h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="glass-card p-6 border border-white/5">
@@ -529,8 +555,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         )}
 
                         {activeView === 'profile' && (
-                            <div className="w-full h-full p-8 overflow-auto">
-                                <div className="max-w-4xl mx-auto">
+                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
+                                <div className="max-w-4xl mx-auto p-8">
                                     <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Administrator Profile</h2>
                                     <div className="glass-card p-10 border border-white/5 bg-white/[0.02]">
                                         <div className="flex items-center gap-6 mb-10 pb-10 border-b border-white/10">
@@ -913,10 +939,34 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-sm text-white/60 block mb-2">Display Mode</label>
-                                    <select className="bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm w-full outline-none">
-                                        <option>Dark Mode</option>
-                                        <option>High Contrast</option>
-                                    </select>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { id: 'dark', label: 'Dark', color: '#000000', border: '#333333' },
+                                            { id: 'light', label: 'Light', color: '#ffffff', border: '#e5e7eb' },
+                                            { id: 'contrast', label: 'Contrast', color: '#000000', border: '#FFFF00' },
+                                            { id: 'oled', label: 'OLED', color: '#000000', border: '#1a1a1a' },
+                                            { id: 'terminal', label: 'Terminal', color: '#0a0a0a', border: '#00ff00' }
+                                        ].map(theme => (
+                                            <button
+                                                key={theme.id}
+                                                onClick={() => setDisplayMode(theme.id as any)}
+                                                className={`
+                                                    relative p-3 rounded-lg border transition-all text-xs font-bold uppercase tracking-wider
+                                                    ${displayMode === theme.id ? 'ring-2 ring-offset-2 ring-offset-black' : 'hover:scale-[1.02]'}
+                                                `}
+                                                style={{
+                                                    backgroundColor: theme.color,
+                                                    borderColor: theme.border,
+                                                    color: theme.id === 'light' ? '#000' : theme.border
+                                                }}
+                                            >
+                                                {theme.label}
+                                                {displayMode === theme.id && (
+                                                    <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-current" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>

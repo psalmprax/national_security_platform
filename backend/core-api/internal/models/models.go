@@ -21,6 +21,9 @@ type Alert struct {
 	RiskKeywords       []string  `json:"risk_keywords,omitempty"`
 	VerificationCount  int       `json:"verification_count"`
 	CreatedAt          time.Time `json:"created_at"`
+	LGAName            *string   `json:"lga_name,omitempty"`
+	StateName          *string   `json:"state_name,omitempty"`
+	LocationSource     string    `json:"location_source"`
 }
 
 type User struct {

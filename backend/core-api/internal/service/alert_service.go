@@ -34,14 +34,38 @@ func (s *AlertService) SubmitAlert(ctx context.Context, userID uuid.UUID, alertT
 		return nil, fmt.Errorf("failed to encrypt content: %w", err)
 	}
 
+	// Default to GPS
+	locationSource := "GPS"
+	finalLat := lat
+	finalLon := lon
+
+	// Governance Override Logic:
+	// If a Traditional Ruler reports a Community Threat (not personal distress),
+	// snap the location to their Village/Domain center.
+	// This accounts for "The Oba is in London but reports trouble at home".
+	if user.Role == "TRADITIONAL_RULER" && alertType != "DURESS" && alertType != "KIDNAPPING" {
+		if user.VillageID != nil {
+			vLat, vLon, err := db.GetVillageLocation(ctx, *user.VillageID)
+			if err == nil {
+				finalLat = vLat
+				finalLon = vLon
+				locationSource = "GOVERNANCE_OVERRIDE"
+				log.Printf("👑 Governance Override Applied: Snapped alert to Village ID %s", user.VillageID)
+			} else {
+				log.Printf("⚠️ Governance Override Failed: Could not get village location for user %s", userID)
+			}
+		}
+	}
+
 	// Create alert object
 	alert := &models.Alert{
 		ID:                 uuid.New(),
 		UserID:             userID,
 		Status:             "PENDING",
 		PriorityClass:      determinePriorityClass(user.HierarchyWeight, alertType),
-		Latitude:           lat,
-		Longitude:          lon,
+		Latitude:           finalLat,
+		Longitude:          finalLon,
+		LocationSource:     locationSource,
 		ImpactRadiusMeters: 100,
 		AlertType:          alertType,
 		ContentText:        &encryptedContent,

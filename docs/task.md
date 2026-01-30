@@ -1,52 +1,59 @@
-# Task Checklist: System Admin & Intelligence Integration
+- [x] Search for "Sentinel Audit Ledger" in Cyber view <!-- id: 4 -->
+- [x] Check backend support for paginated security scans <!-- id: 5 -->
+- [x] Make Sector Intelligence Reports dynamic by agency
+    - [x] Implement `GetUserAgencyInfo` in `repository.go`
+    - [x] Create `RequireAnyRole` middleware in `rbac.go`
+    - [x] Update `handleGetSectorReport` and routes in `main.go`
+    - [x] Update `TriageSidebar.tsx` and `api.ts` on frontend
+    - [x] Seed test personnel data for verification
 
-- [x] Phase 1: System Admin Access Restrictions [x]
-    - [x] Unify `ADMIN` role checks in `web/app/page.tsx`
-    - [x] Rename UI labels to "System Admin"
-    - [x] Clean up `CIVILIAN` role check in `TriageSidebar.tsx`
-    - [x] Resolve `any` type lints in web components
-    - [x] Fix 401 Unauthorized errors in Agency Portal
+- [ ] Implement System Operational Modes in Cyber View
+    - [ ] Create `systemMode` state and theme overrides
+    - [x] Finalize Cyber View Dynamic Theming (Propagation to Map & Sidebar)
+    - [x] Restrict Role and View switching to System Admin only
+        - [x] Wrap Debug Role Switcher with ADMIN check
+        - [x] Wrap Agency View Switcher with ADMIN check
+        - [x] Implement auto-view routing for non-admin roles
+    - [ ] Design and implement prominent Mode Selection HUD
+    - [ ] Add functional logic for modes (e.g., auto-filtering, panel behaviors)
+    - [ ] Expand modes list: NOMINAL, SURGICAL, TACTICAL, DARK_OPS
+- [x] Implement pagination in frontend `CyberDashboard.tsx` <!-- id: 6 -->
+- [x] Verify pagination functionality <!-- id: 7 -->
+- [x] Implement Response Team Triangulation <!-- id: 8 -->
+    - [x] Design backend triangulation logic <!-- id: 9 -->
+    - [x] Implement `GET /api/v1/alerts/:id/triangulation` endpoint <!-- id: 10 -->
+    - [x] Update frontend to display triangulation results <!-- id: 11 -->
+- [x] Verify triangulation accuracy <!-- id: 12 -->
 
-- [x] Phase 2: Intelligence Service Enhancement [x]
-    - [x] Connect Python `intelligence-service` to CockroachDB
-    - [x] Implement severity & keyword analysis persistence in `analyze_alert`
-    - [x] Update `expansion_blueprint.md` status (Triangulation, AI Scoring)
-    - [x] Verify persistence via database query
-    - [x] Fix `SystemStatus` missing import in `CyberDashboard.tsx`
+- [x] Phase 4: Capability & Performance Scale-Up <!-- id: 13 -->
+    - [x] [1.1] Redis Spatial Caching <!-- id: 14 -->
+    - [x] [1.2] Server-Sent Events (SSE) Pipeline <!-- id: 15 -->
+    - [x] [1.3] Spatial Index Tuning (Skipped due to disk space) <!-- id: 16 -->
+    - [x] [1.4] UI Enhancement: Vector Lines for Triangulation <!-- id: 17 -->
+    - [x] [1.5] Test Data: Expanded Agency Coverage <!-- id: 18 -->
+    - [x] [1.6] Feature: Asset Activation & Dispatch
+  - [x] Backend: Add `DispatchAssetHandler`
+  - [x] Backend: Register route `POST /api/v1/assets/{id}/dispatch`
+- [x] Frontend: Add ACTIVATE button to CyberDashboard
 
-- [x] Phase 3: Final Verification & Hardening [x]
-    - [x] Trigger test alert from mobile client (Verified via API)
-    - [x] Restore `CyberDashboard.tsx` to code-based modal (Functional "Tactical Analysis Locked").
-    - [x] Configure `TacticalDashboard.tsx` with high-fidelity image mock ("Infrastructure"). (Verified via Database)
-    - [x] Verify AI metadata appears in Web Dashboard (Verified via Database)
-    - [x] Configure Nginx Gateway for HTTPS (Port 8443)
-    - [x] Hardening: Convert Port 8085 to HTTPS (Resolve HSTS Errors)
-    - [x] Fix Security Sentinel warning (Expected 405 for POST-only endpoint)
-    - [x] Fix favicon 404 error (Generated & Integrated)
-    - [x] Fix Dashboard TypeError (Hardened CyberDashboard.tsx props and state)
-    - [x] Fix Tactical Dashboard Runtime Error (Hardened inputs & Added Decryption)
-    - [x] Fix Tactical Dashboard Runtime Error (Hardened inputs & Added Decryption)
-    - [x] Fix Asset Visibility (Implemented Missing Markers)
-    - [x] Improve Alert Display (Encrypted Content Handling)
-    - [x] Visual Enhancement: Persistent Asset Marker Blinking (Global)
-    - [x] UI Feature: Implement "Tactical Analysis Locked" Modal per design spec
-    - [x] Make "Tactical Analysis Locked" Modal Draggable for clear map view
-    - [x] Fix build error in CyberDashboard.tsx (Unexpected token `div`)
-- [x] Revert `web/components/dashboards` to commit `2f45230` (Undo recent modal changes)
-- [x] Resolve `SystemStatus` type mismatch build error in `web/app/page.tsx` and dashboard components
-- [x] Phase 4: UI Refinement [x]
-    - [x] Implement draggable functionality for Cyber Dashboard modal
-    - [x] Update modal title to include dynamic naming (Type + ID)
-    - [x] Verify draggable behavior and naming across different alerts
-    - [x] Re-apply `SystemStatus` type fixes to dashboard components
-    - [x] Fix UI layering: Move View Switcher above Warning Banner
-    - [x] Move Mapbox triangulation lines behind map labels
-- [x] Phase 5: Project Organization [x]
-    - [x] Move all project-level documentation (except README.md) into `docs/`
-    - [x] Update root `README.md` with centralized documentation links
-    - [x] Finalize and push all documentation changes to GitHub
-- [x] Phase 6: System Operational Modes & Access Control [x]
-    - [x] Implement Dynamic System Operational Modes (NOMINAL, SURGICAL, TACTICAL, DARK_OPS)
-    - [x] Restrict Role-Based View Switching to System Admins only
-    - [x] Implement automatic dashboard routing for non-admin roles
-    - [x] Add access enforcement and portal redirection for Agency Officers
+- [ ] Phase 2: Advanced Capability
+  - [ ] [2.1] Asynchronous Audit Hashing
+    - [x] Integrate NATS Audit Helpers
+    - [x] Create Audit Log Worker
+    - [x] Verify Async Consumption
+    - [x] Update `audit.LogAction` to publish to NATS
+  - [x] [2.2] Unify Tactical Proximity Radar across dashboards <!-- id: 19 -->
+  - [/] [2.3] Fix triangulation SQL type mismatch (<decimal> + <float>) <!-- id: 20 -->
+  - [ ] [2.4] Predictive Coverage Analysis (Planned)
+  - [ ] [2.5] Attribute-Based Access Control (Planned)
+
+- [x] Bug Fixes: Web & Connectivity
+  - [x] Fix `web-dashboard` build error: `isValidCoordinate` undefined in `MapboxMap.tsx`
+  - [x] Fix `gateway` connection refused to `mobile-client`: added Docker DNS resolver and refreshed state
+  - [x] Fix Blank Maps:
+    - [x] Restore missing Mapbox initialization logic in `MapboxMap.tsx`
+    - [x] Verify map rendering across Cyber and Tactical dashboards
+- [x] Bug Fixes: Triangulation & API
+    - [x] Fix 500 error on `/api/v1/alerts/:id/triangulation` (SQL scoping error)
+    - [x] Fix 504 timeout on SSE `/api/v1/events/stream` (Nginx buffering & timeout optimization)
+    - [x] Fix 401 Unauthorized on Assets API (MapboxMap authentication)

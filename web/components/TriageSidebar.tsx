@@ -60,7 +60,8 @@ export default function TriageSidebar({
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-hide">
+            {/* ALERT LIST */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-cyber">
                 {alerts.length === 0 ? (
                     <div className="py-20 text-center flex flex-col items-center gap-4">
                         <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center">
@@ -100,8 +101,11 @@ export default function TriageSidebar({
                                             <span className="text-[7px] text-[#FF003C]/60 border border-[#FF003C]/20 px-1 py-0 rounded-sm font-bold tracking-widest bg-[#FF003C]/5 animate-pulse">UNTRUSTED - SIG_FAIL</span>
                                         )}
                                     </div>
-                                    <span className="text-[10px] text-white/40 font-mono tracking-tighter uppercase">
-                                        LO-CAT: {alert.location}
+                                    <span className="text-[12px] text-white font-bold tracking-tight uppercase">
+                                        {(alert.lga_name && alert.lga_name !== 'Unknown') ? `${alert.lga_name}, ${alert.state_name}` : `GRID: ${alert.location.split(',').map(c => Number(c).toFixed(2)).join(', ')}`}
+                                    </span>
+                                    <span className="text-[9px] text-white/40 font-mono tracking-tighter uppercase">
+                                        COORDS: {alert.location}
                                     </span>
                                 </div>
                                 <span className="text-[10px] text-white/30 flex items-center gap-1 font-mono min-w-[80px] justify-end">

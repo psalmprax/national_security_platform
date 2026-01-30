@@ -172,7 +172,7 @@ export default function DashboardPage() {
 
             {/* Debug Role Switcher - System Admin Only */}
             {user?.role === 'ADMIN' && (
-                <div className="fixed bottom-4 right-4 z-[110] group">
+                <div className="fixed bottom-20 right-4 z-[110] group">
                     <div className="bg-black/80 backdrop-blur border border-white/20 p-2 rounded-lg flex items-center gap-2 hover:bg-black transition-colors">
                         <ShieldAlert className="w-4 h-4 text-yellow-500" />
                         <span className="text-xs font-mono text-white/60 uppercase">System Admin Context:</span>

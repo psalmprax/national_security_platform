@@ -17,11 +17,12 @@ func CreateAlert(ctx context.Context, alert *models.Alert) error {
 		INSERT INTO alerts (
 			id, user_id, status, priority_class, 
 			location, impact_radius_meters, alert_type,
-			content_text, content_media_url, verification_count
+			content_text, content_media_url, verification_count,
+			location_source
 		) VALUES (
 			$1, $2, $3, $4,
 			ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8,
-			$9, $10, $11
+			$9, $10, $11, $12
 		)
 	`
 
@@ -37,6 +38,7 @@ func CreateAlert(ctx context.Context, alert *models.Alert) error {
 		alert.ContentText,
 		alert.ContentMediaURL,
 		alert.VerificationCount,
+		alert.LocationSource,
 	)
 
 	if err != nil {
@@ -229,15 +231,21 @@ func GetAllAssets(ctx context.Context) ([]models.Asset, error) {
 
 // GetRecentAlerts retrieves the most recent alerts with a limit
 func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
+	// Added spatial join to resolve LGA and State names
 	query := `
-		SELECT id, user_id, status, priority_class,
-		       ST_X(location::geometry) as longitude, 
-		       ST_Y(location::geometry) as latitude,
-		       impact_radius_meters, alert_type,
-		       content_text, content_media_url, severity_score, verification_count,
-		       created_at
-		FROM alerts
-		ORDER BY created_at DESC
+		SELECT 
+			a.id, a.user_id, a.status, a.priority_class,
+			ST_X(a.location::geometry) as longitude, 
+			ST_Y(a.location::geometry) as latitude,
+			a.impact_radius_meters, a.alert_type,
+			a.content_text, a.content_media_url, a.severity_score, a.verification_count,
+			a.created_at,
+			COALESCE(l.name, 'Unknown') as lga_name,
+			COALESCE(s.name, 'Unknown') as state_name
+		FROM alerts a
+		LEFT JOIN lgas l ON ST_Contains(l.boundary_geom, a.location)
+		LEFT JOIN states s ON s.id = l.state_id -- Faster than double spatial join
+		ORDER BY a.created_at DESC
 		LIMIT $1
 	`
 
@@ -250,6 +258,8 @@ func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
 	var alerts []models.Alert
 	for rows.Next() {
 		var alert models.Alert
+		var lgaName, stateName string
+
 		err := rows.Scan(
 			&alert.ID,
 			&alert.UserID,
@@ -264,10 +274,17 @@ func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
 			&alert.SeverityScore,
 			&alert.VerificationCount,
 			&alert.CreatedAt,
+			&lgaName,
+			&stateName,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan alert: %w", err)
 		}
+
+		// Set the resolved location
+		alert.LGAName = &lgaName
+		alert.StateName = &stateName
+
 		alerts = append(alerts, alert)
 	}
 
@@ -550,4 +567,19 @@ func GetUserAgencyInfo(ctx context.Context, userID uuid.UUID) (*models.Agency, e
 	}
 
 	return &a, nil
+}
+
+// GetVillageLocation retrieves the coordinates of a village
+func GetVillageLocation(ctx context.Context, villageID uuid.UUID) (float64, float64, error) {
+	query := `
+		SELECT st_x(location), st_y(location)
+		FROM villages
+		WHERE id = $1
+	`
+	var lon, lat float64
+	err := Pool.QueryRow(ctx, query, villageID).Scan(&lon, &lat)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get village location: %w", err)
+	}
+	return lat, lon, nil
 }

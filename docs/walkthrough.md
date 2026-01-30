@@ -1,72 +1,50 @@
-# National Security Platform Development Walkthrough
+# Dynamic System Operational Modes Walkthrough
 
-This document tracks the evolution of the National Security Platform, from initial architectural setup to the current high-fidelity intelligence and command systems.
+The **Cyber View** has been upgraded with a centralized "Operational Mode" controller that dynamically re-themes the entire dashboard in real-time. This ensures consistent visual cues across all interactive layers, including Mapbox visualizations and triage workflows.
 
-## 1. Project Initialization & Infrastructure
-Established the core project structure, container orchestration, and foundational services.
-- **Microservices Architecture**: Orchestrated Go (Core API), Python (Intelligence Service), and Next.js (Web Dashboard) via Docker Compose.
-- **Database Layer**: Integrated CockroachDB for resilient, geo-distributed data persistence.
-- **Messaging Pipeline**: Set up NATS JetStream for high-throughput, asynchronous alert handling between mobile clients and the intelligence service.
+## Centralized Theme Propagation
 
-## 2. Secure Mobile Onboarding
-Implemented the Trusted Device framework to ensure only verified users can report threats.
-- **PKI Registry**: Integrated device hardware IDs with user identities in the backend.
-- **Signature Validation**: Every alert sent from a mobile device is now cryptographically signed and verified by the Core API.
+Every component in the Cyber View now subscribes to a master theme state, purging all hardcoded colors in favor of a responsive design system.
 
-## 3. Comprehensive Dashboard Authentication
-Secured the situational awareness platform for authorized personnel.
-- **RBAC Implementation**: Defined roles for `ADMIN`, `CYBER_ANALYST`, `TACTICAL_COMMAND`, and `STRATEGIC_PLANNER`.
-- **Session Management**: Implemented JWT-based authentication with a secure `AuthContext` on the frontend.
-- **Access Requests**: Added a triage system for personnel to request platform access.
+- **`CyberDashboard.tsx`**: Serves as the orchestrator, managing the `operationMode` state and distributing theme tokens.
+- **`MapboxMap.tsx`**: Receives dynamic primary colors to theme triangulation lines, alert markers, and the background situational grid.
+- **`TriageSidebar.tsx`**: Adapts its entire UI—including report modals, progress bars, and icon glows—to match the active operational posture.
 
-## 4. Real-World Map Integration
-Transformed the dashboard from a static blueprint into an interactive geospatial intelligence tool.
-- **Mapbox Visuals**: Integrated high-fidelity Mapbox GL JS maps with dynamic switching between Cyber, Tactical, and Satellite feeds.
-- **Coordinate Precision**: Implemented real-world coordinate validation for all incoming alerts.
-- **Target HUD**: Created a target-lock "Fly-To" behavior that focuses the operator on newly selected alerts.
+## Operational Modes Overiew
 
-## 5. Intelligence Service Enrichment
-Activated the Python-driven analysis engine to provide actionable insights.
-- **AI Scoring**: Implemented semantic severity analysis for alert content.
-- **Keyword Persistence**: Enabled the extraction and persistence of tactical keywords to the database.
-- **Persistence Layer**: Verified that analysis results are correctly stored in CockroachDB for dashboard retrieval.
+Each mode provides a distinct visual look and feel tailored to specific mission requirements:
 
-## 6. Asset Management & Triangulation
-Built the response coordination layer to map the nearest assets to critical incidents.
-- **Proximity Radar**: Implemented a distance-based triangulation algorithm to identify the three most suitable response units for any given alert.
-- **Persistent Visibility**: Added neon-blinking markers for "Active Response Units" that persist across map re-renders.
-- **Unit Dispatch**: Implemented the "Activate Unit" workflow to dispatch field agents directly from the map.
+| Mode | Theme | Primary Color | Focus |
+| :--- | :--- | :--- | :--- |
+| **NOMINAL** | Cyber Green | `#00FF95` | Default system monitoring and standard triage. |
+| **SURGICAL** | High-Precision Blue | `#00D1FF` | Focused, high-trust verification and alert filtering. |
+| **TACTICAL** | Warning Yellow | `#FFD600` | Rapid response and proximity triangulation. |
+| **DARK_OPS** | Tactical Red | `#FF003C` | High-severity threat management and covert tracking. |
 
-## 7. Operational Hardening
-Refined system auditability and stability for field deployment.
-- **Audit Ledger**: Implemented an immutable SHA-256 audit log for all system actions.
-- **Security Sentinel**: Automated security scanning of the API surface to prevent unauthorized access.
-- **HTTPS Enforcement**: Migrated all services (Dashboard and API) to encrypted HTTPS (SSL/TLS) connections.
+## Feature Highlights
 
-## 8. Dashboard UI/UX Refinement
-Enhanced the visual and functional experience for command center operators.
-- **Draggable Modals**: Converted static overlays into draggable components using `framer-motion`, allowing operators to keep the map visible while analyzing alert details.
-- **Dynamic Identification**: Updated naming conventions to include dynamic classification and shortened IDs (e.g., `INFRASTRUCTURE // 7E56BDF3`).
-- **Telemetry Indicators**: Added live status indicators for Mapbox token health, GPS lock, and SatLink stability.
+### 1. Mode Selector HUD
+A prominent Interactive HUD has been added to the main viewport, allowing analysts to switch postures with a single click. Each switch triggers a coordinated animation across all UI panels.
+### 2. Themed Mapbox Visuals
+The situational map now reflects the active mode's color palette. Triangulation lines between alerts and assets, as well as the tactical grid overlay, update instantly to maintain visual consistency.
+### 3. Integrated Triage Sidebar
+The sidebar's progress bars, telemetry streams, and the **Sector Intelligence Report** modal are now fully theme-aware, ensuring that high-level reporting matches the current operational state.
+### 4. Professional Cyber Scrollbars
+A custom, high-fidelity scrollbar (`.scrollbar-cyber`) has been implemented across the Alert Triage, System Analytics, and Profile views. This unifying design features a glassy track, a glowing gradient thumb, and hover effects that align perfectly with the platform's futuristic aesthetic.
 
-## 9. Advanced Layering & Precision
-Addressed complex UI conflicts to ensure a premium "Active Command" experience.
-- **UI Header Priority**: Increased the z-index of the System Admin Switcher to ensure it remains accessible even during critical alert banners.
-- **Map Occlusion Fix**: Refined Mapbox layer ordering to render dashed triangulation lines *behind* map labels (city names, streets), ensuring name readability is never compromised.
-- **Radar Swivel**: Implemented a rotating tactical radar sweep effect for increased immersion in Tactical mode.
+## Role-Based Access Control & Strict Isolation
 
----
-*This walkthrough covers the project evolution from Blueprint to V1.0 Hardening.*
+To ensure mission integrity, the dashboard now enforces strict isolation for non-admin users:
 
-## 10. Dynamic System Operational Modes
-Implemented a centralized theme engine that dynamically adjusts the entire Cyber View based on mission context.
-- **Thematic Cohesion**: Linked the 3D Mapbox map, triage sidebar, and telemetry modals to a master `operationMode` state.
-- **Mission Postures**: Four distinct modes (NOMINAL, SURGICAL, TACTICAL, DARK_OPS) with mode-specific visuals and logic.
-- **Propagated Visuals**: Purged hardcoded colors; all elements now respond to primary theme overrides.
+- **Admin Control**: Only users with the `ADMIN` role can see and interact with the Agency View Switcher and the Debug Role Switcher.
+- **Auto-Routing**: Analysts and Commanders are automatically routed to their respective dashboards (Cyber, Tactical, or Strategic) upon login, with no way to bypass their assigned view.
+- **Agency Officer Portal**: Users with the `AGENCY_OFFICER` role are blocked from the main dashboards and provided with a direct link to the Agency Command Portal.
+- **Access Enforcement**: Integrated server-side and client-side checks prevent unauthorized access to restricted views, showing a dedicated "Access Restricted" interface if necessary.
 
-## 11. Role-Based Access Control & View Isolation
-Hardened the dashboard against unauthorized lateral navigation and view switching.
-- **Admin Lockout**: Interface for switching roles and views (Agency Switcher/Role Debugger) is now strictly restricted to `ADMIN` users.
-- **Auto-Routing**: Non-admin users are automatically locked into their respective dashboards (Cyber, Tactical, Strategic) upon login.
-- **Clearance Enforcement**: Implemented "Clearance Restricted" interface to handle unauthorized access attempts.
-- **Portal Redirection**: `AGENCY_OFFICER` role is seamlessly directed to the Agency Command Portal via an integrated gateway interface.
+## Verification Results
+
+- [x] verified theme propagation to `MapboxMap` coordinates and lines.
+- [x] verified `TriageSidebar` component adaptability to four distinct color palettes.
+- [x] confirmed removal of all hardcoded `#00FF95` values in core dashboard files.
+- [x] Validated Mode Selector HUD functionality and responsive state updates.
+- [x] Applied and verified consistent `.scrollbar-cyber` styling across dashboard views.

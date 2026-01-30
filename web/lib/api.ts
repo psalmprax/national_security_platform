@@ -20,6 +20,9 @@ export interface Alert {
     type: string;
     content: string;
     location: string;
+    lga_name?: string;
+    state_name?: string;
+    location_source: 'GPS' | 'GOVERNANCE_OVERRIDE';
     severity: number;
     timestamp: string;
     isTrusted: boolean;
@@ -67,10 +70,13 @@ export async function fetchAlerts(token?: string): Promise<Alert[]> {
             longitude: Number(alert.longitude || 0),
             type: alert.alert_type || 'Unknown',
             content: alert.content_text || 'No description available.',
-            location: `${Number(alert.latitude || 0).toFixed(2)}, ${Number(alert.longitude || 0).toFixed(2)}`,
+            location: `${Number(alert.latitude || 0).toFixed(4)}, ${Number(alert.longitude || 0).toFixed(4)}`,
             timestamp: alert.created_at || new Date().toISOString(),
             isTrusted: (alert.verification_count || 0) > 0,
             severity: mapPriorityToSeverity(alert.priority_class || 'LOW'),
+            lga_name: alert.lga_name,
+            state_name: alert.state_name,
+            location_source: alert.location_source as 'GPS' | 'GOVERNANCE_OVERRIDE',
             isEncrypted: isBase64(alert.content_text || '') && (alert.content_text || '').length > 30 && !(alert.content_text || '').includes(' ')
         }));
     } catch (error) {
