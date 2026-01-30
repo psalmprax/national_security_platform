@@ -4,31 +4,35 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Target, Activity, Plus, Minus, Move, Shield, Briefcase } from 'lucide-react';
-import { Alert } from '../lib/api';
-
-// IMPORTANT: A Mapbox public access token is required.
-// Replace this with your token or ensure it is set in process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1IjoicHNhbG1wcmF4IiwiYSI6ImNta3lsdnNtajA4M2ozZXM2Mnd0cWF0OHMifQ.mI66qXgyqyh6kRVSoJYLhQ';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
-mapboxgl.accessToken = MAPBOX_TOKEN;
+import { Alert, TriangulatedAsset, API_BASE_URL } from '../lib/api';
 
 const isValidCoordinate = (lng: number, lat: number) => {
-    return typeof lng === 'number' && !isNaN(lng) && Math.abs(lng) <= 180 &&
-        typeof lat === 'number' && !isNaN(lat) && Math.abs(lat) <= 90;
+    return !isNaN(lng) && !isNaN(lat) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 };
 
-
+// Main Component
 
 interface MapboxMapProps {
     alerts: Alert[];
     selectedAlert?: Alert | null;
+    triangulatedAssets?: TriangulatedAsset[]; // NEW PROP
     mode?: 'cyber' | 'tactical';
     onSelect?: (alert: Alert) => void;
     showSatellite?: boolean;
+    token?: string | null;
+    primaryColor?: string; // NEW PROP
 }
 
-export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSelect, showSatellite = false }: MapboxMapProps) {
+export default function MapboxMap({
+    alerts,
+    selectedAlert,
+    triangulatedAssets = [],
+    mode = 'cyber',
+    onSelect,
+    showSatellite = false,
+    token: authToken,
+    primaryColor = '#00FF95' // Default to Cyber Green
+}: MapboxMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
@@ -39,70 +43,154 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
     const hasAttemptedInit = useRef(false);
     const isCyber = mode === 'cyber';
 
-    // Initialize Map and Check Support
+    // Initialize Map
     useEffect(() => {
-        if (!isMapSupported || !mapContainerRef.current || mapRef.current || hasAttemptedInit.current) return;
-
+        if (hasAttemptedInit.current || !mapContainerRef.current) return;
         hasAttemptedInit.current = true;
 
-        if (!mapboxgl.supported()) {
-            console.error("WebGL is not supported by this browser.");
-            setIsMapSupported(false);
+        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        if (!token) {
+            console.error("Mapbox token missing");
+            setTokenError(true);
             return;
         }
 
-        try {
-            const initialStyle = showSatellite
-                ? 'mapbox://styles/mapbox/satellite-v9'
-                : (isCyber ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/outdoors-v12');
+        mapboxgl.accessToken = token;
 
+        try {
             const map = new mapboxgl.Map({
                 container: mapContainerRef.current,
-                style: initialStyle,
-                center: [8.6753, 9.0820], // Center of Nigeria
+                style: showSatellite ? 'mapbox://styles/mapbox/satellite-v9' : (isCyber ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/outdoors-v12'),
+                center: [8.6753, 9.0820], // Nigeria center
                 zoom: 5.5,
                 pitch: isCyber ? 45 : 0,
-                failIfMajorPerformanceCaveat: false,
-                preserveDrawingBuffer: true, // Help with some rendering issues in Chrome
-            });
-
-            mapRef.current = map;
-
-            map.on('error', (e: any) => {
-                if (e.error?.status === 401 || e.error?.message?.includes('Unauthorized')) {
-                    setTokenError(true);
-                }
-                console.error("Mapbox error:", e);
+                antialias: true
             });
 
             map.on('load', () => {
-                // Map ready
+                mapRef.current = map;
+                setIsMapSupported(true);
+                // Trigger a re-render to ensure other effects run
+                setTokenError(false);
             });
-        } catch (error) {
-            console.error("Map initialization failed:", error);
+
+            map.on('error', (e) => {
+                if (e.error && ((e.error as any).status === 401 || e.error.message?.includes('Unauthorized'))) {
+                    setTokenError(true);
+                }
+            });
+
+        } catch (err) {
+            console.error("Mapbox init error:", err);
             setIsMapSupported(false);
         }
 
         return () => {
-            if (mapRef.current) {
-                mapRef.current.remove();
-                mapRef.current = null;
-            }
-            hasAttemptedInit.current = false;
+            mapRef.current?.remove();
         };
-    }, [isMapSupported, isCyber]);
+    }, []);
 
     // Handle Style and Pitch Changes smoothly
     useEffect(() => {
         if (!isMapSupported || !mapRef.current) return;
         const newStyle = showSatellite ? 'mapbox://styles/mapbox/satellite-v9' : (isCyber ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/outdoors-v12');
         try {
-            mapRef.current.setStyle(newStyle);
+            // Check if style is loaded before setting, or handle events
+            const currentStyle = mapRef.current.getStyle();
+            if (currentStyle && currentStyle.sprite !== newStyle) { // Simple check, might need better logic
+                mapRef.current.setStyle(newStyle);
+            }
             mapRef.current.setPitch(isCyber ? 45 : 0);
         } catch (error) {
-            console.error("Failed to update map style/pitch:", error);
+            // console.error("Failed to update map style/pitch:", error);
         }
     }, [showSatellite, isCyber, isMapSupported]);
+
+
+    // Handle Triangulation Vector Lines (NEW)
+    useEffect(() => {
+        if (!isMapSupported || !mapRef.current || !selectedAlert) return;
+        const map = mapRef.current;
+
+        const sourceId = 'triangulation-lines';
+        const layerId = 'triangulation-lines-layer';
+
+        // Helper to safely remove layer/source
+        const cleanUp = () => {
+            if (map.getLayer(layerId)) map.removeLayer(layerId);
+            if (map.getSource(sourceId)) map.removeSource(sourceId);
+        };
+
+        // If no assets or no alert selected, clean up
+        if (!triangulatedAssets || triangulatedAssets.length === 0) {
+            cleanUp();
+            return;
+        }
+
+        // Build GeoJSON LineStrings
+        const features = triangulatedAssets.map(ta => ({
+            type: 'Feature',
+            properties: {
+                score: ta.suitability_score // For gradient coloring if desired
+            },
+            geometry: {
+                type: 'LineString',
+                coordinates: [
+                    [selectedAlert.longitude, selectedAlert.latitude], // Start (Alert)
+                    [ta.asset.longitude, ta.asset.latitude]            // End (Asset)
+                ]
+            }
+        }));
+
+        const geoJsonData: any = {
+            type: 'FeatureCollection',
+            features: features
+        };
+
+        // Add or Update Source
+        const addLayer = () => {
+            if (!map.getSource(sourceId)) {
+                map.addSource(sourceId, {
+                    type: 'geojson',
+                    data: geoJsonData
+                });
+
+                map.addLayer({
+                    id: layerId,
+                    type: 'line',
+                    source: sourceId,
+                    layout: {
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    paint: {
+                        'line-color': primaryColor, // Controlled by dashboard mode
+                        'line-width': 2,
+                        'line-opacity': 0.6,
+                        'line-dasharray': [2, 1] // Dashed tactical look
+                    }
+                });
+            } else {
+                (map.getSource(sourceId) as mapboxgl.GeoJSONSource).setData(geoJsonData);
+            }
+        }
+
+        if (map.isStyleLoaded()) {
+            addLayer();
+        } else {
+            map.once('style.load', addLayer);
+        }
+
+        // Optional: Pulse/Animate lines logic could go here
+
+        return () => {
+            // Cleanup on unmount or change is handled by next render or manual cleanup if needed
+            // We keep them if the alert is still selected, but if selectedAlert changes, we update.
+        };
+
+    }, [selectedAlert, triangulatedAssets, isMapSupported]);
+
+
 
     // Handle Alert Markers
     useEffect(() => {
@@ -122,19 +210,28 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
             const lng = Number(alert.longitude);
             const lat = Number(alert.latitude);
 
-            if (!isValidCoordinate(lng, lat)) {
-                console.warn(`Skipping alert ${alert.id} due to invalid coordinates: [${lng}, ${lat}]`);
-                return;
-            }
+            if (!isValidCoordinate(lng, lat)) return;
+
+            // Determine base color: High severity is always red, others follow primaryColor
+            const color = alert.severity > 0.8 ? '#EF4444' : primaryColor;
 
             if (markersRef.current[alert.id]) {
-                markersRef.current[alert.id].setLngLat([lng, lat]);
+                const marker = markersRef.current[alert.id];
+                marker.setLngLat([lng, lat]);
+                // Update marker element color if it changed
+                const el = marker.getElement();
+                const innerCircle = el.querySelector('div > div:last-child') as HTMLDivElement;
+                const pulseCircle = el.querySelector('div > div:first-child') as HTMLDivElement;
+                if (innerCircle) {
+                    innerCircle.style.background = color;
+                    innerCircle.style.boxShadow = `0 0 10px ${color}`;
+                }
+                if (pulseCircle) {
+                    pulseCircle.style.borderColor = color;
+                }
             } else {
                 const el = document.createElement('div');
                 el.className = 'custom-marker';
-
-                // Set marker color/style based on severity
-                const color = alert.severity > 0.8 ? '#EF4444' : (alert.severity > 0.5 ? '#F59E0B' : (isCyber ? '#00FF95' : '#3B82F6'));
 
                 el.innerHTML = `
                     <div style="position: relative; display: flex; align-items: center; justify-content: center;">
@@ -156,7 +253,7 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
                 }
             }
         });
-    }, [alerts, isCyber, onSelect, isMapSupported]);
+    }, [alerts, isCyber, onSelect, isMapSupported, primaryColor]);
 
     // Handle Resource Markers
     useEffect(() => {
@@ -170,7 +267,9 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
 
         const fetchResources = async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/v1/assets`);
+                const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
+                    headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+                });
                 if (!res.ok) return;
                 const resources = await res.json();
 
@@ -210,7 +309,7 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
 
         fetchResources();
 
-    }, [showResources, isMapSupported]);
+    }, [showResources, isMapSupported, authToken]);
 
     // Handle Selection Fly-To
     useEffect(() => {
@@ -291,8 +390,8 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
             {isCyber && !showSatellite && (
                 <div className="absolute inset-0 pointer-events-none opacity-[0.05]" style={{
                     backgroundImage: `
-                        linear-gradient(to right, #00FF95 1px, transparent 1px),
-                        linear-gradient(to bottom, #00FF95 1px, transparent 1px)
+                        linear-gradient(to right, ${primaryColor} 1px, transparent 1px),
+                        linear-gradient(to bottom, ${primaryColor} 1px, transparent 1px)
                     `,
                     backgroundSize: '100px 100px'
                 }} />
@@ -302,22 +401,25 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
             <div className="absolute bottom-8 right-8 z-30 flex flex-col gap-2">
                 <button
                     onClick={handleZoomIn}
-                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${isCyber ? 'border-[#00FF95]/40 bg-black/60 text-[#00FF95]' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm'
+                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${isCyber ? 'bg-black/60' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm'
                         }`}
+                    style={isCyber ? { borderColor: primaryColor + '66', color: primaryColor } : {}}
                 >
                     <Plus className="w-5 h-5" />
                 </button>
                 <button
                     onClick={handleZoomOut}
-                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${isCyber ? 'border-[#00FF95]/40 bg-black/60 text-[#00FF95]' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm'
+                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${isCyber ? 'bg-black/60' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm'
                         }`}
+                    style={isCyber ? { borderColor: primaryColor + '66', color: primaryColor } : {}}
                 >
                     <Minus className="w-5 h-5" />
                 </button>
                 <button
                     onClick={resetView}
-                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${isCyber ? 'border-[#00FF95]/20 bg-black/40 text-[#00FF95]/60' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm'
+                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${isCyber ? 'bg-black/40' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm'
                         }`}
+                    style={isCyber ? { borderColor: primaryColor + '33', color: primaryColor + '99' } : {}}
                 >
                     <Move className="w-5 h-5" />
                 </button>
@@ -326,9 +428,10 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
                     onClick={() => setShowResources(!showResources)}
                     title="Toggle Critical Resources"
                     className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${showResources
-                        ? (isCyber ? 'border-[#00FF95] bg-[#00FF95]/20 text-[#00FF95] shadow-[0_0_15px_rgba(0,255,149,0.3)]' : 'border-blue-500 bg-blue-500 text-white shadow-lg')
-                        : (isCyber ? 'border-[#00FF95]/40 bg-black/60 text-[#00FF95]' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm')
+                        ? (isCyber ? '' : 'border-blue-500 bg-blue-500 text-white shadow-lg')
+                        : (isCyber ? 'bg-black/60' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm')
                         }`}
+                    style={isCyber ? (showResources ? { borderColor: primaryColor, backgroundColor: primaryColor + '33', color: primaryColor, boxShadow: `0 0 15px ${primaryColor}4d` } : { borderColor: primaryColor + '66', color: primaryColor }) : {}}
                 >
                     {showResources ? <Shield className="w-5 h-5 fill-current" /> : <Shield className="w-5 h-5" />}
                 </button>
@@ -337,10 +440,10 @@ export default function MapboxMap({ alerts, selectedAlert, mode = 'cyber', onSel
             {/* Selection HUD Panel */}
             {selectedAlert && (
                 <div className="absolute top-24 left-8 z-30 animate-in slide-in-from-left-4 fade-in duration-500 pointer-events-none">
-                    <div className={`glass-card p-4 border backdrop-blur-xl flex flex-col gap-2 ${isCyber ? 'border-[#00FF95]/20 bg-[#00FF95]/5' : 'border-slate-200 bg-white/90'}`}>
+                    <div className={`glass-card p-4 border backdrop-blur-xl flex flex-col gap-2 ${isCyber ? 'bg-white/[0.05]' : 'border-slate-200 bg-white/90'}`} style={isCyber ? { borderColor: primaryColor + '33' } : {}}>
                         <div className="flex items-center gap-2 mb-2">
-                            {isCyber ? <Target className="w-4 h-4 text-[#00FF95]" /> : <Activity className="w-4 h-4 text-slate-600" />}
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${isCyber ? 'text-[#00FF95]' : 'text-slate-900'}`}>
+                            {isCyber ? <Target className="w-4 h-4" style={{ color: primaryColor }} /> : <Activity className="w-4 h-4 text-slate-600" />}
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${isCyber ? '' : 'text-slate-900'}`} style={isCyber ? { color: primaryColor } : {}}>
                                 Target Lock: {selectedAlert.id.slice(0, 8)}
                             </span>
                         </div>

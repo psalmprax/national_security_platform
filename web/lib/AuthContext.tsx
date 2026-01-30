@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
-interface User {
+export interface User {
     id: string;
     phone_number: string;
     full_name: string;

@@ -15,7 +15,8 @@ import {
     Users
 } from 'lucide-react';
 import MapboxMap from '../MapboxMap';
-import { Alert } from '../../lib/api';
+import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset } from '../../lib/api';
+import { useAuth, User } from '../../lib/AuthContext';
 
 interface TacticalDashboardProps {
     alerts: Alert[];
@@ -25,16 +26,18 @@ interface TacticalDashboardProps {
         isEncrypted: boolean;
         trustedDevices: number;
     };
-    user: any;
+    user: User | null;
     logout: () => void;
 }
 
 export default function TacticalDashboard({ alerts, currentTime, securityStatus, user, logout }: TacticalDashboardProps) {
+    const { token } = useAuth();
     const [activeView, setActiveView] = useState<'map' | 'list'>('map');
     const [showUserMenu, setShowUserMenu] = useState(false);
-    const [selectedAlert, setSelectedAlert] = useState<any | null>(null);
+    const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
     const [showSatellite, setShowSatellite] = useState(false);
     const [radarAngle, setRadarAngle] = useState(0);
+    const [triangulatedAssets, setTriangulatedAssets] = useState<TriangulatedAsset[]>([]);
 
     // Simulated Radar Sweep
     useEffect(() => {
@@ -50,6 +53,19 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
         { id: 'T-BRAVO', status: 'ENGAGED', battery: '42%', dist: '0.8km' },
         { id: 'T-DELTA', status: 'IDLE', battery: '95%', dist: '2.4km' }
     ];
+
+    // Fetch Triangulation data when alert is selected (NEW)
+    useEffect(() => {
+        if (selectedAlert && token) {
+            const loadTriangulation = async () => {
+                const results = await fetchTriangulatedAssets(selectedAlert.id, token);
+                setTriangulatedAssets(results);
+            };
+            loadTriangulation();
+        } else {
+            setTriangulatedAssets([]);
+        }
+    }, [selectedAlert, token]);
 
     return (
         <div className="relative w-full h-full bg-[#121212] text-zinc-100 font-mono overflow-hidden">
@@ -171,9 +187,11 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                             <MapboxMap
                                 alerts={alerts}
                                 selectedAlert={selectedAlert}
+                                triangulatedAssets={triangulatedAssets}
                                 mode="tactical"
                                 onSelect={setSelectedAlert}
                                 showSatellite={showSatellite}
+                                token={token}
                             />
 
                             {/* Style Toggle */}
@@ -262,6 +280,66 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                         ))}
                                     </div>
                                 </div>
+
+                                {/* Tactical Proximity Radar (NEW) */}
+                                {selectedAlert && (
+                                    <div className="bg-black/90 p-4 border-2 border-yellow-500/50 rounded-sm shadow-2xl backdrop-blur-md">
+                                        <div className="flex items-center justify-between border-b border-yellow-500/20 mb-3 pb-2">
+                                            <h3 className="font-black text-[11px] uppercase tracking-widest text-yellow-500 flex items-center gap-2">
+                                                <Shield className="w-4 h-4" /> Tactical Proximity Radar
+                                            </h3>
+                                            <span className="text-[9px] font-mono text-yellow-500/50 animate-pulse uppercase">Scanning...</span>
+                                        </div>
+                                        <div className="space-y-4">
+                                            {triangulatedAssets.length > 0 ? (
+                                                triangulatedAssets.map((ta, i) => (
+                                                    <div key={ta.asset.id} className="space-y-1.5">
+                                                        <div className="flex justify-between items-center text-[10px]">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-zinc-500 font-bold">0{i + 1}</span>
+                                                                <span className="font-black text-white uppercase tracking-tight">{ta.asset.name}</span>
+                                                            </div>
+                                                            <span className="font-black text-yellow-500">{(ta.distance_meters / 1000).toFixed(1)}KM</span>
+                                                        </div>
+                                                        <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-yellow-500"
+                                                                style={{ width: `${ta.suitability_score}%` }}
+                                                            />
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-tighter">Suitability: {ta.suitability_score.toFixed(0)}%</span>
+                                                            {ta.asset.status !== 'DISPATCHED' ? (
+                                                                <button
+                                                                    onClick={async (e) => {
+                                                                        e.stopPropagation();
+                                                                        if (!token) return;
+                                                                        const success = await dispatchAsset(ta.asset.id, token);
+                                                                        if (success) {
+                                                                            setTriangulatedAssets(prev => prev.map(p =>
+                                                                                p.asset.id === ta.asset.id ? { ...p, asset: { ...p.asset, status: 'DISPATCHED' } } : p
+                                                                            ));
+                                                                            alert(`UNIT [${ta.asset.name}] DISPATCHED.`);
+                                                                        }
+                                                                    }}
+                                                                    className="text-black bg-yellow-500 px-2 py-0.5 text-[8px] font-black uppercase hover:bg-yellow-400 transition-colors"
+                                                                >
+                                                                    Activate
+                                                                </button>
+                                                            ) : (
+                                                                <span className="bg-orange-600/20 text-orange-500 border border-orange-500/30 px-2 py-0.5 text-[8px] font-black uppercase">Dispatched</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-[10px] text-zinc-500 italic py-2 text-center border border-dashed border-zinc-800">
+                                                    No assets in immediate proximity.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="bg-orange-600/10 border border-orange-600/30 p-4 rounded-sm flex items-center gap-3">
                                     <div className="relative">

@@ -7,7 +7,17 @@ import { formatDistanceToNow } from 'date-fns';
 import { Alert, SectorReport, fetchSectorReport } from '../lib/api';
 import { useAuth } from '../lib/AuthContext';
 
-export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts: Alert[], onSelect?: (alert: Alert) => void, selectedId?: string | null }) {
+export default function TriageSidebar({
+    alerts,
+    onSelect,
+    selectedId,
+    themeColor = '#00FF95'
+}: {
+    alerts: Alert[],
+    onSelect?: (alert: Alert) => void,
+    selectedId?: string | null,
+    themeColor?: string
+}) {
     const { token, user } = useAuth();
     const [isMounted, setIsMounted] = React.useState(false);
     const [report, setReport] = React.useState<SectorReport | null>(null);
@@ -36,7 +46,7 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
         <aside className="w-96 glass-surface flex flex-col z-30">
             <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                 <div className="flex items-center gap-3">
-                    <Activity className="w-5 h-5 text-[#00FF95] glow-green" />
+                    <Activity className="w-5 h-5 transition-colors" style={{ color: themeColor, filter: `drop-shadow(0 0 8px ${themeColor}40)` }} />
                     <h2 className="text-sm font-black tracking-[0.2em] text-white/90">INTELLIGENCE TRIAGE</h2>
                 </div>
                 <div className="flex items-center gap-2">
@@ -63,21 +73,20 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
                         <div
                             key={alert.id}
                             onClick={() => onSelect?.(alert)}
-                            className={`p-5 rounded-2xl bg-white/[0.03] border transition-all duration-500 cursor-pointer group relative overflow-hidden
-                                ${selectedId === alert.id ? 'border-[#00FF95] bg-[#00FF95]/5' : 'border-white/5 hover:border-[#00FF95]/30 hover:bg-white/[0.05]'}
-                            `}
+                            className={`p-5 rounded-2xl bg-white/[0.03] border transition-all duration-500 cursor-pointer group relative overflow-hidden`}
+                            style={selectedId === alert.id ? { borderColor: themeColor, backgroundColor: themeColor + '0d' } : { borderColor: 'rgba(255,255,255,0.05)' }}
                         >
                             {/* Threat Progress Bar Background */}
                             <div className="absolute top-0 left-0 h-1 bg-white/5 w-full" />
                             <div
-                                className={`absolute top-0 left-0 h-1 transition-all duration-1000 ${alert.severity > 0.8 ? 'bg-[#FF003C] glow-red' : 'bg-[#00FF95] glow-green'}`}
-                                style={{ width: `${alert.severity * 100}%` }}
+                                className={`absolute top-0 left-0 h-1 transition-all duration-1000 ${alert.severity > 0.8 ? 'bg-[#FF003C] glow-red' : ''}`}
+                                style={{ width: `${alert.severity * 100}%`, backgroundColor: alert.severity > 0.8 ? '#FF003C' : themeColor, boxShadow: alert.severity > 0.8 ? '0 0 10px #FF003C' : `0 0 10px ${themeColor}40` }}
                             />
 
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex flex-col gap-1">
                                     <div className="flex items-center gap-2">
-                                        <span className={`text-[10px] font-black tracking-widest uppercase ${alert.severity > 0.8 ? 'text-[#FF003C]' : 'text-[#00FF95]'}`}>
+                                        <span className={`text-[10px] font-black tracking-widest uppercase`} style={{ color: alert.severity > 0.8 ? '#FF003C' : themeColor }}>
                                             {alert.type}
                                         </span>
                                         {alert.isDuress && (
@@ -86,7 +95,7 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
                                             </span>
                                         )}
                                         {alert.isTrusted ? (
-                                            <span className="text-[7px] text-[#00FF95]/40 border border-[#00FF95]/10 px-1 py-0 rounded-sm font-bold tracking-widest">SECURE - VERIFIED</span>
+                                            <span className="text-[7px] border px-1 py-0 rounded-sm font-bold tracking-widest" style={{ color: themeColor + '66', borderColor: themeColor + '1a' }}>SECURE - VERIFIED</span>
                                         ) : (
                                             <span className="text-[7px] text-[#FF003C]/60 border border-[#FF003C]/20 px-1 py-0 rounded-sm font-bold tracking-widest bg-[#FF003C]/5 animate-pulse">UNTRUSTED - SIG_FAIL</span>
                                         )}
@@ -107,15 +116,16 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
 
                             <div className="flex items-center justify-between pt-4 border-t border-white/5">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-[#00FF95] animate-pulse" />
+                                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: themeColor }} />
                                     <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">Verified 88%</span>
                                 </div>
                                 <div className="flex gap-2">
                                     <button className="h-8 w-8 rounded-full flex items-center justify-center bg-white/[0.05] border border-white/10 hover:bg-[#FF003C]/20 hover:border-[#FF003C]/40 transition-all group/btn">
                                         <AlertCircle className="w-3.5 h-3.5 text-white/40 group-hover/btn:text-[#FF003C]" />
                                     </button>
-                                    <button className="h-8 w-8 rounded-full flex items-center justify-center bg-white/[0.05] border border-white/10 hover:bg-[#00FF95]/20 hover:border-[#00FF95]/40 transition-all group/btn">
-                                        <CheckCircle2 className="w-3.5 h-3.5 text-white/40 group-hover/btn:text-[#00FF95]" />
+                                    <button className="h-8 w-8 rounded-full flex items-center justify-center bg-white/[0.05] border border-white/10 transition-all group/btn"
+                                        style={{ '&:hover': { backgroundColor: themeColor + '33', borderColor: themeColor + '66' } } as any}>
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-white/40 transition-colors" style={{ '&:group-hover/btn': { color: themeColor } } as any} />
                                     </button>
                                 </div>
                             </div>
@@ -127,15 +137,13 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
             <div className="p-6 border-t border-white/5 bg-white/[0.02] backdrop-blur-md">
                 <button
                     onClick={handleGenerateReport}
-                    disabled={isGenerating || user?.role !== 'ADMIN'}
-                    className={`w-full h-12 rounded-xl text-black text-[11px] font-black tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2
-                        ${isGenerating ? 'bg-white/10 text-white/40 cursor-wait' : 'bg-[#00FF95] hover:scale-[1.02] active:scale-[0.98] glow-green'}
-                        ${user?.role !== 'ADMIN' ? 'opacity-50 cursor-not-allowed' : ''}
-                    `}
+                    disabled={isGenerating}
+                    className={`w-full h-12 rounded-xl text-black text-[11px] font-black tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2 ${isGenerating ? 'bg-white/10 text-white/40 cursor-wait' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                    style={isGenerating ? {} : { backgroundColor: themeColor, boxShadow: `0 0 20px ${themeColor}40` }}
                 >
                     {isGenerating ? (
                         <>
-                            <div className="w-4 h-4 border-2 border-white/20 border-t-[#00FF95] rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-white/20 rounded-full animate-spin" style={{ borderTopColor: themeColor }} />
                             Analyzing Assets...
                         </>
                     ) : (
@@ -150,8 +158,8 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
             {/* SECTOR REPORT MODAL */}
             {report && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-[#121212] border-2 border-[#00FF95]/30 rounded-3xl w-full max-w-xl shadow-[0_0_100px_rgba(0,255,149,0.1)] overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="relative p-8 border-b border-white/5 bg-gradient-to-r from-[#00FF95]/5 to-transparent">
+                    <div className="bg-[#121212] border-2 rounded-3xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-300" style={{ borderColor: themeColor + '4d', boxShadow: `0 0 100px ${themeColor}1a` }}>
+                        <div className="relative p-8 border-b border-white/5 bg-gradient-to-r from-transparent to-transparent" style={{ backgroundImage: `linear-gradient(to right, ${themeColor}0d, transparent)` }}>
                             <button
                                 onClick={() => setReport(null)}
                                 className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/10"
@@ -159,8 +167,8 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
                                 <X className="w-4 h-4" />
                             </button>
                             <div className="flex items-center gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-2xl bg-[#00FF95]/10 border border-[#00FF95]/20 flex items-center justify-center">
-                                    <Shield className="w-6 h-6 text-[#00FF95]" />
+                                <div className="w-12 h-12 rounded-2xl border flex items-center justify-center" style={{ backgroundColor: themeColor + '1a', borderColor: themeColor + '33' }}>
+                                    <Shield className="w-6 h-6" style={{ color: themeColor }} />
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-black text-white uppercase tracking-wider">Sector Intelligence Report</h3>
@@ -171,13 +179,13 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
                                     <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Threat Level</p>
-                                    <p className={`text-xl font-black ${report.threat_level === 'CRITICAL' || report.threat_level === 'HIGH' ? 'text-red-500' : 'text-[#00FF95]'}`}>
+                                    <p className={`text-xl font-black`} style={report.threat_level === 'CRITICAL' || report.threat_level === 'HIGH' ? { color: 'rgb(239, 68, 68)' } : { color: themeColor }}>
                                         {report.threat_level}
                                     </p>
                                 </div>
                                 <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
                                     <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">System Integrity</p>
-                                    <p className="text-xl font-black text-[#00FF95]">{report.system_integrity.toFixed(1)}%</p>
+                                    <p className="text-xl font-black" style={{ color: themeColor }}>{report.system_integrity.toFixed(1)}%</p>
                                 </div>
                             </div>
                         </div>
@@ -195,7 +203,7 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
                                         <p className="text-[9px] font-bold text-white/40 uppercase">Critical</p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-2xl font-black text-[#00FF95]">{report.routine_alerts}</p>
+                                        <p className="text-2xl font-black" style={{ color: themeColor }}>{report.routine_alerts}</p>
                                         <p className="text-[9px] font-bold text-white/40 uppercase">Routine</p>
                                     </div>
                                 </div>
@@ -204,12 +212,12 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">
                                     <span>Average Trust Factor</span>
-                                    <span className="text-[#00FF95]">{Math.round(report.trust_score_avg * 10)}%</span>
+                                    <span style={{ color: themeColor }}>{Math.round(report.trust_score_avg * 10)}%</span>
                                 </div>
                                 <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
                                     <div
-                                        className="h-full bg-gradient-to-r from-[#00FF95]/50 to-[#00FF95]"
-                                        style={{ width: `${Math.min(report.trust_score_avg * 10, 100)}%` }}
+                                        className="h-full transition-all duration-1000"
+                                        style={{ width: `${Math.min(report.trust_score_avg * 10, 100)}%`, background: `linear-gradient(to right, ${themeColor}80, ${themeColor})` }}
                                     />
                                 </div>
                                 <p className="text-[9px] text-white/40 italic">
@@ -233,7 +241,8 @@ export default function TriageSidebar({ alerts, onSelect, selectedId }: { alerts
                                 </button>
                                 <button
                                     onClick={() => window.print()}
-                                    className="flex-1 h-12 rounded-xl bg-[#00FF95] text-black text-[10px] font-black tracking-widest uppercase hover:scale-[1.02] active:scale-[0.98] transition-all glow-green flex items-center justify-center gap-2"
+                                    className="flex-1 h-12 rounded-xl text-black text-[10px] font-black tracking-widest uppercase hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                    style={{ backgroundColor: themeColor, boxShadow: `0 0 20px ${themeColor}40` }}
                                 >
                                     <TrendingUp className="w-4 h-4" /> Full Analytics
                                 </button>

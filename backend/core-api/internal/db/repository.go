@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"national_security_platform/backend/core-api/internal/models"
 
@@ -434,4 +436,118 @@ func GetRecentSecurityScans(ctx context.Context, limit, offset int) ([]models.Se
 	}
 
 	return scans, nil
+}
+
+// GetTriangulatedAssets finds suitable response teams for a specific alert
+func GetTriangulatedAssets(ctx context.Context, alertID uuid.UUID) ([]models.TriangulatedAsset, error) {
+	cacheKey := fmt.Sprintf("alert:%s:triangulation", alertID)
+
+	// Check Redis Cache
+	if RedisClient != nil {
+		val, err := RedisClient.Get(ctx, cacheKey).Result()
+		if err == nil {
+			var cachedResults []models.TriangulatedAsset
+			if err := json.Unmarshal([]byte(val), &cachedResults); err == nil {
+				// Cache Hit
+				return cachedResults, nil
+			}
+		}
+	}
+
+	// Cache Miss: Perform DB Query
+	// First, find the alert's location and the state it's in
+	query := `
+		WITH alert_loc AS (
+			SELECT location FROM alerts WHERE id = $1
+		),
+		target_state AS (
+			SELECT id FROM states, alert_loc WHERE ST_Contains(states.boundary_geom, alert_loc.location) LIMIT 1
+		)
+		SELECT 
+			a.id, a.agency_id, a.name, a.type, st_x(a.location), st_y(a.location), a.status, a.description, a.call_sign, a.capacity_level, a.last_updated_at, a.created_at,
+			ST_Distance(a.location::geography, al.location::geography) as distance_meters,
+			((a.capacity_level::float8 * 0.5) + (GREATEST(0.0, (1.0 - ST_Distance(a.location::geography, al.location::geography) / 50000.0)) * 50.0))::float8 as suitability_score
+		FROM assets a
+		JOIN alert_loc al ON true
+		LEFT JOIN states s ON ST_Contains(s.boundary_geom, a.location)
+		WHERE a.status = 'ACTIVE'
+		AND (s.id = (SELECT id FROM target_state) OR ST_DWithin(a.location::geography, al.location::geography, 50000))
+		ORDER BY suitability_score DESC
+		LIMIT 5
+	`
+
+	rows, err := Pool.Query(ctx, query, alertID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query triangulated assets: %w", err)
+	}
+	defer rows.Close()
+
+	var results []models.TriangulatedAsset
+	for rows.Next() {
+		var ta models.TriangulatedAsset
+		err := rows.Scan(
+			&ta.Asset.ID, &ta.Asset.AgencyID, &ta.Asset.Name, &ta.Asset.Type, &ta.Asset.Longitude, &ta.Asset.Latitude, &ta.Asset.Status, &ta.Asset.Description, &ta.Asset.CallSign, &ta.Asset.CapacityLevel, &ta.Asset.LastUpdatedAt, &ta.Asset.CreatedAt,
+			&ta.DistanceMeters,
+			&ta.SuitabilityScore,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan triangulated asset: %w", err)
+		}
+		results = append(results, ta)
+	}
+
+	// Update Redis Cache (Async)
+	if RedisClient != nil && len(results) > 0 {
+		go func() {
+			data, err := json.Marshal(results)
+			if err == nil {
+				RedisClient.Set(context.Background(), cacheKey, data, 30*time.Second)
+			}
+		}()
+	}
+
+	return results, nil
+}
+
+// UpdateAssetStatus updates the status of an asset and logs the change
+func UpdateAssetStatus(ctx context.Context, assetID uuid.UUID, newStatus string) error {
+	query := `
+		UPDATE assets 
+		SET status = $1, last_updated_at = current_timestamp()
+		WHERE id = $2
+	`
+
+	result, err := Pool.Exec(ctx, query, newStatus, assetID)
+	if err != nil {
+		return fmt.Errorf("failed to update asset status: %w", err)
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("asset not found")
+	}
+
+	return nil
+}
+
+// GetUserAgencyInfo retrieves the agency associated with a user
+func GetUserAgencyInfo(ctx context.Context, userID uuid.UUID) (*models.Agency, error) {
+	query := `
+		SELECT a.id, a.name, a.acronym, a.type, a.jurisdiction_scope, a.hq_address, a.contact_phone, a.created_at
+		FROM agencies a
+		JOIN agency_personnel ap ON a.id = ap.agency_id
+		WHERE ap.user_id = $1 AND ap.is_active = TRUE
+		LIMIT 1
+	`
+
+	var a models.Agency
+	err := Pool.QueryRow(ctx, query, userID).Scan(
+		&a.ID, &a.Name, &a.Acronym, &a.Type, &a.JurisdictionScope, &a.HQAddress, &a.ContactPhone, &a.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user agency: %w", err)
+	}
+
+	return &a, nil
 }

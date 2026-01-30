@@ -243,13 +243,20 @@ erDiagram
 
 ### 3.2 Intelligence & Security Operations Platform (Server)
 *   **Ingestion**: Golang-based high-concurrency specialized services.
-*   **Real-time Processing**: Stream processing (Apache Flink or similar light alternative) to correlate incoming alerts with active incidents.
+*   **Real-time Processing**: 
+    *   **Event Pipeline**: NATS JetStream for asynchronous message decoupling.
+    *   **Broadcasting**: Server-Sent Events (SSE) for sub-second delivery of alerts to the dashboard (replacing polling).
+*   **Performance Optimization**: Redis-based spatial caching for high-cost geometric queries (e.g., Triangulation).
 *   **Map/Vis**: Mapbox GL JS (Self-hosted/Vector tiles) or Cesium for 3D terrain understanding.
 
 ### 3.3 Secure Operations Dashboard (Web)
 *   **Framework**: Next.js (React) for high-performance Command & Control interface.
-*   **RBAC Enforcement**: Strict view isolation policy. User sessions are verified via JWT, and UI components are conditionally rendered based on explicit operational mandates (e.g., Cyber Analysts are locked to Cyber views).
-*   **Agency Command Portal**: A specialized administrative gateway for asset deployment and personnel management, accessible only to `ADMIN` and `AGENCY_OFFICER` roles.
+*   **Real-Time Data**: Consumes SSE (`/api/v1/events/stream`) for immediate alert visualization.
+*   **RBAC Enforcement**: Strict view isolation policy. User sessions are verified via JWT, and UI components are conditionally rendered based on explicit operational mandates. 
+*   **Agency-Aware Reporting**: Sector intelligence reports are dynamically scoped to the user's assigned command unit (e.g., Nigerian Army 7th Division) via the `agency_personnel` mapping, ensuring data silo integrity and localized command oversight.
+*   **Asset Dispatch**: Integrated tactical command for real-time activation and deployment of response units (Assets) based on geospatial suitability and operational status.
+*   **Identity Layer Integrity**: The frontend leverages a strictly typed `User` identity schema, preventing role-spoofing and ensuring that RBAC enforcement is checked at both the UI rendering and API consumption layers.
+*   **Situational Awareness (Operational Modes)**: Implementation of dynamic platform "Operational Modes" (e.g., NOMINAL, TACTICAL, DARK_OPS). This design pattern uses a centralized theme engine to propagate visual cues and triage logic across the 3D map, telemetry streams, and intelligence sidebars, ensuring thematic cohesion during critical incidents.
 *   **Observability & Auditing**:
     *   **Access Logging**: Structured JSON logging of every request (Public/Protected) to standard output for non-repudiation.
     *   **Traceability**: Captures IP, User Identity, Role, and Resource Access attempts for intrusion detection.

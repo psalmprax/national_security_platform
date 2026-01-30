@@ -16,6 +16,9 @@ FILES=(
     "platform/schema/006_auth_and_status.sql"
     "platform/schema/007_agency_schema.sql"
     "platform/schema/008_security_sentinel_schema.sql"
+    "platform/schema/009_spatial_tuning.sql"
+    "platform/schema/010_test_agencies.sql"
+    "platform/schema/011_seed_agency_personnel.sql"
 )
 
 for file in "${FILES[@]}"; do

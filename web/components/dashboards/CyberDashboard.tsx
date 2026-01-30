@@ -14,12 +14,13 @@ import {
     Activity,
     Lock,
     Eye,
-    TrendingUp
+    TrendingUp,
+    X
 } from 'lucide-react';
 import MapboxMap from '../MapboxMap';
 import TriageSidebar from '../TriageSidebar';
-import { Alert, SecurityScan, fetchSecurityScans } from '../../lib/api';
-import { useAuth } from '../../lib/AuthContext';
+import { Alert, SecurityScan, fetchSecurityScans, TriangulatedAsset, fetchTriangulatedAssets, dispatchAsset, API_BASE_URL } from '../../lib/api';
+import { useAuth, User as UserType } from '../../lib/AuthContext';
 
 
 
@@ -31,7 +32,7 @@ interface CyberDashboardProps {
         isEncrypted: boolean;
         trustedDevices: number;
     };
-    user: any;
+    user: UserType | null;
     logout: () => void;
 }
 
@@ -39,14 +40,61 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
     const { token } = useAuth();
     const [activeView, setActiveView] = useState<'map' | 'alerts' | 'data' | 'analytics' | 'profile' | 'registry' | 'compliance'>('map');
     const [filterMode, setFilterMode] = useState<'all' | 'secure' | 'active' | 'signal'>('all');
+    const [operationMode, setOperationMode] = useState<'NOMINAL' | 'SURGICAL' | 'TACTICAL' | 'DARK_OPS'>('NOMINAL');
     const [showNotifications, setShowNotifications] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
     const [showSatellite, setShowSatellite] = useState(false);
     const [securityScans, setSecurityScans] = useState<SecurityScan[]>([]);
+    const [triangulatedAssets, setTriangulatedAssets] = useState<TriangulatedAsset[]>([]);
+    const [liveAlerts, setLiveAlerts] = useState<Alert[]>(alerts);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+
+    // Sync with props
+    useEffect(() => {
+        setLiveAlerts(alerts);
+    }, [alerts]);
+
+    // Server-Sent Events (SSE) (NEW)
+    useEffect(() => {
+        const eventSource = new EventSource(`${API_BASE_URL}/api/v1/events/stream`);
+
+        eventSource.onopen = () => {
+            console.log("🟢 SSE Pipeline Connected: Listening for real-time intelligence...");
+        };
+
+        eventSource.onmessage = (event) => {
+            try {
+                // Parse raw NATS message -> Alert
+                // Assuming NATS sends raw JSON of Alert model
+                const newData = JSON.parse(event.data);
+
+                // Determine type of event? For now assuming it's an Alert
+                // Ideally backend wraps it: { type: "alert", payload: ... }
+                // But current backend sends raw `msg` from `alerts.new` which is `alert` JSON.
+                const newAlert = newData as Alert;
+
+                setLiveAlerts((prev: Alert[]) => {
+                    // Avoid duplicates
+                    if (prev.find((a: Alert) => a.id === newAlert.id)) return prev;
+                    return [newAlert, ...prev];
+                });
+            } catch (e) {
+                console.error("Failed to parse intelligence stream:", e);
+            }
+        };
+
+        eventSource.onerror = (err) => {
+            // console.error("SSE Connection Error", err);
+            // Browser re-connects automatically
+        };
+
+        return () => {
+            eventSource.close();
+        };
+    }, []);
 
     // Fetch Security Scans if Admin
     useEffect(() => {
@@ -61,12 +109,58 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
         }
     }, [user, token, currentPage]);
 
+    // Mode-specific behaviors
+    useEffect(() => {
+        if (operationMode === 'SURGICAL') {
+            setFilterMode('secure');
+        } else if (operationMode === 'DARK_OPS') {
+            setFilterMode('active');
+        } else {
+            setFilterMode('all'); // Reset filter when not in specific modes
+        }
+    }, [operationMode]);
+
+    const handleAlertSelect = (alert: Alert) => {
+        setSelectedAlert(alert);
+        if (token) {
+            fetchTriangulatedAssets(alert.id, token).then(setTriangulatedAssets).catch(console.error);
+        }
+    };
+
+    // Auto-trigger triangulation when in Tactical mode and an alert is selected
+    useEffect(() => {
+        if (operationMode === 'TACTICAL' && selectedAlert) {
+            handleAlertSelect(selectedAlert);
+        }
+    }, [operationMode, selectedAlert, token]); // Added token to dependencies
+
+    // Clear triangulation data when no alert is selected
+    useEffect(() => {
+        if (!selectedAlert) {
+            setTriangulatedAssets([]);
+        }
+    }, [selectedAlert]);
+
+    // Mode-specific themes
+    const themes = {
+        NOMINAL: { primary: '#00FF95', secondary: 'rgba(0, 255, 149, 0.1)', glow: 'rgba(0, 255, 149, 0.3)', text: 'text-[#00FF95]' },
+        SURGICAL: { primary: '#60A5FA', secondary: 'rgba(96, 165, 250, 0.1)', glow: 'rgba(96, 165, 250, 0.4)', text: 'text-blue-400' },
+        TACTICAL: { primary: '#FACC15', secondary: 'rgba(250, 204, 21, 0.1)', glow: 'rgba(250, 204, 21, 0.4)', text: 'text-yellow-400' },
+        DARK_OPS: { primary: '#EF4444', secondary: 'rgba(239, 68, 68, 0.1)', glow: 'rgba(239, 68, 68, 0.4)', text: 'text-red-500' }
+    };
+
+    const currentTheme = themes[operationMode as keyof typeof themes] || themes.NOMINAL;
+
     // Filter Logic
-    const filteredAlerts = alerts.filter(alert => {
+    const filteredAlerts = liveAlerts.filter((alert: Alert) => {
+        // Special Mode Behaviors
+        if (operationMode === 'SURGICAL') return alert.isTrusted;
+        if (operationMode === 'DARK_OPS') return alert.severity > 0.4;
+
         if (filterMode === 'all') return true;
         if (filterMode === 'secure') return alert.isTrusted;
         if (filterMode === 'active') return alert.severity > 0.6;
-        if (filterMode === 'signal') return true; // Show all
+        if (filterMode === 'signal') return true;
         return true;
     });
 
@@ -77,14 +171,14 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                 <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-900 to-black" />
                 <div className="absolute inset-0" style={{
                     backgroundImage: `
-                        linear-gradient(rgba(0, 255, 149, 0.03) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(0, 255, 149, 0.03) 1px, transparent 1px)
+                        linear-gradient(${currentTheme.primary}08 1px, transparent 1px),
+                        linear-gradient(90deg, ${currentTheme.primary}08 1px, transparent 1px)
                     `,
                     backgroundSize: '50px 50px',
                     animation: 'gridMove 20s linear infinite'
                 }} />
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#00FF95]/5 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+                <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ backgroundColor: `${currentTheme.primary}0d` }} />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s', backgroundColor: `${currentTheme.primary}0d` }} />
             </div>
 
             <style jsx global>{`
@@ -93,12 +187,15 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                     100% { transform: translateY(50px); }
                 }
                 @keyframes glow {
-                    0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 149, 0.3), 0 0 20px rgba(0, 255, 149, 0.1); }
-                    50% { box-shadow: 0 0 20px rgba(0, 255, 149, 0.5), 0 0 40px rgba(0, 255, 149, 0.2); }
+                    0%, 100% { box-shadow: 0 0 10px ${currentTheme.glow}, 0 0 20px ${currentTheme.secondary}; }
+                    50% { box-shadow: 0 0 20px ${currentTheme.glow}, 0 0 40px ${currentTheme.secondary}; }
                 }
                 @keyframes slideInRight {
                     from { transform: translateX(100%); opacity: 0; }
                     to { transform: translateX(0); opacity: 1; }
+                }
+                .glow-current {
+                    box-shadow: 0 0 15px ${currentTheme.glow};
                 }
             `}</style>
 
@@ -106,9 +203,12 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                 <div className="flex h-screen bg-[#050505] text-white font-sans overflow-hidden selection:bg-[#00FF95]/30">
                     {/* Left Utility Bar */}
                     <aside className="w-16 border-r border-white/5 flex flex-col items-center py-8 gap-10 bg-black/40 backdrop-blur-md z-40">
-                        <div className="p-2 rounded-xl bg-[#00FF95]/10 border border-[#00FF95]/20 glow-green relative group">
-                            <Shield className="text-[#00FF95] w-6 h-6" />
-                            <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                        <div className="p-2 rounded-xl bg-white/[0.03] border border-white/10 relative group transition-all" style={{
+                            borderColor: currentTheme.primary + '33',
+                            backgroundColor: currentTheme.primary + '1a'
+                        }}>
+                            <Shield className="w-6 h-6" style={{ color: currentTheme.primary }} />
+                            <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-white/10 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                                 Security Platform
                             </div>
                         </div>
@@ -116,9 +216,10 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                             <div
                                 onClick={() => setActiveView('map')}
                                 className={`p-2 rounded-lg cursor-pointer transition-all relative group ${activeView === 'map'
-                                    ? 'bg-[#00FF95]/10 text-[#00FF95] border border-[#00FF95]/20'
+                                    ? 'bg-white/10 border border-white/20'
                                     : 'bg-white/[0.03] text-zinc-600 hover:text-white'
                                     }`}
+                                style={activeView === 'map' ? { color: currentTheme.primary, borderColor: currentTheme.primary + '4d', backgroundColor: currentTheme.primary + '1a' } : {}}
                             >
                                 <MapIcon className="w-5 h-5" />
                                 <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
@@ -205,26 +306,46 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                     {/* Main Interactive Map Area */}
                     <main className="flex-1 relative overflow-hidden bg-black">
                         {/* HUD Overlays */}
-                        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 flex flex-col gap-1 pointer-events-none items-center">
+                        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 flex flex-col gap-3 pointer-events-none items-center">
                             <div className="flex items-center gap-3">
-                                <Radio className="w-4 h-4 text-[#00FF95] animate-pulse" />
+                                <Radio className="w-4 h-4 animate-pulse" style={{ color: currentTheme.primary }} />
                                 <h1 className="text-sm font-black tracking-[0.4em] text-white uppercase">SITUATIONAL AWARENESS CENTER</h1>
                             </div>
+
+                            {/* Mode Selector HUB (NEW) - System Admin Only */}
+                            {user?.role === 'ADMIN' && (
+                                <div className="flex items-center gap-1 p-1 bg-black/40 backdrop-blur-xl border border-white/5 rounded-full pointer-events-auto">
+                                    {(['NOMINAL', 'SURGICAL', 'TACTICAL', 'DARK_OPS'] as const).map((mode) => (
+                                        <button
+                                            key={mode}
+                                            onClick={() => setOperationMode(mode)}
+                                            className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${operationMode === mode
+                                                ? 'bg-white/10 shadow-[0_0_10px_rgba(255,255,255,0.1)]'
+                                                : 'text-white/20 hover:text-white/40'
+                                                }`}
+                                            style={operationMode === mode ? { color: themes[mode].primary } : {}}
+                                        >
+                                            {mode}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
                             <div className="flex items-center gap-4 text-[10px] text-white/30 font-mono">
                                 <span className="tracking-widest flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#00FF95] animate-pulse" />
+                                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: currentTheme.primary }} />
                                     SEC_STATUS: ENCRYPTED_CHANNEL
                                 </span>
                                 <span className="tracking-widest">GRID: NGR-01-DELTA</span>
-                                <span className="tracking-widest text-[#00FF95]/60">TRUSTED_NODES: {securityStatus.trustedDevices}</span>
+                                <span className="tracking-widest" style={{ color: currentTheme.primary + 'cc' }}>TRUSTED_NODES: {securityStatus.trustedDevices}</span>
                             </div>
                         </div>
 
                         <div className="absolute top-8 right-8 z-30 pointer-events-none">
-                            <div className="glass-card px-6 py-3 border border-white/5 bg-black/20 font-mono text-right min-w-[140px]">
+                            <div className="glass-card px-6 py-3 border border-white/5 bg-black/20 font-mono text-right min-w-[140px]" style={{ borderColor: currentTheme.primary + '1a' }}>
                                 {currentTime ? (
                                     <>
-                                        <div className="text-[#00FF95] text-xs font-bold tabular-nums">
+                                        <div className="text-xs font-bold tabular-nums" style={{ color: currentTheme.primary }}>
                                             {currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                         </div>
                                         <div className="text-[9px] text-white/20 tracking-[0.2em] font-black uppercase">
@@ -248,19 +369,22 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                 <MapboxMap
                                     alerts={filteredAlerts}
                                     selectedAlert={selectedAlert}
-                                    mode="cyber"
-                                    onSelect={setSelectedAlert}
+                                    triangulatedAssets={triangulatedAssets}
+                                    onSelect={handleAlertSelect}
                                     showSatellite={showSatellite}
+                                    token={token}
+                                    primaryColor={currentTheme.primary}
                                 />
 
                                 {/* LAYER CONTROLS */}
                                 <div className="absolute top-24 right-8 z-20 flex flex-col gap-2">
                                     <button
                                         onClick={() => setShowSatellite(!showSatellite)}
-                                        className={`px-4 py-2 border backdrop-blur-md transition-all flex items-center gap-2 group ${showSatellite ? 'border-[#00FF95] bg-[#00FF95]/10 text-[#00FF95]' : 'border-white/10 bg-black/40 text-white/40 hover:border-white/30'
+                                        className={`px-4 py-2 border backdrop-blur-md transition-all flex items-center gap-2 group ${showSatellite ? 'bg-white/10' : 'border-white/10 bg-black/40 text-white/40 hover:border-white/30'
                                             }`}
+                                        style={showSatellite ? { borderColor: currentTheme.primary, color: currentTheme.primary } : {}}
                                     >
-                                        <div className={`w-2 h-2 rounded-full ${showSatellite ? 'bg-[#00FF95] animate-pulse' : 'bg-white/20'}`} />
+                                        <div className={`w-2 h-2 rounded-full ${showSatellite ? 'animate-pulse' : 'bg-white/20'}`} style={showSatellite ? { backgroundColor: currentTheme.primary } : {}} />
                                         <span className="text-[10px] font-black tracking-widest uppercase">
                                             {showSatellite ? 'Visual Stream: Satellite' : 'Visual Stream: Vector'}
                                         </span>
@@ -483,7 +607,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                                 <p className="text-xs text-white/80 font-bold uppercase">{scan.target_service}</p>
                                                                 <p className="text-[10px] text-white/40 font-mono mt-0.5">{new Date(scan.scan_time).toLocaleString()}</p>
                                                             </div>
-                                                            <span className={`text-[9px] font-black px-2 py-1 rounded ${scan.status === 'PASSED' ? 'bg-[#00FF95]/20 text-[#00FF95]' : 'bg-red-500/20 text-red-500'}`}>
+                                                            <span className={`text-[9px] font-black px-2 py-1 rounded`} style={{ backgroundColor: scan.status === 'PASSED' ? currentTheme.primary + '33' : 'rgba(239, 68, 68, 0.2)', color: scan.status === 'PASSED' ? currentTheme.primary : 'rgb(239, 68, 68)' }}>
                                                                 {scan.status}
                                                             </span>
                                                         </div>
@@ -503,7 +627,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                 ].map((item, i) => (
                                                     <div key={i} className="flex items-center justify-between text-xs py-1">
                                                         <span className="text-white/60">{item.name}</span>
-                                                        <span className="text-[#00FF95] font-mono font-bold tracking-tight">{item.status}</span>
+                                                        <span className="font-mono font-bold tracking-tight" style={{ color: currentTheme.primary }}>{item.status}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -527,17 +651,17 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                 <tbody className="divide-y divide-white/5 text-white/70">
                                                     {securityScans.map((scan) => (
                                                         <tr key={scan.id} className="hover:bg-white/[0.02] transition-colors">
-                                                            <td className="px-6 py-3 text-[#00FF95]">{scan.id.substring(0, 8)}</td>
+                                                            <td className="px-6 py-3" style={{ color: currentTheme.primary }}>{scan.id.substring(0, 8)}</td>
                                                             <td className="px-6 py-3">{new Date(scan.scan_time).toISOString()}</td>
                                                             <td className="px-6 py-3">
                                                                 {scan.findings && scan.findings.length > 0 ? (
                                                                     <span className="text-red-400">{scan.findings.length} issue(s) detected</span>
                                                                 ) : (
-                                                                    <span className="text-[#00FF95]/60">Nominal - No issues detected</span>
+                                                                    <span style={{ color: currentTheme.primary + '99' }}>Nominal - No issues detected</span>
                                                                 )}
                                                             </td>
                                                             <td className="px-6 py-3 text-right font-black">
-                                                                <span className={scan.status === 'PASSED' ? 'text-[#00FF95]' : 'text-red-500'}>{scan.status}</span>
+                                                                <span className={scan.status === 'PASSED' ? '' : 'text-red-500'} style={scan.status === 'PASSED' ? { color: currentTheme.primary } : {}}>{scan.status}</span>
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -564,7 +688,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                 <button
                                                     onClick={() => setCurrentPage(currentPage + 1)}
                                                     disabled={securityScans.length < itemsPerPage}
-                                                    className="px-4 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-[#00FF95]/10 hover:border-[#00FF95]/30 hover:text-[#00FF95] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                                    className="px-4 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
+                                                    style={{ '&:hover': { backgroundColor: currentTheme.primary + '1a', borderColor: currentTheme.primary + '4d', color: currentTheme.primary } } as any}
                                                 >
                                                     Next
                                                 </button>
@@ -576,13 +701,13 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         )}
 
                         {/* Floating Map Controls */}
-                        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 glass-card px-8 py-4 flex gap-8 border-white/5 shadow-2xl pointer-events-auto">
+                        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 glass-card px-8 py-4 flex gap-8 border-white/5 shadow-2xl pointer-events-auto" style={{ borderColor: currentTheme.primary + '1a' }}>
                             <div
                                 onClick={() => setFilterMode(filterMode === 'secure' ? 'all' : 'secure')}
                                 className={`flex flex-col items-center gap-1 group cursor-pointer transition-all ${filterMode === 'secure' ? 'scale-110' : 'opacity-60 hover:opacity-100'}`}
                             >
-                                <Shield className={`w-4 h-4 transition-transform ${filterMode === 'secure' ? 'text-[#00FF95] drop-shadow-[0_0_8px_rgba(0,255,149,0.5)]' : 'text-zinc-500'}`} />
-                                <span className={`text-[9px] font-bold uppercase tracking-widest ${filterMode === 'secure' ? 'text-[#00FF95]' : 'text-white/40'}`}>Secure</span>
+                                <Shield className={`w-4 h-4 transition-transform ${filterMode === 'secure' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' : 'text-zinc-500'}`} style={filterMode === 'secure' ? { color: currentTheme.primary } : {}} />
+                                <span className={`text-[9px] font-bold uppercase tracking-widest ${filterMode === 'secure' ? '' : 'text-white/40'}`} style={filterMode === 'secure' ? { color: currentTheme.primary } : {}}>Secure</span>
                             </div>
                             <div className="h-6 w-[1px] bg-white/5 my-auto" />
                             <div
@@ -604,34 +729,41 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                     </main>
 
                     {/* Intelligence Triage Sidebar - Kept in Cyber View */}
-                    <TriageSidebar alerts={filteredAlerts} onSelect={(a) => setSelectedAlert(a)} selectedId={selectedAlert?.id} />
+                    <TriageSidebar
+                        alerts={filteredAlerts}
+                        onSelect={handleAlertSelect}
+                        selectedId={selectedAlert?.id}
+                        themeColor={currentTheme.primary}
+                    />
                 </div>
             </div>
 
             {/* Selection Detail Overlay Modal */}
             {selectedAlert && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
-                    <div className="bg-black/80 backdrop-blur-xl border border-[#00FF95]/30 p-8 rounded-2xl w-full max-w-xl pointer-events-auto shadow-[0_0_50px_rgba(0,255,149,0.1)] animate-in slide-in-from-bottom-8 duration-500">
+                    <div className="bg-black/80 backdrop-blur-xl border border-white/10 p-8 rounded-2xl w-full max-w-xl pointer-events-auto shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-8 duration-500"
+                        style={{ borderColor: currentTheme.primary + '4d', boxShadow: `0 0 50px ${currentTheme.secondary}` }}>
                         <div className="flex justify-between items-start mb-8">
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-2 h-2 rounded-full bg-[#00FF95] animate-pulse" />
-                                    <span className="text-[10px] font-black text-[#00FF95] tracking-[0.3em] uppercase">Tactical Analysis Locked</span>
+                                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: currentTheme.primary }} />
+                                    <span className="text-[10px] font-black tracking-[0.3em] uppercase" style={{ color: currentTheme.primary }}>Tactical Analysis Locked</span>
                                 </div>
                                 <h2 className="text-2xl font-black text-white uppercase tracking-tight">{selectedAlert.type}</h2>
                             </div>
                             <button
                                 onClick={() => setSelectedAlert(null)}
-                                className="text-white/20 hover:text-[#00FF95] transition-colors p-2"
+                                className="text-white/20 hover:text-white transition-colors p-2"
+                                style={{ '&:hover': { color: currentTheme.primary } } as any}
                             >
-                                <Settings className="w-5 h-5 rotate-45" />
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
 
                         <div className="grid grid-cols-2 gap-8 mb-8">
                             <div className="space-y-1">
                                 <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Incident Vector</span>
-                                <p className="text-sm text-[#00FF95] font-mono">{selectedAlert.location}</p>
+                                <p className="text-sm font-mono" style={{ color: currentTheme.primary }}>{selectedAlert.location}</p>
                             </div>
                             <div className="space-y-1 text-right">
                                 <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Signal Latency</span>
@@ -641,10 +773,10 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
                         <div className="space-y-4 mb-8">
                             <div className="flex items-center gap-2">
-                                <Cpu className="w-4 h-4 text-[#00FF95]" />
+                                <Cpu className="w-4 h-4" style={{ color: currentTheme.primary }} />
                                 <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Raw Telemetry Stream</span>
                             </div>
-                            <div className="bg-[#00FF95]/5 border border-[#00FF95]/10 rounded-xl p-4 font-mono text-[10px] text-[#00FF95]/70 h-32 overflow-auto scrollbar-hide">
+                            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 font-mono text-[10px] h-32 overflow-auto scrollbar-hide" style={{ color: currentTheme.primary + 'b3', borderColor: currentTheme.primary + '1a' }}>
                                 <pre>{JSON.stringify({
                                     event_id: selectedAlert.id,
                                     payload_digest: "sha256:e3b0c442...",
@@ -654,11 +786,79 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                             </div>
                         </div>
 
+                        {/* Response Team Triangulation (NEW) */}
+                        <div className="space-y-4 mb-8">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Shield className="w-4 h-4" style={{ color: currentTheme.primary }} />
+                                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Tactical Proximity Radar</span>
+                                </div>
+                                <span className="text-[9px] font-mono animate-pulse" style={{ color: currentTheme.primary + '80' }}>AUTO-TRIANGULATING...</span>
+                            </div>
+
+                            <div className="space-y-3">
+                                {triangulatedAssets.length > 0 ? (
+                                    triangulatedAssets.map((ta, i) => (
+                                        <div key={ta.asset.id} className="relative group">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] text-white/60 font-mono">0{i + 1}</span>
+                                                    <span className="text-[11px] text-white font-bold uppercase tracking-tight">{ta.asset.name}</span>
+                                                    <span className="px-1.5 py-0.5 rounded-sm bg-white/5 border border-white/10 text-[8px] text-white/40 font-bold uppercase">{ta.asset.type}</span>
+                                                </div>
+                                                <span className="text-[10px] font-mono" style={{ color: currentTheme.primary }}>{(ta.distance_meters / 1000).toFixed(1)}km</span>
+                                            </div>
+                                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full transition-all duration-1000"
+                                                    style={{ width: `${ta.suitability_score}%`, background: `linear-gradient(to right, ${currentTheme.primary}66, ${currentTheme.primary})` }}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between mt-1 items-center">
+                                                <span className="text-[8px] text-white/20 uppercase font-black">Suitability Rating</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[8px] font-mono" style={{ color: currentTheme.primary + '99' }}>{ta.suitability_score.toFixed(1)}%</span>
+                                                    {ta.asset.status !== 'DISPATCHED' ? (
+                                                        <button
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                if (!token) return;
+                                                                const success = await dispatchAsset(ta.asset.id, token);
+                                                                if (success) {
+                                                                    // Optimistic Update
+                                                                    setTriangulatedAssets(prev => prev.map(p =>
+                                                                        p.asset.id === ta.asset.id ? { ...p, asset: { ...p.asset, status: 'DISPATCHED' } } : p
+                                                                    ));
+                                                                    alert(`UNIT [${ta.asset.name}] ACTIVATED AND DISPATCHED.`);
+                                                                }
+                                                            }}
+                                                            className="text-[8px] border px-2 py-0.5 rounded transition-colors font-bold uppercase tracking-wider"
+                                                            style={{ backgroundColor: currentTheme.primary + '1a', color: currentTheme.primary, borderColor: currentTheme.primary + '4d' }}
+                                                        >
+                                                            ACTIVATE
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-[8px] text-orange-500 font-black uppercase tracking-wider px-2 border border-orange-500/20 bg-orange-500/10 rounded">DISPATCHED</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="py-8 text-center border border-white/5 rounded-xl bg-white/[0.02]">
+                                        <p className="text-[10px] text-white/20 uppercase font-bold tracking-[0.2em]">Searching local sector for assets...</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="flex gap-4">
-                            <button className="flex-1 h-12 rounded-xl border border-[#00FF95]/20 bg-[#00FF95]/5 text-[#00FF95] text-[11px] font-black tracking-widest uppercase hover:bg-[#00FF95]/10 transition-all">
+                            <button className="flex-1 h-12 rounded-xl border bg-white/5 text-[11px] font-black tracking-widest uppercase hover:bg-white/10 transition-all"
+                                style={{ borderColor: currentTheme.primary + '33', color: currentTheme.primary }}>
                                 Dispatch Response
                             </button>
-                            <button className="flex-1 h-12 rounded-xl bg-[#00FF95] text-black text-[11px] font-black tracking-widest uppercase hover:scale-[1.02] transition-all glow-green">
+                            <button className="flex-1 h-12 rounded-xl text-black text-[11px] font-black tracking-widest uppercase hover:scale-[1.02] transition-all"
+                                style={{ backgroundColor: currentTheme.primary, boxShadow: `0 0 20px ${currentTheme.secondary}` }}>
                                 Verify Integrity
                             </button>
                         </div>
@@ -672,7 +872,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                     <div className="pointer-events-auto mt-20 mr-20 w-96 glass-card border border-white/10 p-6 animate-slide-in">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <Bell className="w-5 h-5 text-[#00FF95]" />
+                                <Bell className="w-5 h-5" style={{ color: currentTheme.primary }} />
                                 <h3 className="text-white font-bold uppercase tracking-wide">Notifications</h3>
                             </div>
                             <button onClick={() => setShowNotifications(false)} className="text-white/40 hover:text-white transition-colors">
@@ -695,7 +895,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                     <div className="pointer-events-auto mt-20 mr-20 w-96 glass-card border border-white/10 p-6 animate-slide-in">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <Settings className="w-5 h-5 text-[#00FF95]" />
+                                <Settings className="w-5 h-5" style={{ color: currentTheme.primary }} />
                                 <h3 className="text-white font-bold uppercase tracking-wide">Settings</h3>
                             </div>
                             <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white transition-colors">
@@ -720,7 +920,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                 <div className="fixed bottom-24 left-20 z-50">
                     <div className="w-64 glass-card border border-white/10 p-4 shadow-2xl">
                         <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
-                            <div className="p-2 rounded-lg bg-[#00FF95]/10 text-[#00FF95]">
+                            <div className="p-2 rounded-lg" style={{ backgroundColor: currentTheme.primary + '1a', color: currentTheme.primary }}>
                                 <User className="w-5 h-5" />
                             </div>
                             <div>
@@ -734,7 +934,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     setActiveView('profile');
                                     setShowUserMenu(false);
                                 }}
-                                className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'profile' ? 'text-[#00FF95] bg-white/5' : 'text-white/60 hover:text-[#00FF95] hover:bg-white/5'}`}
+                                className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'profile' ? 'bg-white/5' : 'text-white/60 hover:bg-white/5'}`}
+                                style={activeView === 'profile' ? { color: currentTheme.primary } : {}}
                             >
                                 Profile
                             </button>
@@ -743,7 +944,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     setActiveView('registry');
                                     setShowUserMenu(false);
                                 }}
-                                className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'registry' ? 'text-[#00FF95] bg-white/5' : 'text-white/60 hover:text-[#00FF95] hover:bg-white/5'}`}
+                                className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'registry' ? 'bg-white/5' : 'text-white/60 hover:bg-white/5'}`}
+                                style={activeView === 'registry' ? { color: currentTheme.primary } : {}}
                             >
                                 Identity Registry
                             </button>

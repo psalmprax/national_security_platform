@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"national_security_platform/backend/core-api/internal/agency"
+	"national_security_platform/backend/core-api/internal/audit"
 	"national_security_platform/backend/core-api/internal/db"
 	igrpc "national_security_platform/backend/core-api/internal/grpc"
 	"national_security_platform/backend/core-api/internal/middleware"
@@ -22,6 +24,7 @@ import (
 	"national_security_platform/backend/core-api/internal/mq"
 	"national_security_platform/backend/core-api/internal/security"
 	"national_security_platform/backend/core-api/internal/service"
+	"national_security_platform/backend/core-api/internal/sse"
 	proto "national_security_platform/backend/core-api/pkg"
 
 	"github.com/go-chi/chi/v5"
@@ -73,11 +76,33 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize Redis
+	if err := db.InitRedis(); err != nil {
+		log.Printf("Failed to initialize Redis (caching disabled): %v", err)
+		// We don't fatal here to allow partial functionality if Redis is down
+	}
+
 	// Initialize NATS
 	if err := mq.InitNATS(); err != nil {
 		log.Printf("⚠️ Warning: Failed to initialize NATS: %v", err)
 	}
 	defer mq.Close()
+
+	// Start Audit Worker (Background Log Processing)
+	go audit.StartAuditWorker(context.Background())
+
+	// Initialize SSE
+	sse.Init()
+
+	// Subscribe to NATS alerts and broadcast to SSE
+	go func() {
+		err := mq.Subscribe(context.Background(), "alerts.>", func(msg []byte) {
+			sse.Broadcast(string(msg))
+		})
+		if err != nil {
+			log.Printf("Failed to subscribe to alerts: %v", err)
+		}
+	}()
 
 	// Initialize Intelligence Service gRPC Client
 	intelURL := os.Getenv("INTELLIGENCE_SERVICE_URL")
@@ -111,6 +136,9 @@ func main() {
 	r.Post("/api/v1/auth/dashboard-login", handleDashboardLogin)
 	r.Post("/api/v1/auth/request-access", handleRequestAccess)
 
+	// Server-Sent Events Pattern
+	r.Get("/api/v1/events/stream", sse.Stream.HandleEvents)
+
 	// --- PROTECTED ROUTES ---
 	r.Group(func(r chi.Router) {
 		// All routes here require a valid token
@@ -120,9 +148,11 @@ func main() {
 
 		// Alerts (authenticated)
 		r.Get("/api/v1/alerts", handleGetAlerts)
+		r.Get("/api/v1/alerts/{id}/triangulation", handleGetAlertTriangulation)
 		r.Post("/api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
 			handleSubmitAlert(w, r, alertService, intelClient)
 		})
+		r.Post("/api/v1/assets/{id}/dispatch", agency.DispatchAssetHandler)
 
 		// Onboarding (authenticated/verified)
 		r.Post("/api/v1/auth/onboard", handleOnboard)
@@ -136,12 +166,18 @@ func main() {
 		r.Get("/api/v1/system/status", handleSystemStatus)
 		r.Get("/api/v1/system/nodes", handleSystemNodes)
 		r.Get("/api/v1/system/security-scans", handleGetSecurityScans)
-		r.Get("/api/v1/system/reports/sector", handleGetSectorReport)
 
 		// Agency & Asset Management
 		r.Post("/api/v1/agencies", agency.RegisterAgencyHandler)
 		r.Get("/api/v1/assets", agency.ListAssetsHandler)
 		r.Post("/api/v1/assets", agency.CreateAssetHandler)
+	})
+
+	// Reporting Routes (Wider Access)
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.RequireAnyRole("ADMIN", "CYBER_ANALYST", "STRATEGIC_PLANNER", "TACTICAL_COMMAND", "AGENCY_OFFICER"))
+		r.Get("/api/v1/system/reports/sector", handleGetSectorReport)
 	})
 
 	port := os.Getenv("PORT")
@@ -438,6 +474,24 @@ func handleGetSecurityScans(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, scans)
 }
 
+func handleGetAlertTriangulation(w http.ResponseWriter, r *http.Request) {
+	alertIDStr := chi.URLParam(r, "id")
+	alertID, err := uuid.Parse(alertIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid alert ID format"})
+		return
+	}
+
+	triangulated, err := db.GetTriangulatedAssets(r.Context(), alertID)
+	if err != nil {
+		log.Printf("Triangulation error: %v", err)
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to triangulate response teams"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, triangulated)
+}
+
 func handleGetSectorReport(w http.ResponseWriter, r *http.Request) {
 	alerts, err := db.GetRecentAlerts(r.Context(), 100)
 	if err != nil {
@@ -446,8 +500,20 @@ func handleGetSectorReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	report := models.SectorReport{
-		SectorID:  "LAGOS_CENTRAL_COMMAND",
+		SectorID:  "NATIONAL_OPERATIONS_CENTER",
 		Timestamp: time.Now(),
+	}
+
+	// Try to get dynamic agency info if from a specific agency personnel
+	tokenUserID, _ := r.Context().Value(middleware.UserIDKey).(string)
+	if tokenUserID != "" {
+		userID, _ := uuid.Parse(tokenUserID)
+		if agency, err := db.GetUserAgencyInfo(r.Context(), userID); err == nil && agency != nil {
+			report.SectorID = agency.Name
+			if agency.Acronym != nil {
+				report.SectorID = fmt.Sprintf("%s (%s)", agency.Name, *agency.Acronym)
+			}
+		}
 	}
 
 	for _, a := range alerts {

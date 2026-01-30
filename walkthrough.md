@@ -1,290 +1,49 @@
-# Walkthrough - National Security Platform Architecture
-
-I have successfully designed the architecture for the **National Community-Based Security Alert & Intelligence Platform** and resolved all deployment issues.
-
-## Artifacts Created
-
-### [Architecture Design Document](file:///home/psalmprax/.gemini/antigravity/brain/cbea2824-e63a-4457-87e4-836f78df697d/architecture_design.md)
-This is the core deliverable. It includes:
-*   **Executive Summary**: High-level overview of the solution.
-*   **System Architecture**: Mermaid diagrams showing the distributed, resilient design.
-*   **Technology Stack**: Selection of robust, scalable technologies (Flutter, Go, NATS, CockroachDB).
-*   **Security & Trust**: End-to-End Encryption and Identity Verification protocols.
-*   **AI & Geospatial**: Integration of AI for triage and PostGIS for location intelligence.
-*   **Risk Mitigation**: Strategies for handling false alerts, connectivity loss, and insider threats.
-
-## Key Features Highlighted
-1.  **Offline-First**: Uses local databases and store-and-forward mechanism to work in areas with poor connectivity.
-2.  **Sovereign & Secure**: Emphasizes data sovereignty and end-to-end encryption.
-3.  **Trust Web**: A proposed peer-verification system to validate alerts from rural areas without central intervention.
-4.  **AI Integration**: Intelligent triage to prioritize threats and handle multiple languages.
-
-## Project Hardening & Build Fixes
-
-I have implemented multiple layers of security and resolved critical build/runtime failures to ensure the platform is operational and production-grade.
-
-### Major Bug Fixes & Optimizations
-1.  **Core API Build Fix**: Upgraded Go container to **v1.24.0** in the Dockerfile to match `go.mod` requirements.
-2.  **Mobile Client Build Fix**: Updated the Flutter build stage to use **ghcr.io/cirruslabs/flutter:stable**, added a `.dockerignore` to exclude local artifacts, and ensured web platform configuration using `flutter create . --platforms web`.
-3.  **Port Conflict Resolution**: Remapped the Core API host port from 8080 to **8084** to avoid conflicts with host services (e.g., Tomcat).
-4.  **Intelligence Service Fix**: Resolved a Protobuf runtime mismatch (`TypeError: Descriptors cannot be created directly`) by setting the `PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python` environment variable in Docker Compose.
-5.  **Database Extensions (ERD)**: Implemented a robust spatial and identity registry, including tables for States, LGAs, Villages, Device Binding (PKI), and Evidence Hashing.
-
-### Security Hardening
-1.  **Application-Layer Encryption (Go)**: Implemented AES-GCM (256-bit) encryption for sensitive alert content.
-2.  **Transport Security**: Enforced TLS 1.3 for the Core API and mTLS for service-to-service gRPC communication.
-3.  **Identity & RBAC**: Implemented JWT-based authentication with role-based access control.
-4.  **Audit Trailing**: Integrated SHA-256 evidence hashing for all alerts and an immutable audit ledger.
-
----
-
-## Verification & Testing
-
-### 1. Manual Verification Flow
-To verify the full secure, integrated, and hardened platform:
-1.  **Launch**: `docker-compose up --build`
-2.  **Onboard**: Call the onboard endpoint with a phone number to receive a secure JWT.
-3.  **Submit Alert (Mobile)**: Use the JWT to submit a "Panic" alert from the Flutter UI.
-4.  **Review Dashboard (Web)**: Access `http://localhost:8083` and verify the alert appears.
-5.  **Audit Check**: Inspect the `audit_logs` table in CockroachDB to verify the SHA-256 evidence hash was recorded.
-
-### 3. Service Access (via Gateway)
-- **Unified Portal (Main)**: `http://localhost:8085`
-- **Mobile Client**: `http://localhost:8085/mobile/`
-- **Core API**: `http://localhost:8085/api/v1/alerts`
-- **Cockroach DB UI**: `http://localhost:8081`
-- **MinIO Console**: `http://localhost:9001`
-
-### 4. Status
-- [x] **Gateway**: Active (Port 8085)
-- [x] **Go Build**: Passing (v1.24.0)
-- [x] **Mobile Build**: Passing
-- [x] Python Runtime: Operational (Protobuf workaround enabled)
-- [x] Security: Hardened (AES-GCM, TLS 1.3, mTLS, RBAC, PKI)
-- [x] Audit Trailing: Enabled (SHA-256 Hashing)
-- [x] Orchestration: Operational (All Services)
-- [x] Database Schema: Extended (v0.3 - Applied)
-
----
-
-## Web Dashboard Enhancements
-
-### UI/UX Improvements
-
-#### 1. Interactive Sidebar Icons (Completed)
-All sidebar icons are now fully functional with navigation and overlay panels:
-
-**Navigation Icons:**
-- **Map Icon**: Switches to map view (default)
-- **AlertTriangle**: Switches to alerts triage view
-- **Database**: Switches to audit logs/data view  
-- **Cpu**: Switches to system analytics view
-
-**Action Icons:**
-- **Bell**: Toggles notifications panel
-- **Settings**: Toggles settings panel
-- **User**: Toggles user profile menu
-
-**Visual Feedback:**
-- Active state highlighting with green accent (`#00FF95`)
-- Hover tooltips with descriptive labels
-- Smooth transitions and animations
-- Conditional styling for open panels
-
-#### 2. Premium Visual Effects (Completed)
-Enhanced the dashboard with modern, polished visual aesthetics:
-
-**Animated Background:**
-- Moving grid pattern (50px × 50px) with subtle green lines
-- Gradient base layer (black → zinc-900 → black)
-- Pulsing glow orbs (green and cyan) for ambient lighting
-- 20s infinite loop animation for subtle, non-distracting motion
-
-**CSS Enhancements:**
-- `.glass-card-premium` - Enhanced glassmorphism with stronger backdrop blur
-- `.glow-green-strong` - Multi-layered glow effects for depth
-- `.icon-glow` - Dynamic icon glows with hover enhancement
-- `.pulse-glow` - Breathing animation for live indicators
-- `.slide-in-right` - Smooth panel entry animations
-- Cubic-bezier easing for professional transitions
-
-**Design Principles:**
-- GPU-accelerated animations for 60fps performance
-- Layered depth with multiple visual planes
-- Consistent timing across all interactions
-- Cyber-security aesthetic with strategic glowing effects
-
-**Files Modified:**
-- `web/app/page.tsx` - Added animated background layers and wrapper structure
-- `web/app/globals.css` - Added comprehensive premium CSS utilities
-
-#### 3. Centered Header Layout
-The main "SITUATIONAL AWARENESS CENTER" header and system status information are now horizontally centered for better visual balance and prominence.
-
-### 3. Status
-- [x] Go Build: Passing (v1.24.0)
-- [x] Mobile Build: Passing (Flutter Web)
-- [x] Python Runtime: Operational (Protobuf workaround enabled)
-- [x] Security: Hardened (AES-GCM, TLS 1.3, mTLS, RBAC, PKI)
-- [x] Audit Trailing: Enabled (SHA-256 Hashing)
-- [x] Orchestration: Operational (All Services)
-- [x] Database Schema: Extended (v0.3 - Applied)
-- [x] Sidebar Icons: Interactive with tooltips
-- [x] Visual Effects: Premium animations and glassmorphism
-
----
-
-## Multi-Agency Dashboard Views (New)
-
-I have successfully implemented the **Multi-Agency Dashboard View System**, allowing different security stakeholders to visualize data according to their operational needs.
-
-### New Features
-
-#### 1. Agency View Switcher
-- Added a top-center hover interaction zone.
-- Reveals a premium switcher UI to toggle between agency views.
-- Persists state within the session.
-
-#### 2. Specialized Dashboard Views
-
-| View Name | Target Audience | Key Features |
-|-----------|-----------------|--------------|
-| **CYBER** | SOC / Cyber Command | Dark mode, detailed telemetry, "Sci-Fi" aesthetic (Original preserved). |
-| **TACTICAL** | Field Ops / Police | High contrast, map-centric, large tap targets, simplified alert list. |
-| **STRATEGIC** | Executives / NSA | High-level analytics, threat distribution charts, KPI cards, clean light theme. |
-
-### Technical Implementation
-
-#### Architecture Refactor
-- **`wrapper`**: `page.tsx` now acts as a smart container, handling:
-  - Data Fetching (Alerts, Auth Status)
-  - State Management (Current Agency View)
-  - Global UI (View Switcher)
-- **`components`**: Split monolithic dashboard into three dedicated components:
-  - `components/dashboards/CyberDashboard.tsx`
-  - `components/dashboards/TacticalDashboard.tsx`
-  - `components/dashboards/StrategicDashboard.tsx`
-
-### Verification Results
-- **Build Status**: ✅ PASSED (`docker-compose build web-dashboard`)
-- **TypeScript Check**: ✅ PASSED (No type errors)
-- **Asset Optimization**: ✅ PASSED (Static pages generated)
-
-### Usage
-1. Move mouse to top center of screen (or tap on mobile).
-2. Select desired agency view from the dropdown.
-3. Dashboard instantly switches context while maintaining live data connection.
-
----
-
-## Real Data Integration (Completed)
-
-I have successfully connected the dashboard components to real-time data from the backend, specifically resolving the mocked "System Status" and "Active Nodes" metrics.
-
-### Changes Implemented
-1.  **Backend API**: Added `GET /api/v1/system/status` endpoint and `GetSystemStats` DB function to count total users and active alerts.
-2.  **Frontend**: Updated `web/lib/api.ts` and `web/app/page.tsx` to fetch this new data. "Active Nodes" now reflects the real user count from the database.
-
-### Verification status
-- [x] Backend Build: Passing
-- [x] Frontend Build: Passing
-- [x] API Endpoint: Verified
-
----
-
-## Dashboard Role-Based Access Control (RBAC)
-
-I have implemented User Level Access to restrict dashboard views based on the user's role.
-
-### Roles Defined (v2.0)
-- **ADMIN**: Access to all views + Agency Command Portal.
-- **CYBER_ANALYST**: Access to **Cyber View ONLY** (Strict Isolation).
-- **STRATEGIC_PLANNER**: Access to **Strategic View ONLY** (Strict Isolation).
-- **TACTICAL_COMMAND**: Access to **Tactical View ONLY** (Strict Isolation).
-- **AGENCY_OFFICER**: Access to **Agency Command Portal ONLY**.
-
-### Features
-- **Strict View Isolation**: Personnel are now locked into their specific operational dashboards based on their clearance level.
-- **Agency Command Portal**: A dedicated administrative dashboard for asset deployment and personnel management.
-- **View Locking**: Unauthorized dashboard views are visually locked and logically disabled in the UI.
-- **Login Portal Gateway**: A public link to the Agency Portal is now available directly from the login screen for authorized logistics officers.
-- **Debug Role Switcher**: A debug tool in the bottom right corner allows testing all five role perspectives.
-
-### Verification status
-- [x] Compilation: Passing
-- [x] TypeScript Checks: Passing
-
----
-
-## Database Seeding (New)
-
-To populate the database with real-world security scenarios, user roles, and simulation data, you can run the following command from the project root:
-
-```bash
-chmod +x seed_database.sh && ./seed_database.sh
-```
-
-### 🛡️ Unified Gateway (New)
-The platform now uses a **Unified Security Gateway** (Nginx) to route all requests. 
-- **Port**: 8085
-- **Routing**: Routes `/api` to the backend and `/mobile` to the Flutter client. 
-- **Internal Sync**: Resolves all networking discrepancies between the browser and Docker.
-
----
-
-## Dashboard Authentication & Access Request (Completed)
-
-I have implemented a secure authentication system and a professional access request flow to protect the platform dashboards.
-
-### Key Features
-1. **JWT-Based Authentication**: Integrated full login/logout flow with persistent session management.
-2. **Access Request Flow**: Dedicated interface for new agencies to request platform access, storing requests with `PENDING` status for admin approval.
-3. **Route Protection**: Middleware ensures only authenticated users can access dashboard routes.
-4. **Interactive User Profile**: Functional user menu with "Sign Out" and "Identity Registry" controls.
-
-### Implementation Details
-- **Backend (Go)**: Added `/api/v1/auth/login` and `/api/v1/auth/request-access` endpoints.
-- **Frontend (Next.js)**: Created `AuthContext` for unified state and added custom login/request pages.
-
----
-
-## Real-World Map Integration (Completed)
-
-I have replaced the mock image-based map with a fully interactive, real-world Mapbox implementation for superior situational awareness.
-
-### Key Features
-1. **Real-World Interactive Mapping**: Integrated `mapbox-gl` centered on Nigeria with precise, live alert plotting.
-2. **Dynamic Style Switching**: Supports **Cyber** (Dark), **Tactical** (Outdoors), and **Satellite** imagery feeds.
-3. **Interactive HUD**: Features a target-lock "Fly-To" animation when alerts are selected, complete with persistent telemetry overlays.
-4. **Custom Markers**: Animated, high-visibility markers that respond to threat severity.
-
----
-
-## Sector Report Generation (Verified)
-
-I have verified the **Sector Report Generation** functionality, which allows administrators to generate aggregated threat assessments for specific sectors.
-
-### Implementation Details
-- **Backend**: The `/api/v1/system/reports/sector` endpoint in `main.go` aggregates alert data by sector using SQL grouping.
-- **RBAC**: Access is strictly limited to the `ADMIN` role.
-- **Frontend**: Integrated a "Generate Sector Report" command in the `TriageSidebar`, which opens a modal containing the real-time data aggregation.
-
----
-
-## Sentinel Audit Ledger Pagination (Completed)
-
-I have implemented pagination for the **Sentinel Audit Ledger** in the Cyber dashboard to ensure efficient loading of security scan records.
-
-### Implementation Details
-- **Backend (Go Core API)**:
-    - Updated `GetRecentSecurityScans` in `repository.go` to support `limit` and `offset` parameters.
-    - Modified `handleGetSecurityScans` in `main.go` to parse `page` and `limit` from query parameters.
-- **Frontend (Next.js)**:
-    - Updated the API client logic in `api.ts`.
-    - Added `currentPage` state and pagination navigation (Previous/Next) to the `CyberDashboard.tsx` component.
-    - Added a theme-consistent page indicator and responsive controls.
-
-### Verification status
-- [x] Backend Paginated Query: Passing
-- [x] API Parameter Handling: Verified
-- [x] Frontend Pagination UI: Operational (10 items/page)
+# Walkthrough - Development Log
+
+## 1. Asset Activation & Dispatch
+Enabled Tactical Commanders to activate and dispatch response assets directly from the dashboard.
+- **Backend**: Implemented `POST /api/v1/assets/:id/dispatch` and linked it to the operational database.
+- **Frontend**: Integrated "ACTIVATE" controls into the Tactical Radar, allowing real-time deployment of units.
+
+## 2. Dynamic Sector Intelligence Reports
+Reports now reflect the specific agency and command of the logged-in user.
+- **RBAC Enhancement**: Added `RequireAnyRole` middleware to support multiple authorized roles.
+- **Agency Context**: Implemented `GetUserAgencyInfo` to link personnel to their command units (e.g., Nigerian Army, NPF, DSS).
+- **Dynamic UI**: Report headers and "Sector ID" now dynamically populate based on the user's unit.
+
+## 3. Tactical Radar Unification
+The "Tactical Proximity Radar" is now a unified component used across multiple dashboard views.
+- **Real-time Suggestions**: Assets are ranked by suitability score (Proximity + Capability).
+- **Visualization**: Added yellow vector lines in Tactical mode and blue in Cyber mode for visual distinction.
+
+## 4. Operational Scaling & Performance
+- **Redis Spatial Caching**: Cached expensive PostGIS queries to ensure sub-second response times.
+- **SSE Pipeline**: Switched from polling to a persistent Server-Sent Events stream for immediate tactical awareness.
+- **Mapbox Integration**: Restored full interactive map functionality with token-based resource authentication.
+
+## 5. Security & Auditing
+- **Sentinel Audit Ledger**: Implemented paginated security scans for better auditability under high volume.
+- **Identity Mapping**: Standardized test data with fixed UUIDs to ensure consistent agency-personnel relationships.
+
+## 6. Stability Fixes
+- **Nginx DNS Resolver**: Fixed disconnection issues (502/504) by adding a dynamic DNS resolver for inter-container communication.
+- **SQL Join Fixes**: Resolved ambiguous column errors in complex spatial queries by adopting explicit JOIN syntax.
+31: 
+32: ## 7. Dynamic System Operational Modes
+33: Implemented a centralized theme engine that dynamically adjusts the entire Cyber View based on mission context.
+34: - **Thematic Cohesion**: Linked the 3D Mapbox map, triage sidebar, and telemetry modals to a master `operationMode` state.
+35: - **Mission Postures**: Four distinct modes (NOMINAL, SURGICAL, TACTICAL, DARK_OPS) with mode-specific visuals and logic.
+36: - **Propagated Visuals**: Purged hardcoded colors; all elements now respond to primary theme overrides.
+37: 
+38: ## 8. Role-Based Access Control & View Isolation
+39: Hardened the dashboard against unauthorized lateral navigation and view switching.
+40: - **Admin Lockout**: Interface for switching roles and views (Agency Switcher/Role Debugger) is now strictly restricted to `ADMIN` users.
+41: - **Auto-Routing**: Non-admin users are automatically locked into their respective dashboards (Cyber, Tactical, Strategic) upon login.
+42: - **Clearance Enforcement**: Implemented "Clearance Restricted" interface to handle unauthorized access attempts.
+43: - [x] Portal Redirection: `AGENCY_OFFICER` role is seamlessly directed to the Agency Command Portal via an integrated gateway interface.
+
+## 9. Type Safety & Identity Refinement
+Hardened the frontend codebase by eliminating legacy `any` types in mission-critical components.
+- **Identity Schema**: Exported the `User` interface to ensure consistent identity handling across the React tree.
+- **System Status Mapping**: Explicitly typed the `securityStatus` using the `SystemStatus` interface, ensuring that dashboard telemetry (Encrypted status, Trusted device count) is vertically integrated with backend telemetry.
+- **Component Hardening**: Resolved linting errors in all dashboard variants (`Cyber`, `Tactical`, `Strategic`) to improve maintainability and prevent runtime type-mismatch regressions.

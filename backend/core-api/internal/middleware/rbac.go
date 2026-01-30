@@ -55,3 +55,30 @@ func RequireRole(role string) func(http.Handler) http.Handler {
 		})
 	}
 }
+
+// RequireAnyRole enforces that the user has at least one of the provided roles.
+func RequireAnyRole(roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userRole, ok := r.Context().Value(UserRoleKey).(string)
+			if !ok {
+				http.Error(w, "Forbidden: role not found", http.StatusForbidden)
+				return
+			}
+
+			found := false
+			for _, r := range roles {
+				if userRole == r {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				http.Error(w, "Forbidden: insufficient permissions", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}

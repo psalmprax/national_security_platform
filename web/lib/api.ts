@@ -1,5 +1,5 @@
 // API client for Core API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export interface Alert {
     id: string;
@@ -148,6 +148,46 @@ export interface SectorReport {
     last_incident_type: string;
 }
 
+export interface Asset {
+    id: string;
+    agency_id: string;
+    name: string;
+    type: string;
+    latitude: number;
+    longitude: number;
+    status: string;
+    description?: string;
+    call_sign?: string;
+    capacity_level: number;
+}
+
+export interface TriangulatedAsset {
+    asset: Asset;
+    distance_meters: number;
+    suitability_score: number;
+}
+
+export async function fetchTriangulatedAssets(alertId: string, token: string): Promise<TriangulatedAsset[]> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/alerts/${alertId}/triangulation`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            return [];
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch triangulated assets:', error);
+        return [];
+    }
+}
+
 export async function fetchSectorReport(token: string): Promise<SectorReport | null> {
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1/system/reports/sector`, {
@@ -166,6 +206,23 @@ export async function fetchSectorReport(token: string): Promise<SectorReport | n
     } catch (error) {
         console.error('Failed to fetch sector report:', error);
         return null;
+    }
+}
+
+export async function dispatchAsset(assetId: string, token: string): Promise<boolean> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/assets/${assetId}/dispatch`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to dispatch asset:', error);
+        return false;
     }
 }
 

@@ -46,6 +46,23 @@ func InitNATS() error {
 	return nil
 }
 
+// EnsureAuditStream creates the audit stream if it doesn't exist
+func EnsureAuditStream(ctx context.Context) error {
+	if JS == nil {
+		return fmt.Errorf("jetstream not initialized")
+	}
+	_, err := JS.CreateStream(ctx, jetstream.StreamConfig{
+		Name:     "AUDIT_LOGS",
+		Subjects: []string{"audit.logs"},
+		Storage:  jetstream.FileStorage,
+	})
+	if err != nil {
+		// Ignore if it already exists, or log warning
+		log.Printf("Audit stream check: %v", err)
+	}
+	return nil
+}
+
 // PublishAlert publishes an alert event to NATS
 func PublishAlert(ctx context.Context, subject string, data interface{}) error {
 	payload, err := json.Marshal(data)
@@ -59,6 +76,65 @@ func PublishAlert(ctx context.Context, subject string, data interface{}) error {
 	}
 
 	log.Printf("📢 Event published to NATS: %s", subject)
+	return nil
+}
+
+// PublishAudit publishes an audit entry to the audit stream
+func PublishAudit(ctx context.Context, entry interface{}) error {
+	payload, err := json.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("failed to marshal audit entry: %w", err)
+	}
+
+	_, err = JS.Publish(ctx, "audit.logs", payload)
+	if err != nil {
+		return fmt.Errorf("failed to publish audit log: %w", err)
+	}
+
+	return nil
+}
+
+// Subscribe subscribes to a subject and invokes the handler
+func Subscribe(ctx context.Context, subject string, handler func(msg []byte)) error {
+	if NC == nil {
+		return fmt.Errorf("nats connection not initialized")
+	}
+
+	_, err := NC.Subscribe(subject, func(m *nats.Msg) {
+		handler(m.Data)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe: %w", err)
+	}
+
+	log.Printf("👂 Subscribed to NATS: %s", subject)
+	return nil
+}
+
+// SubscribeAudit subscribes to the audit stream
+func SubscribeAudit(ctx context.Context, handler func(msg []byte)) error {
+	if JS == nil {
+		return fmt.Errorf("jetstream not initialized")
+	}
+
+	consumer, err := JS.CreateOrUpdateConsumer(ctx, "AUDIT_LOGS", jetstream.ConsumerConfig{
+		Durable:   "AuditWorker",
+		AckPolicy: jetstream.AckExplicitPolicy,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create consumer: %w", err)
+	}
+
+	// Consume messages
+	_, err = consumer.Consume(func(msg jetstream.Msg) {
+		handler(msg.Data())
+		msg.Ack()
+	})
+	if err != nil {
+		return fmt.Errorf("failed to start consuming: %w", err)
+	}
+
+	log.Println("👂 Audit Worker subscribed to audit.logs")
 	return nil
 }
 

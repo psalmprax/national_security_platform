@@ -2,19 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { verifyAlertSignature, UserRole, AgencyView, hasAccess } from '../lib/auth';
-import { fetchAlerts, fetchSystemStatus, Alert as ApiAlert } from '../lib/api';
+import { fetchAlerts, fetchSystemStatus, Alert, SystemStatus } from '../lib/api';
 import CyberDashboard from '../components/dashboards/CyberDashboard';
 import TacticalDashboard from '../components/dashboards/TacticalDashboard';
 import StrategicDashboard from '../components/dashboards/StrategicDashboard';
 import { Layout, Users, ShieldAlert, LogOut } from 'lucide-react';
-import { useAuth } from '../lib/AuthContext';
+import { useAuth, User } from '../lib/AuthContext';
 
 export default function DashboardPage() {
     const { user, logout, token } = useAuth();
     const [currentUserRole, setCurrentUserRole] = useState<UserRole>((user?.role as UserRole) || 'TACTICAL_COMMAND');
-    const [alerts, setAlerts] = useState<any[]>([]);
+    const [alerts, setAlerts] = useState<Alert[]>([]);
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
-    const [securityStatus, setSecurityStatus] = useState({
+    const [securityStatus, setSecurityStatus] = useState<SystemStatus>({
         isAuthenticated: false,
         isEncrypted: true,
         trustedDevices: 0
@@ -31,6 +31,15 @@ export default function DashboardPage() {
     const [agencyView, setAgencyView] = useState<AgencyView>('cyber');
     const [showAgencyPicker, setShowAgencyPicker] = useState(false);
 
+    // Initial view selection and enforcement
+    useEffect(() => {
+        if (currentUserRole !== 'ADMIN') {
+            if (currentUserRole === 'CYBER_ANALYST') setAgencyView('cyber');
+            else if (currentUserRole === 'STRATEGIC_PLANNER') setAgencyView('strategic');
+            else if (currentUserRole === 'TACTICAL_COMMAND') setAgencyView('tactical');
+        }
+    }, [currentUserRole]);
+
     // Clock update
     useEffect(() => {
         setCurrentTime(new Date());
@@ -44,7 +53,7 @@ export default function DashboardPage() {
             try {
                 const rawAlerts = await fetchAlerts(token || undefined);
 
-                const transformedAlerts = await Promise.all(rawAlerts.map(async (a: ApiAlert) => {
+                const transformedAlerts = await Promise.all(rawAlerts.map(async (a: Alert) => {
                     const mockSignature = a.priority_class === 'CRITICAL' ? 'sig_trusted_' + a.id.substring(0, 8) : 'invalid_sig';
                     return {
                         ...a,
@@ -56,7 +65,7 @@ export default function DashboardPage() {
                 const systemStatus = await fetchSystemStatus(token || undefined);
 
                 setAlerts(transformedAlerts);
-                setSecurityStatus((prev: any) => ({
+                setSecurityStatus((prev) => ({
                     ...prev,
                     isAuthenticated: true,
                     trustedDevices: systemStatus ? systemStatus.total_users : prev.trustedDevices
@@ -81,19 +90,21 @@ export default function DashboardPage() {
 
     return (
         <div className="relative w-full h-screen overflow-hidden">
-            {/* Agency View Switcher - Visible Tab */}
-            <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] group">
-                <button
-                    className="h-8 px-6 bg-black/80 border-b border-x border-white/20 hover:border-[#00FF95] rounded-b-lg flex items-center justify-center gap-2 cursor-pointer backdrop-blur-md transition-all hover:bg-black"
-                    onClick={() => setShowAgencyPicker(!showAgencyPicker)}
-                >
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00FF95] animate-pulse" />
-                    <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest group-hover:text-[#00FF95]">
-                        {agencyView} VIEW
-                    </span>
-                    <div className="w-0 h-0 border-l-[3px] border-l-transparent border-t-[4px] border-t-white/60 border-r-[3px] border-r-transparent group-hover:border-t-[#00FF95]" />
-                </button>
-            </div>
+            {/* Agency View Switcher - Only for System Admin */}
+            {user?.role === 'ADMIN' && (
+                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] group">
+                    <button
+                        className="h-8 px-6 bg-black/80 border-b border-x border-white/20 hover:border-[#00FF95] rounded-b-lg flex items-center justify-center gap-2 cursor-pointer backdrop-blur-md transition-all hover:bg-black"
+                        onClick={() => setShowAgencyPicker(!showAgencyPicker)}
+                    >
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#00FF95] animate-pulse" />
+                        <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest group-hover:text-[#00FF95]">
+                            {agencyView} VIEW
+                        </span>
+                        <div className="w-0 h-0 border-l-[3px] border-l-transparent border-t-[4px] border-t-white/60 border-r-[3px] border-r-transparent group-hover:border-t-[#00FF95]" />
+                    </button>
+                </div>
+            )}
 
             {/* Logout Button - Top Right */}
             <div className="fixed top-4 right-4 z-[100]">
@@ -106,8 +117,8 @@ export default function DashboardPage() {
                 </button>
             </div>
 
-            {/* View Switcher UI */}
-            {showAgencyPicker && (
+            {/* View Switcher UI - Controlled by Admin check */}
+            {showAgencyPicker && user?.role === 'ADMIN' && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-black/90 border border-white/20 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200">
                     <div className="flex items-center gap-4 text-white">
                         <button
@@ -139,8 +150,8 @@ export default function DashboardPage() {
                         </button>
                     </div>
 
-                    {/* Admin & Portal Tools */}
-                    {(currentUserRole === 'ADMIN' || currentUserRole === 'AGENCY_OFFICER') && (
+                    {/* Admin Portal Tool */}
+                    {currentUserRole === 'ADMIN' && (
                         <div className="mt-4 pt-4 border-t border-white/10 flex justify-center">
                             <a
                                 href="/agency/portal"
@@ -154,62 +165,93 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Debug Role Switcher (Bottom Right) */}
-            <div className="fixed bottom-4 right-4 z-[100] group">
-                <div className="bg-black/80 backdrop-blur border border-white/20 p-2 rounded-lg flex items-center gap-2 hover:bg-black transition-colors">
-                    <ShieldAlert className="w-4 h-4 text-yellow-500" />
-                    <span className="text-xs font-mono text-white/60 uppercase">Role:</span>
-                    <select
-                        value={currentUserRole}
-                        onChange={(e) => {
-                            const newRole = e.target.value as UserRole;
-                            setCurrentUserRole(newRole);
-                            // Auto-switch if current view is lost
-                            if (!hasAccess(newRole, agencyView)) {
-                                if (hasAccess(newRole, 'tactical')) setAgencyView('tactical');
-                                else if (hasAccess(newRole, 'strategic')) setAgencyView('strategic');
-                                else if (hasAccess(newRole, 'cyber')) setAgencyView('cyber');
-                            }
-                        }}
-                        className="bg-transparent text-yellow-500 text-xs font-bold uppercase outline-none cursor-pointer"
-                    >
-                        <option value="TACTICAL_COMMAND">Tactical</option>
-                        <option value="CYBER_ANALYST">Cyber Analyst</option>
-                        <option value="STRATEGIC_PLANNER">Strategic</option>
-                        <option value="AGENCY_OFFICER">Agency Officer</option>
-                        <option value="ADMIN">Admin</option>
-                    </select>
+            {/* Debug Role Switcher - System Admin Only */}
+            {user?.role === 'ADMIN' && (
+                <div className="fixed bottom-4 right-4 z-[100] group">
+                    <div className="bg-black/80 backdrop-blur border border-white/20 p-2 rounded-lg flex items-center gap-2 hover:bg-black transition-colors">
+                        <ShieldAlert className="w-4 h-4 text-yellow-500" />
+                        <span className="text-xs font-mono text-white/60 uppercase">System Admin Context:</span>
+                        <select
+                            value={currentUserRole}
+                            onChange={(e) => {
+                                const newRole = e.target.value as UserRole;
+                                setCurrentUserRole(newRole);
+                                // Auto-switch if current view is lost
+                                if (!hasAccess(newRole, agencyView)) {
+                                    if (hasAccess(newRole, 'tactical')) setAgencyView('tactical');
+                                    else if (hasAccess(newRole, 'strategic')) setAgencyView('strategic');
+                                    else if (hasAccess(newRole, 'cyber')) setAgencyView('cyber');
+                                }
+                            }}
+                            className="bg-transparent text-yellow-500 text-xs font-bold uppercase outline-none cursor-pointer"
+                        >
+                            <option value="TACTICAL_COMMAND">Tactical</option>
+                            <option value="CYBER_ANALYST">Cyber Analyst</option>
+                            <option value="STRATEGIC_PLANNER">Strategic</option>
+                            <option value="AGENCY_OFFICER">Agency Officer</option>
+                            <option value="ADMIN">Admin</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
+            )}
 
-            {/* View Container */}
+            {/* View Container with Access Enforcement */}
             <div className="w-full h-full">
-                {agencyView === 'cyber' && (
-                    <CyberDashboard
-                        alerts={alerts}
-                        currentTime={currentTime}
-                        securityStatus={securityStatus}
-                        user={user}
-                        logout={logout}
-                    />
-                )}
-                {agencyView === 'tactical' && (
-                    <TacticalDashboard
-                        alerts={alerts}
-                        currentTime={currentTime}
-                        securityStatus={securityStatus}
-                        user={user}
-                        logout={logout}
-                    />
-                )}
-                {agencyView === 'strategic' && (
-                    <StrategicDashboard
-                        alerts={alerts}
-                        currentTime={currentTime}
-                        securityStatus={securityStatus}
-                        user={user}
-                        logout={logout}
-                    />
+                {!hasAccess(currentUserRole, agencyView) ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-[#050505] p-8 text-center">
+                        <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-8 animate-pulse">
+                            <ShieldAlert className="w-10 h-10 text-red-500" />
+                        </div>
+                        <h2 className="text-2xl font-black text-white uppercase tracking-[0.2em] mb-4">Access Restricted</h2>
+                        <p className="text-white/40 max-w-md leading-relaxed mb-8 font-medium">
+                            Your current clearance level ({currentUserRole}) does not permit access to the {agencyView} View.
+                        </p>
+                        {currentUserRole === 'AGENCY_OFFICER' ? (
+                            <a
+                                href="/agency/portal"
+                                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all hover:scale-105 shadow-xl shadow-blue-600/20 uppercase tracking-widest text-xs"
+                            >
+                                Enter Agency Command Portal
+                            </a>
+                        ) : (
+                            <button
+                                onClick={logout}
+                                className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-all border border-white/10"
+                            >
+                                Terminate Session
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <>
+                        {agencyView === 'cyber' && (
+                            <CyberDashboard
+                                alerts={alerts}
+                                currentTime={currentTime}
+                                securityStatus={securityStatus}
+                                user={user}
+                                logout={logout}
+                            />
+                        )}
+                        {agencyView === 'tactical' && (
+                            <TacticalDashboard
+                                alerts={alerts}
+                                currentTime={currentTime}
+                                securityStatus={securityStatus}
+                                user={user}
+                                logout={logout}
+                            />
+                        )}
+                        {agencyView === 'strategic' && (
+                            <StrategicDashboard
+                                alerts={alerts}
+                                currentTime={currentTime}
+                                securityStatus={securityStatus}
+                                user={user}
+                                logout={logout}
+                            />
+                        )}
+                    </>
                 )}
             </div>
         </div >

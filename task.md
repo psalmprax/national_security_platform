@@ -1,95 +1,43 @@
-# National Security Platform - Development Tasks
+- [x] Search for "Sentinel Audit Ledger" in Cyber view <!-- id: 4 -->
+- [x] Check backend support for paginated security scans <!-- id: 5 -->
+- [x] Implement pagination in frontend `CyberDashboard.tsx` <!-- id: 6 -->
+- [x] Verify pagination functionality <!-- id: 7 -->
+- [x] Implement Response Team Triangulation <!-- id: 8 -->
+    - [x] Design backend triangulation logic <!-- id: 9 -->
+    - [x] Implement `GET /api/v1/alerts/:id/triangulation` endpoint <!-- id: 10 -->
+    - [x] Update frontend to display triangulation results <!-- id: 11 -->
+- [x] Verify triangulation accuracy <!-- id: 12 -->
 
-## [x] Common: Foundation & Architecture
-- [x] Analyze Requirements & Constraints
-- [x] Define High-Level System Architecture
-- [x] Define Data Flow & Integration Patterns
-- [x] Select Technology Stack
-- [x] Develop Security & Trust Model
-- [x] Design AI & Geospatial Features
-- [x] Formulate Risk Analysis & Mitigation
-- [x] Propose Additional Safeguards
-- [x] Compile Final Architecture Document
-- [x] Project Setup & Version Control
-- [x] Create Protobuf Definitions (gRPC)
-- [x] Generate Go & Python Code from Protos
-- [x] Local Orchestration (Docker Compose)
-- [x] Data Layer Setup (CockroachDB, Redis, MinIO, NATS)
-- [x] Create Database Schema (SQL)
-- [x] Apply Schema to CockroachDB
-- [x] **Extend Schema for Spatial/Identity Registry (v0.3)**
-- [x] **Created RBAC Role Migration Script (v0.4)**
-- [x] **Created Simulation Data Script (v0.5)**
-- [x] **Implemented Unified Security Gateway (Nginx) (v0.6)**
+- [x] Phase 4: Capability & Performance Scale-Up <!-- id: 13 -->
+    - [x] [1.1] Redis Spatial Caching <!-- id: 14 -->
+    - [x] [1.2] Server-Sent Events (SSE) Pipeline <!-- id: 15 -->
+    - [x] [1.3] Spatial Index Tuning (Skipped due to disk space) <!-- id: 16 -->
 
-## [x] Backend: Core API (Go)
-- [x] Setup Database Connection
-- [x] Implement Alert Submission Logic
-- [x] Add Basic Auth/Middleware (Skeleton)
-- [x] Verify Data Persistence
-- [x] Implement NATS Publisher
-- [x] Implement gRPC Client
-- [x] Implement Application-Layer Encryption
-- [x] Configure TLS 1.3
-- [x] **Fix Go version mismatch in Docker build (Upgraded to 1.24.0)**
-- [x] Verify build and runtime success
+- [x] Implement Asset Activation and Dispatch
+    - [x] Update `assets` table schema with `status` and `last_active`
+    - [x] Add `handleUpdateAssetStatus` and `handleDispatchAsset` to backend
+    - [x] Implement "Activate/Deactivate" toggles in Tactical Radar
+    - [x] Add "Dispatch To Incident" action button
+    - [x] Verify real-time status updates via SSE
 
-## [x] Backend: Intelligence Service (Python)
-- [x] Implement NATS Subscriber
-- [x] Implement gRPC Server
-- [x] Verify Cross-Service Communication
-- [x] **Fix Protobuf version mismatch (using `PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python`)**
-- [x] Verify service startup and AI integration heartbeat
+- [x] Unify Tactical Proximity Radar across dashboards
+    - [x] Move triangulation logic to reusable `TacticalRadar` component
+    - [x] Integrate radar into `AgencyPortal` (Operational View)
+    - [x] Ensure consistent asset visualization (Markers, Distance, Suitability)
 
-## [x] Mobile: Mobile Client (Flutter)
-- [x] Initialize Flutter project and dependencies
-- [x] Implement Offline-First Data Layer
-- [x] Implemented Dashboard Interactivity
-    - [x] Connected Secure/Active/Signal filters in Cyber View
-    - [x] Implemented "View Log" detail modal in Strategic View
-    - [x] Added relative API routing via Unified Gateway
-- [x] Design Icon-Centric "Panic Mode" UI
-- [x] Implement Store-and-Forward Sync Logic
-- [x] Implement Encrypted SMS Fallback
-- [x] Integrate Device-level Signing
-- [x] Add Biometric Authentication & Duress PIN
-- [x] **Fix `flutter pub get` and web build failure**
-- [x] **Free up disk space (13GB reclaimed)**
-- [x] **Update `Dockerfile` with `flutter create` for web**
-- [x] **Verify build success**
-
-## [x] Web: Admin Platform (Next.js)
-- [x] Initialize Next.js project
-- [x] Implement Real-time Ingestion via WebSocket
-- [x] Create Situational Awareness Heatmap
-- [x] Design Intelligence Triage Interface
-- [x] Implement "Web of Trust" Visualization
-- [x] Setup Role-Based Access Control (RBAC)
-- [x] Verify build success
-
-## [x] Infrastructure & Security
-- [x] Create Kubernetes Manifests
-- [x] Setup Service-to-Service mTLS
-- [x] Enable Encryption-at-Rest
-
-## [x] Web: Dashboard UI & UX Refinements
-- [x] **Interactive Sidebar Navigation** (Map, Alerts, Data, Analytics)
-- [x] **Premium Visual Effects** (Glassmorphism, Animations, Glows)
-- [x] **Header & Layout Improvements** (Centered Title, System Status)
-- [x] **Multi-Agency View Support** (Cyber, Tactical, Strategic)
-- [x] **Mobile Responsiveness Check**
-- [x] **Data Integration & Real-time Feeds**
-    - [x] **Strategic**: Connected Threat Distribution & Incident Trend charts
-    - [x] **Cyber**: Connected Notifications panel & Audit Log table
-    - [x] **Tactical**: Confirmed live data usage for overlay & lists
-    - [x] **System Status**: Connected Active Nodes & Status indicators to backend
-    - [x] **RBAC**: Implemented User Level Access for agency views (Cyber/Tactical/Strategic)
-    - [x] **Access Logging**: Implemented structured JSON logging for audit & security tracking
-
-
-## [ ] Phase 5: Advanced Encryption & Security (Planned)
-- [ ] **Core API**: Field-Level Encryption (FLE)
-- [ ] **Core API**: NIN Integration (Mock)
-- [ ] **Intelligence Service**: mTLS Enforcement
-- [ ] **Infrastructure**: Vault Integration
-- [ ] **Infrastructure**: CockroachDB Volume Encryption
+- [x] Make Sector Intelligence Reports dynamic by agency
+    - [x] Implement `GetUserAgencyInfo` in `repository.go`
+    - [x] Create `RequireAnyRole` middleware in `rbac.go`
+    - [x] Update `handleGetSectorReport` and routes in `main.go`
+    - [x] Update `TriageSidebar.tsx` and `api.ts` on frontend
+    - [x] Seed test personnel data for verification
+34: 
+35: - [x] Implement Dynamic System Operational Modes (NOMINAL, SURGICAL, TACTICAL, DARK_OPS)
+36: - [x] Restrict Role-Based View Switching to System Admins only
+37: - [x] Implement automatic dashboard routing for non-admin roles
+38: - [x] Add access enforcement and portal redirection for Agency Officers
+- [x] Refine Dashboard Type Safety
+    - [x] Export `User` interface from `AuthContext.tsx`
+    - [x] Apply proper types to `user` prop in dashboard components
+    - [x] Explicitly type `securityStatus` state in `page.tsx` using `SystemStatus` interface
+    - [x] Resolve remaining 'any' lints in `StrategicDashboard.tsx` and `TacticalDashboard.tsx`

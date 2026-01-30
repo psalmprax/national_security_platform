@@ -3,6 +3,7 @@
 import React from 'react';
 import { PieChart, FileText, Activity, Shield, TrendingUp } from 'lucide-react';
 import { getIncidentTrends, getThreatDistribution, Alert } from '../../lib/api';
+import { User } from '../../lib/AuthContext';
 
 interface StrategicDashboardProps {
     alerts: Alert[];
@@ -12,12 +13,12 @@ interface StrategicDashboardProps {
         isEncrypted: boolean;
         trustedDevices: number;
     };
-    user: any;
+    user: User | null;
     logout: () => void;
 }
 
 export default function StrategicDashboard({ alerts, currentTime, securityStatus, user, logout }: StrategicDashboardProps) {
-    const [selectedAlert, setSelectedAlert] = React.useState<any | null>(null);
+    const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
     const [showUserMenu, setShowUserMenu] = React.useState(false);
     const [activeView, setActiveView] = React.useState<'overview' | 'profile' | 'registry' | 'analytics'>('overview');
 

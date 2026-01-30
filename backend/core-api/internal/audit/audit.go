@@ -7,10 +7,19 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"national_security_platform/backend/core-api/internal/db"
+	"national_security_platform/backend/core-api/internal/mq"
 
 	"github.com/google/uuid"
 )
+
+// AuditEntry represents a log entry to be processed asynchronously
+type AuditEntry struct {
+	EntityID       uuid.UUID       `json:"entity_id"`
+	Action         string          `json:"action"`
+	ActorID        uuid.UUID       `json:"actor_id"`
+	Changes        json.RawMessage `json:"changes"`
+	Classification string          `json:"classification"`
+}
 
 // GenerateEvidenceHash creates a SHA-256 hash of the provided content
 func GenerateEvidenceHash(content string) string {
@@ -29,5 +38,14 @@ func LogAction(ctx context.Context, actorID uuid.UUID, entityID uuid.UUID, actio
 		changesJSON = data
 	}
 
-	return db.CreateAuditLog(ctx, entityID, action, actorID, changesJSON, classification)
+	entry := AuditEntry{
+		EntityID:       entityID,
+		Action:         action,
+		ActorID:        actorID,
+		Changes:        changesJSON,
+		Classification: classification,
+	}
+
+	// Async Publish to NATS
+	return mq.PublishAudit(ctx, entry)
 }

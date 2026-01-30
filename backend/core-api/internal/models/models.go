@@ -139,6 +139,12 @@ type SecurityScan struct {
 	MetaData      interface{} `json:"meta_data"` // JSONB
 }
 
+type TriangulatedAsset struct {
+	Asset            Asset   `json:"asset"`
+	DistanceMeters   float64 `json:"distance_meters"`
+	SuitabilityScore float64 `json:"suitability_score"`
+}
+
 type SectorReport struct {
 	SectorID         string    `json:"sector_id"`
 	Timestamp        time.Time `json:"timestamp"`
