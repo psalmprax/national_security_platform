@@ -7,7 +7,7 @@
     - [x] Resolve `any` type lints in web components
     - [x] Fix 401 Unauthorized errors in Agency Portal
 
-- [/] Phase 2: Intelligence Service Enhancement [/]
+- [x] Phase 2: Intelligence Service Enhancement [x]
     - [x] Connect Python `intelligence-service` to CockroachDB
     - [x] Implement severity & keyword analysis persistence in `analyze_alert`
     - [x] Update `expansion_blueprint.md` status (Triangulation, AI Scoring)
@@ -34,7 +34,7 @@
     - [x] Fix build error in CyberDashboard.tsx (Unexpected token `div`)
 - [x] Revert `web/components/dashboards` to commit `2f45230` (Undo recent modal changes)
 - [x] Resolve `SystemStatus` type mismatch build error in `web/app/page.tsx` and dashboard components
-- [x] Phase 4: UI Refinement [ / ]
+- [x] Phase 4: UI Refinement [x]
     - [x] Implement draggable functionality for Cyber Dashboard modal
     - [x] Update modal title to include dynamic naming (Type + ID)
     - [x] Verify draggable behavior and naming across different alerts
