@@ -97,7 +97,7 @@ export default function DashboardPage() {
         <div className="relative w-full h-screen overflow-hidden">
             {/* Agency View Switcher - Only for System Admin */}
             {user?.role === 'ADMIN' && (
-                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] group">
+                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[110] group">
                     <button
                         className="h-8 px-6 bg-black/80 border-b border-x border-white/20 hover:border-[#00FF95] rounded-b-lg flex items-center justify-center gap-2 cursor-pointer backdrop-blur-md transition-all hover:bg-black"
                         onClick={() => setShowAgencyPicker(!showAgencyPicker)}
@@ -112,7 +112,7 @@ export default function DashboardPage() {
             )}
 
             {/* Logout Button - Top Right */}
-            <div className="fixed top-4 right-4 z-[100]">
+            <div className="fixed top-4 right-4 z-[110]">
                 <button
                     onClick={logout}
                     className="h-10 w-10 bg-black/40 hover:bg-red-500/20 border border-white/10 hover:border-red-500/50 rounded-xl flex items-center justify-center text-white/60 hover:text-red-400 backdrop-blur-md transition-all group"
@@ -124,7 +124,7 @@ export default function DashboardPage() {
 
             {/* View Switcher UI - Controlled by Admin check */}
             {showAgencyPicker && user?.role === 'ADMIN' && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-black/90 border border-white/20 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200">
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] bg-black/90 border border-white/20 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200">
                     <div className="flex items-center gap-4 text-white">
                         <button
                             disabled={!hasAccess(currentUserRole, 'cyber')}
@@ -172,7 +172,7 @@ export default function DashboardPage() {
 
             {/* Debug Role Switcher - System Admin Only */}
             {user?.role === 'ADMIN' && (
-                <div className="fixed bottom-4 right-4 z-[100] group">
+                <div className="fixed bottom-4 right-4 z-[110] group">
                     <div className="bg-black/80 backdrop-blur border border-white/20 p-2 rounded-lg flex items-center gap-2 hover:bg-black transition-colors">
                         <ShieldAlert className="w-4 h-4 text-yellow-500" />
                         <span className="text-xs font-mono text-white/60 uppercase">System Admin Context:</span>

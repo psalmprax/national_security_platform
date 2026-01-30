@@ -7,11 +7,12 @@
     - [x] Resolve `any` type lints in web components
     - [x] Fix 401 Unauthorized errors in Agency Portal
 
-- [x] Phase 2: Intelligence Service Enhancement [x]
+- [/] Phase 2: Intelligence Service Enhancement [/]
     - [x] Connect Python `intelligence-service` to CockroachDB
     - [x] Implement severity & keyword analysis persistence in `analyze_alert`
     - [x] Update `expansion_blueprint.md` status (Triangulation, AI Scoring)
     - [x] Verify persistence via database query
+    - [x] Fix `SystemStatus` missing import in `CyberDashboard.tsx`
 
 - [x] Phase 3: Final Verification & Hardening [x]
     - [x] Trigger test alert from mobile client (Verified via API)
@@ -24,15 +25,19 @@
     - [x] Fix favicon 404 error (Generated & Integrated)
     - [x] Fix Dashboard TypeError (Hardened CyberDashboard.tsx props and state)
     - [x] Fix Tactical Dashboard Runtime Error (Hardened inputs & Added Decryption)
+    - [x] Fix Tactical Dashboard Runtime Error (Hardened inputs & Added Decryption)
     - [x] Fix Asset Visibility (Implemented Missing Markers)
     - [x] Improve Alert Display (Encrypted Content Handling)
     - [x] Visual Enhancement: Persistent Asset Marker Blinking (Global)
     - [x] UI Feature: Implement "Tactical Analysis Locked" Modal per design spec
     - [x] Make "Tactical Analysis Locked" Modal Draggable for clear map view
     - [x] Fix build error in CyberDashboard.tsx (Unexpected token `div`)
-
-- [x] Phase 4: UI Refinement [x]
+- [x] Revert `web/components/dashboards` to commit `2f45230` (Undo recent modal changes)
+- [x] Resolve `SystemStatus` type mismatch build error in `web/app/page.tsx` and dashboard components
+- [x] Phase 4: UI Refinement [ / ]
     - [x] Implement draggable functionality for Cyber Dashboard modal
     - [x] Update modal title to include dynamic naming (Type + ID)
     - [x] Verify draggable behavior and naming across different alerts
     - [x] Re-apply `SystemStatus` type fixes to dashboard components
+    - [x] Fix UI layering: Move View Switcher above Warning Banner
+    - [x] Move Mapbox triangulation lines behind map labels

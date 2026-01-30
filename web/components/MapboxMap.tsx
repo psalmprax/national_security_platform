@@ -155,6 +155,18 @@ export default function MapboxMap({
                     data: geoJsonData
                 });
 
+                // Find the first label layer to insert before it
+                const layers = map.getStyle().layers;
+                let firstLabelLayerId;
+                if (layers) {
+                    for (const layer of layers) {
+                        if (layer.type === 'symbol' && (layer.layout as any)?.['text-field']) {
+                            firstLabelLayerId = layer.id;
+                            break;
+                        }
+                    }
+                }
+
                 map.addLayer({
                     id: layerId,
                     type: 'line',
@@ -169,7 +181,7 @@ export default function MapboxMap({
                         'line-opacity': 0.6,
                         'line-dasharray': [2, 1] // Dashed tactical look
                     }
-                });
+                }, firstLabelLayerId);
             } else {
                 (map.getSource(sourceId) as mapboxgl.GeoJSONSource).setData(geoJsonData);
             }
