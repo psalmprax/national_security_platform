@@ -251,6 +251,27 @@ export async function dispatchAsset(assetId: string, token: string): Promise<boo
     }
 }
 
+export async function fetchAssets(token: string): Promise<Asset[]> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/assets`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            return [];
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch assets:', error);
+        return [];
+    }
+}
+
 // Stats Helpers for Dashboards
 export function getIncidentTrends(alerts: any[]) {
     // Group alerts by hour (last 12 hours)

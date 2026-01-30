@@ -59,6 +59,12 @@
   - [ ] [2.4] Predictive Coverage Analysis (Planned)
   - [ ] [2.5] Attribute-Based Access Control (Planned)
 
+- [ ] Phase 6: Tactical View Live Integration <!-- id: 21 -->
+    - [ ] Refactor `fetchAssets` to `api.ts` <!-- id: 22 -->
+    - [ ] Wire "Active Agents" list to live data <!-- id: 23 -->
+    - [ ] Wire "Incoming Comms" to latest alert <!-- id: 24 -->
+    - [ ] Dynamic Telemetry (GridRef/Bearing) <!-- id: 25 -->
+
 - [x] Bug Fixes: Web & Connectivity
   - [x] Fix `web-dashboard` build error: `isValidCoordinate` undefined in `MapboxMap.tsx`
   - [x] Fix `gateway` connection refused to `mobile-client`: added Docker DNS resolver and refreshed state

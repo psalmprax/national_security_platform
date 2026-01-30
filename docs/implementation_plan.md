@@ -44,3 +44,9 @@ This plan addresses the user's request to adjust the alignment of scrollbars in 
 - [x] Make Settings Box Draggable (Framer Motion)
 - [x] Make Notifications Panel Draggable & Stacked
 - [x] Wire Notifications Panel to Real-Time SSE Stream
+
+### Tactical View Live Integration
+- [ ] Refactor `fetchAssets` to `api.ts`
+- [ ] Update `TacticalDashboard.tsx` to use live `activeAgents`
+- [ ] Link "Incoming Comms" to `alerts` stream
+- [ ] Update "GridRef" to dynamic coordinates
