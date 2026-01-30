@@ -1,3 +1,12 @@
+
+- [x] Phase 5: UI/UX Refinements (Current Focus)
+    - [x] Verify Pagination Functionality
+    - [X] Standardize "Intelligence Triage" sidebar across views
+    - [x] Implement consistent `.scrollbar-cyber` styling
+    - [x] Adjust scrollbar positioning to align with Triage Sidebar (Alerts, Data, Analytics, Compliance)
+    - [ ] Add tooltips to sidebar navigation icons
+    - [ ] Polish transitions between different "System Operational Modes"
+
 - [x] Search for "Sentinel Audit Ledger" in Cyber view <!-- id: 4 -->
 - [x] Check backend support for paginated security scans <!-- id: 5 -->
 - [x] Make Sector Intelligence Reports dynamic by agency

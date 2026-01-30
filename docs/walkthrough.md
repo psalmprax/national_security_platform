@@ -1,8 +1,22 @@
-# Dynamic System Operational Modes Walkthrough
+# Cyber View UI Polish & Scrollbar Alignment Walkthrough
 
-The **Cyber View** has been upgraded with a centralized "Operational Mode" controller that dynamically re-themes the entire dashboard in real-time. This ensures consistent visual cues across all interactive layers, including Mapbox visualizations and triage workflows.
+The **Cyber View** has been refined to achieve high-fidelity visual consistency, specifically focusing on the alignment and aesthetics of scrollbars across all sub-views.
 
-## Centralized Theme Propagation
+## Scrollbar Standardization
+
+previously, scrollbars were attached to the centered content containers, causing them to "float" in the middle of the screen when the viewport was wide. This created a visual disconnect from the fixed Triage Sidebar.
+
+We have refactored the layout structure for the **Alerts**, **Data**, **Analytics**, **Profile**, and **Compliance** views to:
+
+1.  **Full-Width Scrolling**: The `overflow-y-auto` property now sits on the full-width parent container.
+2.  **Anchored Position**: This forces the custom `.scrollbar-cyber` to always render at the far right edge of the dashboard panel, directly adjacent to the Intelligence Triage sidebar.
+3.  **Centered Content**: The actual data and cards remain centered using `mx-auto` constraints, preserving readability without compromising the structural grid.
+
+## Dynamic System Operational Modes
+
+The **Cyber View** also features a centralized "Operational Mode" controller that dynamically re-themes the entire dashboard in real-time.
+
+### Centralized Theme Propagation
 
 Every component in the Cyber View now subscribes to a master theme state, purging all hardcoded colors in favor of a responsive design system.
 
@@ -10,9 +24,7 @@ Every component in the Cyber View now subscribes to a master theme state, purgin
 - **`MapboxMap.tsx`**: Receives dynamic primary colors to theme triangulation lines, alert markers, and the background situational grid.
 - **`TriageSidebar.tsx`**: Adapts its entire UI—including report modals, progress bars, and icon glows—to match the active operational posture.
 
-## Operational Modes Overiew
-
-Each mode provides a distinct visual look and feel tailored to specific mission requirements:
+### Operational Modes Overview
 
 | Mode | Theme | Primary Color | Focus |
 | :--- | :--- | :--- | :--- |
@@ -25,10 +37,13 @@ Each mode provides a distinct visual look and feel tailored to specific mission 
 
 ### 1. Mode Selector HUD
 A prominent Interactive HUD has been added to the main viewport, allowing analysts to switch postures with a single click. Each switch triggers a coordinated animation across all UI panels.
+
 ### 2. Themed Mapbox Visuals
 The situational map now reflects the active mode's color palette. Triangulation lines between alerts and assets, as well as the tactical grid overlay, update instantly to maintain visual consistency.
+
 ### 3. Integrated Triage Sidebar
 The sidebar's progress bars, telemetry streams, and the **Sector Intelligence Report** modal are now fully theme-aware, ensuring that high-level reporting matches the current operational state.
+
 ### 4. Professional Cyber Scrollbars
 A custom, high-fidelity scrollbar (`.scrollbar-cyber`) has been implemented across the Alert Triage, System Analytics, and Profile views. This unifying design features a glassy track, a glowing gradient thumb, and hover effects that align perfectly with the platform's futuristic aesthetic.
 
@@ -48,3 +63,4 @@ To ensure mission integrity, the dashboard now enforces strict isolation for non
 - [x] confirmed removal of all hardcoded `#00FF95` values in core dashboard files.
 - [x] Validated Mode Selector HUD functionality and responsive state updates.
 - [x] Applied and verified consistent `.scrollbar-cyber` styling across dashboard views.
+- [x] verified scrollbars are anchored to the right edge of the content panel.
