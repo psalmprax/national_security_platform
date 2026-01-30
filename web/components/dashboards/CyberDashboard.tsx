@@ -409,7 +409,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
                         {activeView === 'alerts' && (
                             <div className="w-full h-full overflow-y-auto scrollbar-cyber">
-                                <div className="max-w-6xl mx-auto p-8">
+                                <div className="w-full max-w-6xl mx-auto p-8">
                                     <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Alert Triage {filterMode !== 'all' && <span className="text-[#00FF95] text-sm ml-2">[{filterMode.toUpperCase()}_FILTER]</span>}</h2>
                                     <div className="grid gap-4">
                                         {filteredAlerts.length === 0 ? (
@@ -449,8 +449,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         )}
 
                         {activeView === 'data' && (
-                            <div className="w-full h-full p-8 overflow-auto">
-                                <div className="max-w-6xl mx-auto">
+                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
+                                <div className="w-full max-w-6xl mx-auto p-8">
                                     <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Audit Logs & Data</h2>
                                     <div className="glass-card p-8 border border-white/5">
                                         <div className="flex items-center gap-3 mb-6">
@@ -463,7 +463,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                 <p className="text-white/60">Trusted Devices: <span className="text-[#00FF95] font-bold">{securityStatus.trustedDevices}</span></p>
                                                 <p className="text-white/60">Security Status: <span className="text-[#00FF95] font-bold">ENCRYPTED</span></p>
                                             </div>
-                                            <div className="overflow-x-auto rounded border border-white/10">
+                                            <div className="overflow-x-auto scrollbar-cyber rounded border border-white/10">
                                                 <table className="w-full text-left text-sm text-white/70">
                                                     <thead className="bg-white/5 uppercase text-xs font-bold text-white/50">
                                                         <tr>
@@ -504,7 +504,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
                         {activeView === 'analytics' && (
                             <div className="w-full h-full overflow-y-auto scrollbar-cyber">
-                                <div className="max-w-6xl mx-auto p-8">
+                                <div className="w-full max-w-6xl mx-auto p-8">
                                     <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">System Analytics</h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="glass-card p-6 border border-white/5">
@@ -556,7 +556,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
                         {activeView === 'profile' && (
                             <div className="w-full h-full overflow-y-auto scrollbar-cyber">
-                                <div className="max-w-4xl mx-auto p-8">
+                                <div className="w-full max-w-4xl mx-auto p-8">
                                     <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Administrator Profile</h2>
                                     <div className="glass-card p-10 border border-white/5 bg-white/[0.02]">
                                         <div className="flex items-center gap-6 mb-10 pb-10 border-b border-white/10">
@@ -602,8 +602,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         )}
 
                         {activeView === 'compliance' && (
-                            <div className="w-full h-full p-8 overflow-auto">
-                                <div className="max-w-6xl mx-auto">
+                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
+                                <div className="w-full max-w-6xl mx-auto p-8">
                                     <div className="flex items-center justify-between mb-8">
                                         <div>
                                             <h2 className="text-3xl font-black tracking-wider text-white uppercase">Security Sentinel</h2>
@@ -661,7 +661,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                         <div className="bg-white/5 px-6 py-3 border-b border-white/5">
                                             <h3 className="text-white text-xs font-black uppercase tracking-widest">Sentinel Audit Ledger</h3>
                                         </div>
-                                        <div className="overflow-x-auto">
+                                        <div className="overflow-x-auto scrollbar-cyber">
                                             <table className="w-full text-left font-mono text-xs">
                                                 <thead>
                                                     <tr className="bg-white/[0.02] text-white/30 text-[10px] uppercase">
@@ -900,8 +900,14 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
             {/* Notifications Panel */}
             {
                 showNotifications && (
-                    <div className="fixed inset-0 z-50 flex items-start justify-end pointer-events-none">
-                        <div className="pointer-events-auto mt-20 mr-20 w-96 glass-card border border-white/10 p-6 animate-slide-in">
+                    <div className="fixed inset-0 z-50 flex items-end justify-start pointer-events-none">
+                        <motion.div
+                            drag
+                            dragMomentum={false}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="pointer-events-auto mb-48 ml-24 w-96 glass-card border border-white/10 p-6 cursor-move"
+                        >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <Bell className="w-5 h-5" style={{ color: currentTheme.primary }} />
@@ -917,7 +923,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     <span className="text-xs text-white/40">Now</span>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
                 )
             }
@@ -925,8 +931,14 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
             {/* Settings Panel */}
             {
                 showSettings && (
-                    <div className="fixed inset-0 z-50 flex items-start justify-end pointer-events-none">
-                        <div className="pointer-events-auto mt-20 mr-20 w-96 glass-card border border-white/10 p-6 animate-slide-in">
+                    <div className="fixed inset-0 z-50 flex items-end justify-start pointer-events-none">
+                        <motion.div
+                            drag
+                            dragMomentum={false}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="pointer-events-auto mb-24 ml-24 w-96 glass-card border border-white/10 p-6 cursor-move"
+                        >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <Settings className="w-5 h-5" style={{ color: currentTheme.primary }} />
@@ -969,7 +981,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
                 )
             }

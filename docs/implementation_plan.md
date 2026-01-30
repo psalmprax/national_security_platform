@@ -42,3 +42,4 @@ This plan addresses the user's request to adjust the alignment of scrollbars in 
 - [x] Implement consistent `.scrollbar-cyber` styling
 - [x] Adjust scrollbar positioning to align with Triage Sidebar
 - [x] Make Settings Box Draggable (Framer Motion)
+- [x] Make Notifications Panel Draggable & Stacked

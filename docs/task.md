@@ -5,6 +5,7 @@
     - [x] Implement consistent `.scrollbar-cyber` styling
     - [x] Adjust scrollbar positioning to align with Triage Sidebar (Alerts, Data, Analytics, Compliance)
     - [x] Make Settings Box Draggable (Framer Motion)
+    - [x] Make Notifications Panel Draggable & Stacked
     - [ ] Add tooltips to sidebar navigation icons
     - [ ] Polish transitions between different "System Operational Modes"
 

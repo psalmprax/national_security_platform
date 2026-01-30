@@ -50,6 +50,9 @@ A custom, high-fidelity scrollbar (`.scrollbar-cyber`) has been implemented acro
 ### 5. Draggable Settings Panel
 The **Settings** dialog box (Display Mode) has been enhanced with `framer-motion` to be fully **draggable**. It also now defaults to a **bottom-left** position to improve accessibility and keep the main viewport clear.
 
+### 6. Draggable Notifications Panel
+The **Notifications** panel is now fully draggable and behaves similarly to the Settings panel. It defaults to a position stacked just above the Settings panel in the bottom-left corner, ensuring important alerts are visible but unobtrusive.
+
 ## Role-Based Access Control & Strict Isolation
 
 To ensure mission integrity, the dashboard now enforces strict isolation for non-admin users:
