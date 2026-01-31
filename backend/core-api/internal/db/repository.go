@@ -241,10 +241,11 @@ func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
 			a.content_text, a.content_media_url, a.severity_score, a.verification_count,
 			a.created_at,
 			COALESCE(l.name, 'Unknown') as lga_name,
-			COALESCE(s.name, 'Unknown') as state_name
+			COALESCE(s.name, s2.name, 'Unknown') as state_name
 		FROM alerts a
 		LEFT JOIN lgas l ON ST_Contains(l.boundary_geom, a.location)
-		LEFT JOIN states s ON s.id = l.state_id -- Faster than double spatial join
+		LEFT JOIN states s ON s.id = l.state_id -- Optimization: Use relational link if LGA found
+		LEFT JOIN states s2 ON ST_Contains(s2.boundary_geom, a.location) -- Fallback: Direct spatial lookup if LGA lookup fails
 		ORDER BY a.created_at DESC
 		LIMIT $1
 	`

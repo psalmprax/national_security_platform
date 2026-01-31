@@ -148,3 +148,26 @@ The final production build of the `web-dashboard` service encountered a compilat
   - **Backend (`core-api`)**: Added `handleLogout` endpoint at `POST /api/v1/auth/logout` that sets the `auth_token` cookie `MaxAge` to -1.
   - **Frontend (`web-dashboard`)**: Updated `AuthContext.tsx` to call the backend logout endpoint before clearing client state and redirecting.
 - **Verification**: Rebuilt `core-api` and `web-dashboard` containers. Logout now triggers a server-side cookie clearance.
+
+## Alert Geolocation Resolution
+
+Alerts in the dashboard were displaying "GRID: [COORDS]" instead of their resolved location names (LGA, State).
+
+### Root Cause
+- **Spatial Join Failure**: The `GetRecentAlerts` query relied on a spatial join with the `lgas` table. However, the bulk national coverage script (`014_national_coverage.sql`) inserted LGA names without geometries (`boundary_geom`), causing the join to fail for most locations.
+- **Simulation Mismatch**: Key simulation alerts (Kidnapping, Ambush) were positioned at coordinates that fell outside the simplified polygons defined in the seeding data.
+
+### Fix Implementation
+- **Data Seeding**:
+  - Updated `013_real_seeding_data.sql` to include specific polygon boundaries for **Konduga**, **Abuja Municipal**, and **Warri South**.
+  - Updated `005_simulation_data.sql` to position simulation alerts strictly within these valid LGA polygons.
+  - Changed conflict resolution in `005` to `DO UPDATE` to ensure existing alert coordinates are corrected during re-seeding.
+- **Backend Logic**:
+  - Enhanced `internal/db/repository.go` to include a **fallback spatial join** against the `states` table. If an LGA cannot be resolved, the system now attempts to resolve the State name directly from the alert coordinates.
+
+### Verification
+- [x] **Database Re-seeded**: Successfully updated alert coordinates and LGA polygons.
+- [x] **Expected Outcome**:
+    - Kidnapping Alert: **Maiduguri, Borno** (previously GRID)
+    - Ambush Alert: **Konduga, Borno** (previously GRID)
+    - Cyber Alert: **Abuja Municipal, Federal Capital Territory** (previously GRID)

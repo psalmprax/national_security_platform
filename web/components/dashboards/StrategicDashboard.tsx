@@ -205,7 +205,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-medium text-slate-900">Incident: #{alert.id.substring(0, 8)}</p>
-                                                        <p className="text-xs text-slate-500 uppercase">{alert.type} • {new Date(alert.timestamp).toLocaleTimeString()}</p>
+                                                        <p className="text-xs text-slate-500 uppercase">{alert.type.replace(/_/g, ' ')} • {new Date(alert.timestamp).toLocaleTimeString()}</p>
                                                     </div>
                                                 </div>
                                                 <button
@@ -235,7 +235,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                         distribution.map((item, idx) => (
                                             <div key={idx} className="space-y-1">
                                                 <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
-                                                    <span className="text-slate-600">{item.name}</span>
+                                                    <span className="text-slate-600">{item.name.replace(/_/g, ' ')}</span>
                                                     <span className="text-slate-900">{Math.round(item.percentage)}%</span>
                                                 </div>
                                                 <div className="w-full h-2 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
@@ -512,7 +512,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Classification</span>
                                     <div className="flex items-center gap-2">
                                         <div className={`w-2 h-2 rounded-full ${selectedAlert.severity > 0.8 ? 'bg-red-500' : 'bg-blue-500'}`} />
-                                        <span className="font-bold text-slate-900 uppercase">{selectedAlert.type}</span>
+                                        <span className="font-bold text-slate-900 uppercase">{selectedAlert.type.replace(/_/g, ' ')}</span>
                                     </div>
                                 </div>
                                 <div className="space-y-1">

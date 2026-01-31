@@ -87,7 +87,7 @@ export default function TriageSidebar({
                                 <div className="flex flex-col gap-1">
                                     <div className="flex items-center gap-2">
                                         <span className={`text-[10px] font-black tracking-widest uppercase`} style={{ color: alert.severity > 0.8 ? '#FF003C' : themeColor }}>
-                                            {alert.type}
+                                            {alert.type.replace(/_/g, ' ')}
                                         </span>
                                         {alert.isDuress && (
                                             <span className="bg-[#FF003C]/20 text-[#FF003C] text-[8px] px-1.5 py-0.5 rounded-sm font-bold border border-[#FF003C]/30 tracking-tighter">
@@ -224,7 +224,7 @@ export default function TriageSidebar({
                                     />
                                 </div>
                                 <p className="text-[9px] text-white/40 italic">
-                                    Last known vector: <span className="text-white font-bold uppercase">{report.last_incident_type}</span>
+                                    Last known vector: <span className="text-white font-bold uppercase">{report.last_incident_type.replace(/_/g, ' ')}</span>
                                 </p>
                             </div>
 

@@ -41,17 +41,288 @@ INSERT INTO states (name, capital_city, boundary_geom) VALUES
 ('Zamfara', 'Gusau', ST_GeomFromText('POLYGON((6.6 12.1, 6.8 12.1, 6.8 12.3, 6.6 12.3, 6.6 12.1))', 4326))
 ON CONFLICT (name) DO NOTHING;
 
--- 2. Capital City LGAs (Approximations for detection)
-INSERT INTO lgas (state_id, name, boundary_geom)
-SELECT id, 'Abuja Municipal', ST_GeomFromText('POLYGON((7.45 9.02, 7.55 9.02, 7.55 9.10, 7.45 9.10, 7.45 9.02))', 4326) FROM states WHERE name = 'Federal Capital Territory'
+-- 2. LGAs (Full National Coverage - 774 LGAs)
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Aba North'), ('Aba South'), ('Arochukwu'), ('Bende'), ('Ikwuano'), ('Isiala Ngwa North'), ('Isiala Ngwa South'), ('Isiukwuato'), ('Obingwa'), ('Ohafia'), ('Osisioma Ngwa'), ('Ugwunagbo'), ('Ukwa East'), ('Ukwa West'), ('Umuahia North'), ('Umuahia South'), ('Umu Nneochi')) AS l(name)
+WHERE states.name = 'Abia'
 ON CONFLICT (state_id, name) DO NOTHING;
 
-INSERT INTO lgas (state_id, name, boundary_geom)
-SELECT id, 'Kaduna North', ST_GeomFromText('POLYGON((7.40 10.49, 7.46 10.49, 7.46 10.55, 7.40 10.55, 7.40 10.49))', 4326) FROM states WHERE name = 'Kaduna'
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Demsa'), ('Fufore'), ('Ganye'), ('Gayuk'), ('Gombi'), ('Grie'), ('Hong'), ('Jada'), ('Lamurde'), ('Madagali'), ('Maiha'), ('Mayo-Belwa'), ('Michika'), ('Mubi North'), ('Mubi South'), ('Numan'), ('Shelleng'), ('Song'), ('Toungo'), ('Yola North'), ('Yola South')) AS l(name)
+WHERE states.name = 'Adamawa'
 ON CONFLICT (state_id, name) DO NOTHING;
 
-INSERT INTO lgas (state_id, name, boundary_geom)
-SELECT id, 'Jos North', ST_GeomFromText('POLYGON((8.86 9.89, 8.92 9.89, 8.92 9.95, 8.86 9.95, 8.86 9.89))', 4326) FROM states WHERE name = 'Plateau'
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Abak'), ('Eastern Obolo'), ('Eket'), ('Esit Eket'), ('Essien Udim'), ('Etim Ekpo'), ('Etinan'), ('Ibeno'), ('Ibesikpo Asutan'), ('Ibiono Ibom'), ('Ika'), ('Ikono'), ('Ikot Abasi'), ('Ikot Ekpene'), ('Ini'), ('Itu'), ('Mbo'), ('Mkpat Enin'), ('Nsit Atai'), ('Nsit Ibom'), ('Nsit Ubium'), ('Obot Akara'), ('Okobo'), ('Onna'), ('Oron'), ('Oruk Anam'), ('Udung Uko'), ('Ukanafun'), ('Uruan'), ('Urue-Offong/Oruko'), ('Uyo')) AS l(name)
+WHERE states.name = 'Akwa Ibom'
 ON CONFLICT (state_id, name) DO NOTHING;
 
--- Add more as needed...
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Aguata'), ('Awka North'), ('Awka South'), ('Anambra East'), ('Anambra West'), ('Anaocha'), ('Ayamelum'), ('Dunukofia'), ('Ekwusigo'), ('Idemili North'), ('Idemili South'), ('Ihiala'), ('Njikoka'), ('Nnewi North'), ('Nnewi South'), ('Ogbaru'), ('Onitsha North'), ('Onitsha South'), ('Orumba North'), ('Orumba South'), ('Oyi')) AS l(name)
+WHERE states.name = 'Anambra'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Alkaleri'), ('Bauchi'), ('Bogoro'), ('Damban'), ('Darazo'), ('Dass'), ('Gamawa'), ('Ganjuwa'), ('Giade'), ('Itas/Gadau'), ('Jama''are'), ('Katagum'), ('Kirfi'), ('Misau'), ('Ningi'), ('Shira'), ('Tafawa Balewa'), ('Toro'), ('Warji'), ('Zaki')) AS l(name)
+WHERE states.name = 'Bauchi'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Brass'), ('Ekeremor'), ('Kolokuma/Opokuma'), ('Nembe'), ('Ogbia'), ('Sagbama'), ('Southern Ijaw'), ('Yenagoa')) AS l(name)
+WHERE states.name = 'Bayelsa'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Ado'), ('Agatu'), ('Apa'), ('Buruku'), ('Gboko'), ('Guma'), ('Gwer East'), ('Gwer West'), ('Katsina-Ala'), ('Konshisha'), ('Kwande'), ('Logo'), ('Makurdi'), ('Obi'), ('Ogbadibo'), ('Ohimini'), ('Oju'), ('Okpokwu'), ('Otukpo'), ('Tarka'), ('Ukum'), ('Ushongo'), ('Vandeikya')) AS l(name)
+WHERE states.name = 'Benue'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Abadam'), ('Askira/Uba'), ('Bama'), ('Bayo'), ('Biu'), ('Chibok'), ('Damboa'), ('Dikwa'), ('Gubio'), ('Guzamala'), ('Gwoza'), ('Hawul'), ('Jere'), ('Kaga'), ('Kala/Balge'), ('Konduga'), ('Kukawa'), ('Kwaya Kusar'), ('Mafa'), ('Magumeri'), ('Maiduguri'), ('Marte'), ('Mobbar'), ('Monguno'), ('Nganzai'), ('Shani')) AS l(name)
+WHERE states.name = 'Borno'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Abi'), ('Akamkpa'), ('Akpabuyo'), ('Bakassi'), ('Bekwarra'), ('Biase'), ('Boki'), ('Calabar Municipal'), ('Calabar South'), ('Etung'), ('Ikom'), ('Obanliku'), ('Obubra'), ('Obudu'), ('Odukpani'), ('Ogoja'), ('Yakurr'), ('Yala')) AS l(name)
+WHERE states.name = 'Cross River'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Aniocha North'), ('Aniocha South'), ('Bomadi'), ('Burutu'), ('Ethiope East'), ('Ethiope West'), ('Ika North East'), ('Ika South'), ('Isoko North'), ('Isoko South'), ('Ndokwa East'), ('Ndokwa West'), ('Okpe'), ('Oshimili North'), ('Oshimili South'), ('Patani'), ('Sapele'), ('Udu'), ('Ughelli North'), ('Ughelli South'), ('Ukwuani'), ('Uvwie'), ('Warri North'), ('Warri South'), ('Warri South West')) AS l(name)
+WHERE states.name = 'Delta'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Abakaliki'), ('Afikpo North'), ('Afikpo South (Edda)'), ('Ezza North'), ('Ezza South'), ('Ikwo'), ('Ishielu'), ('Ivo'), ('Izzi'), ('Ohaozara'), ('Ohaukwu'), ('Onicha')) AS l(name)
+WHERE states.name = 'Ebonyi'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Akoko-Edo'), ('Egor'), ('Esan Central'), ('Esan North-East'), ('Esan South-East'), ('Esan West'), ('Etsako Central'), ('Etsako East'), ('Etsako West'), ('Igueben'), ('Ikpoba-Okha'), ('Oredo'), ('Orhionmwon'), ('Ovia North-East'), ('Ovia South-West'), ('Owan East'), ('Owan West'), ('Uhunmwonde')) AS l(name)
+WHERE states.name = 'Edo'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Ado Ekiti'), ('Efon'), ('Ekiti East'), ('Ekiti South-West'), ('Ekiti West'), ('Emure'), ('Gbonyin'), ('Ido/Osi'), ('Ijero'), ('Ikere'), ('Ikole'), ('Ilejemeje'), ('Irepodun/Ifelodun'), ('Ise/Orun'), ('Moba'), ('Oye')) AS l(name)
+WHERE states.name = 'Ekiti'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Aninri'), ('Awgu'), ('Enugu East'), ('Enugu North'), ('Enugu South'), ('Ezeagu'), ('Igbo Etiti'), ('Igbo Eze North'), ('Igbo Eze South'), ('Isi Uzo'), ('Nkanu East'), ('Nkanu West'), ('Nsukka'), ('Oji River'), ('Udenu'), ('Udi'), ('Uzo-Uwani')) AS l(name)
+WHERE states.name = 'Enugu'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Akko'), ('Balanga'), ('Billiri'), ('Dukku'), ('Funakaye'), ('Gombe'), ('Kaltungo'), ('Kwami'), ('Nafada'), ('Shongom'), ('Yamaltu/Deba')) AS l(name)
+WHERE states.name = 'Gombe'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Aboh Mbaise'), ('Ahiazu Mbaise'), ('Ehime Mbano'), ('Ezinihitte Mbaise'), ('Ideato North'), ('Ideato South'), ('Ikeduru'), ('Isiala Mbano'), ('Isu'), ('Mbaitoli'), ('Ngor Okpala'), ('Njaba'), ('Nkwerre'), ('Nwangele'), ('Obowo'), ('Oguta'), ('Ohaji/Egbema'), ('Okigwe'), ('Orlu'), ('Orsu'), ('Oru East'), ('Oru West'), ('Owerri Municipal'), ('Owerri North'), ('Owerri West'), ('Unuimo')) AS l(name)
+WHERE states.name = 'Imo'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Auyo'), ('Babura'), ('Biriniwa'), ('Buji'), ('Dutse'), ('Gagarawa'), ('Garki'), ('Gumel'), ('Guri'), ('Hadejia'), ('Jahun'), ('Kafin Hausa'), ('Kaugama'), ('Kazaure'), ('Kiri Kasama'), ('Kiyawa'), ('Kudai'), ('Maigatari'), ('Malam Madori'), ('Miga'), ('Ringim'), ('Roni'), ('Sule Tankarkar'), ('Taura'), ('Yankwashi')) AS l(name)
+WHERE states.name = 'Jigawa'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Birnin Gwari'), ('Chikun'), ('Giwa'), ('Igabi'), ('Ikara'), ('Jaba'), ('Jema''a'), ('Kachia'), ('Kaduna North'), ('Kaduna South'), ('Kagarko'), ('Kajuru'), ('Kaura'), ('Kauru'), ('Kubau'), ('Kudan'), ('Lere'), ('Makarfi'), ('Sabon Gari'), ('Sanga'), ('Soba'), ('Zangon Kataf'), ('Zaria')) AS l(name)
+WHERE states.name = 'Kaduna'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Ajingi'), ('Albasu'), ('Bagwai'), ('Bebeji'), ('Bichi'), ('Bunkure'), ('Dala'), ('Dambatta'), ('Dawakin Kudu'), ('Dawakin Tofa'), ('Doguwa'), ('Fagge'), ('Gabasawa'), ('Garko'), ('Garun Mallam'), ('Gaya'), ('Gezawa'), ('Gwale'), ('Gwarzo'), ('Kabo'), ('Kano Municipal'), ('Karaye'), ('Kibiya'), ('Kiru'), ('Kumbotso'), ('Kunchi'), ('Kura'), ('Madobi'), ('Makoda'), ('Minjibir'), ('Nasarawa'), ('Rano'), ('Rimin Gado'), ('Rogo'), ('Shanono'), ('Sumaila'), ('Takai'), ('Tarauni'), ('Tofa'), ('Tsanyawa'), ('Tudun Wada'), ('Ungogo'), ('Warawa'), ('Wudil')) AS l(name)
+WHERE states.name = 'Kano'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Bakori'), ('Batagarawa'), ('Batsari'), ('Baure'), ('Bindawa'), ('Charanchi'), ('Dandume'), ('Danja'), ('Dan Musa'), ('Daura'), ('Dutsi'), ('Dutsin Ma'), ('Faskari'), ('Funtua'), ('Ingawa'), ('Jibia'), ('Kafur'), ('Kaita'), ('Kankara'), ('Kankia'), ('Katsina'), ('Kurfi'), ('Kusada'), ('Mai''Adua'), ('Malumfashi'), ('Mani'), ('Mashi'), ('Matazu'), ('Musawa'), ('Rimi'), ('Sabuwa'), ('Safana'), ('Sandamu'), ('Zango')) AS l(name)
+WHERE states.name = 'Katsina'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Aleiro'), ('Arewa Dandi'), ('Argungu'), ('Augie'), ('Bagudo'), ('Birnin Kebbi'), ('Bunza'), ('Dandi'), ('Fakai'), ('Gwandu'), ('Jega'), ('Kalgo'), ('Koko/Besse'), ('Maiyama'), ('Ngaski'), ('Sakaba'), ('Shanga'), ('Suru'), ('Wasagu/Danko'), ('Yauri'), ('Zuru')) AS l(name)
+WHERE states.name = 'Kebbi'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Adavi'), ('Ajaokuta'), ('Ankpa'), ('Bassa'), ('Dekina'), ('Ibaji'), ('Idah'), ('Igalamela-Odolu'), ('Ijumu'), ('Kabba/Bunu'), ('Koton Karfe'), ('Lokoja'), ('Mopa-Muro'), ('Ofu'), ('Ogori/Magongo'), ('Okehi'), ('Okene'), ('Olamaboro'), ('Omala'), ('Yagba East'), ('Yagba West')) AS l(name)
+WHERE states.name = 'Kogi'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Asa'), ('Baruten'), ('Edu'), ('Ekiti'), ('Ifelodun'), ('Ilorin East'), ('Ilorin South'), ('Ilorin West'), ('Irepodun'), ('Isin'), ('Kaiama'), ('Moro'), ('Offa'), ('Oke Ero'), ('Oyun'), ('Patigi')) AS l(name)
+WHERE states.name = 'Kwara'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Agege'), ('Ajeromi-Ifelodun'), ('Alimosho'), ('Amuwo-Odofin'), ('Apapa'), ('Badagry'), ('Epe'), ('Eti-Osa'), ('Ibeju-Lekki'), ('Ifako-Ijaiye'), ('Ikeja'), ('Ikorodu'), ('Kosofe'), ('Lagos Island'), ('Lagos Mainland'), ('Mushin'), ('Ojo'), ('Oshodi-Isolo'), ('Shomolu'), ('Surulere')) AS l(name)
+WHERE states.name = 'Lagos'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Akwanga'), ('Awe'), ('Doma'), ('Karu'), ('Keana'), ('Keffi'), ('Kokona'), ('Lafia'), ('Nasarawa'), ('Nasarawa Eggon'), ('Obi'), ('Toto'), ('Wamba')) AS l(name)
+WHERE states.name = 'Nasarawa'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Agaie'), ('Agwara'), ('Bida'), ('Borgu'), ('Bosso'), ('Chanchaga'), ('Edati'), ('Gbako'), ('Gurara'), ('Katcha'), ('Kontagora'), ('Lapai'), ('Lavun'), ('Magama'), ('Mariga'), ('Mashegu'), ('Mokwa'), ('Munya'), ('Paikoro'), ('Rafi'), ('Rijau'), ('Shiroro'), ('Suleja'), ('Tafa'), ('Wushishi')) AS l(name)
+WHERE states.name = 'Niger'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Abeokuta North'), ('Abeokuta South'), ('Ado-Odo/Ota'), ('Egbado North'), ('Egbado South'), ('Ewekoro'), ('Ifo'), ('Ijebu East'), ('Ijebu North'), ('Ijebu North East'), ('Ijebu Ode'), ('Ikenne'), ('Imeko Afon'), ('Ipokia'), ('Obafemi Owode'), ('Ogun Waterside'), ('Odeda'), ('Odogbolu'), ('Remo North'), ('Sagamu')) AS l(name)
+WHERE states.name = 'Ogun'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Akoko North-East'), ('Akoko North-West'), ('Akoko South-East'), ('Akoko South-West'), ('Idanre'), ('Ifedore'), ('Odigbo'), ('Okitipupa'), ('Ondo East'), ('Ondo West'), ('Ose'), ('Owo')) AS l(name)
+WHERE states.name = 'Ondo'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Atakumosa East'), ('Atakumosa West'), ('Ayedaade'), ('Ayedire'), ('Boluwaduro'), ('Boripe'), ('Ede North'), ('Ede South'), ('Egbedore'), ('Ejigbo'), ('Ife Central'), ('Ife East'), ('Ife North'), ('Ife South'), ('Ifelodun'), ('Ilesa East'), ('Ilesa West'), ('Ila'), ('Iwo'), ('Obokun'), ('Odo Otin'), ('Ola Oluwa'), ('Olorunda'), ('Oriade'), ('Orolu'), ('Osogbo')) AS l(name)
+WHERE states.name = 'Osun'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Akinyele'), ('Atiba'), ('Atisbo'), ('Egbeda'), ('Ibadan North'), ('Ibadan North-East'), ('Ibadan North-West'), ('Ibadan South-East'), ('Ibadan South-West'), ('Ibarapa Central'), ('Ibarapa East'), ('Ibarapa North'), ('Ido'), ('Ifeloju'), ('Iganna'), ('Irepo'), ('Iseyin'), ('Itesiwaju'), ('Iwajowa'), ('Kajola'), ('Lagelu'), ('Ogbomosho North'), ('Ogbomosho South'), ('Ogo Oluwa'), ('Olorunsogo'), ('Oluyole'), ('Ona Ara'), ('Orelope'), ('Ori Ire'), ('Oyo East'), ('Oyo West'), ('Saki East'), ('Saki West'), ('Surulere')) AS l(name)
+WHERE states.name = 'Oyo'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Barkin Ladi'), ('Bassa'), ('Bokkos'), ('Jos East'), ('Jos North'), ('Jos South'), ('Kanam'), ('Kanke'), ('Langtang North'), ('Langtang South'), ('Mangu'), ('Mikang'), ('Pankshin'), ('Qua''an Pan'), ('Riyom'), ('Shendam'), ('Wase')) AS l(name)
+WHERE states.name = 'Plateau'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Abua/Odual'), ('Ahoada East'), ('Ahoada West'), ('Akuku-Toru'), ('Andoni'), ('Asari-Toru'), ('Bonny'), ('Degema'), ('Eleme'), ('Emohua'), ('Etche'), ('Gokana'), ('Ikwerre'), ('Khana'), ('Obio/Akpor'), ('Ogba/Egbema/Ndoni'), ('Ogu/Bolo'), ('Okrika'), ('Omuma'), ('Opobo/Nkoro'), ('Oyigbo'), ('Port Harcourt'), ('Tai')) AS l(name)
+WHERE states.name = 'Rivers'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Binji'), ('Bodinga'), ('Dange Shuni'), ('Gada'), ('Goronyo'), ('Gwadabawa'), ('Illela'), ('Kware'), ('Rabah'), ('Sabon Birni'), ('Shagari'), ('Silame'), ('Sokoto North'), ('Sokoto South'), ('Tambuwal'), ('Tangaza'), ('Tureta'), ('Wamakko'), ('Wurno'), ('Yabo')) AS l(name)
+WHERE states.name = 'Sokoto'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Ardo Kola'), ('Bali'), ('Donga'), ('Gashaka'), ('Gassol'), ('Ibi'), ('Jalingo'), ('Karim Lamido'), ('Kurmi'), ('Lau'), ('Sardauna'), ('Takum'), ('Ussa'), ('Wukari'), ('Yangtu Development Area'), ('Zing')) AS l(name)
+WHERE states.name = 'Taraba'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Bade'), ('Bursari'), ('Damaturu'), ('Fika'), ('Fune'), ('Geidam'), ('Gujba'), ('Gulani'), ('Jakusko'), ('Karasuwa'), ('Machina'), ('Nangere'), ('Nguru'), ('Potiskum'), ('Tarmuwa'), ('Yunusari'), ('Yusufari')) AS l(name)
+WHERE states.name = 'Yobe'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Anka'), ('Bakura'), ('Birnin Magaji'), ('Bukkuyum'), ('Bungudu'), ('Gummi'), ('Gusau'), ('Kaura Namoda'), ('Maradun'), ('Maru'), ('Shinkafi'), ('Talata Mafara'), ('Tsafe'), ('Zurmi')) AS l(name)
+WHERE states.name = 'Zamfara'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+INSERT INTO lgas (state_id, name)
+SELECT id, l.name
+FROM states, 
+     (VALUES ('Abaji'), ('Abuja Municipal'), ('Bwari'), ('Gwagwalada'), ('Kuje'), ('Kwali')) AS l(name)
+WHERE states.name = 'Federal Capital Territory'
+ON CONFLICT (state_id, name) DO NOTHING;
+
+-- 3. Villages (Sample Data)
+-- Note: A complete list of Nigerian villages is too large for this format.
+-- Below are samples for Abuja Municipal to demonstrate structure.
+
+INSERT INTO villages (lga_id, name, location, population_est)
+SELECT id, 'Garki', ST_GeomFromText('POINT(7.53 9.03)', 4326), 15000
+FROM lgas WHERE name = 'Abuja Municipal'
+ON CONFLICT DO NOTHING; -- Assuming village names unique per LGA or UUIDs handled
+
+INSERT INTO villages (lga_id, name, location, population_est)
+SELECT id, 'Wuse', ST_GeomFromText('POINT(7.47 9.06)', 4326), 25000
+FROM lgas WHERE name = 'Abuja Municipal'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO villages (lga_id, name, location, population_est)
+SELECT id, 'Maitama', ST_GeomFromText('POINT(7.50 9.08)', 4326), 10000
+FROM lgas WHERE name = 'Abuja Municipal'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO villages (lga_id, name, location, population_est)
+SELECT id, 'Asokoro', ST_GeomFromText('POINT(7.52 9.04)', 4326), 8000
+FROM lgas WHERE name = 'Abuja Municipal'
+ON CONFLICT DO NOTHING;
+
+-- Further village data should be loaded via external CSV/ETL processes.

@@ -45,7 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const userData = await response.json();
                 setUser(userData);
             } else {
-                // If 401, we are unauthenticated
+                // If 401 or 404 (User not found/Zombie token), we must clear the cookie
+                // preventing the middleware redirect loop.
+                console.warn('Invalid session detected, clearing cookies...');
+                await logout();
                 setUser(null);
             }
         } catch (error) {
@@ -67,6 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
                 method: 'POST',
+                headers: {
+                    'X-CSRF-Token': getCsrfToken(),
+                },
             });
         } catch (error) {
             console.error('Logout API call failed:', error);

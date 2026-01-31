@@ -12,23 +12,35 @@ ON CONFLICT (name) DO UPDATE SET capital_city = EXCLUDED.capital_city, boundary_
 -- 2. LGAs (Local Government Areas)
 INSERT INTO lgas (state_id, name, boundary_geom) 
 SELECT id, 'Ikeja', ST_GeomFromText('POLYGON((3.33 6.59, 3.35 6.59, 3.35 6.61, 3.33 6.61, 3.33 6.59))', 4326) FROM states WHERE name = 'Lagos'
-ON CONFLICT (state_id, name) DO NOTHING;
+ON CONFLICT (state_id, name) DO UPDATE SET boundary_geom = EXCLUDED.boundary_geom;
 
 INSERT INTO lgas (state_id, name, boundary_geom) 
 SELECT id, 'Eti-Osa', ST_GeomFromText('POLYGON((3.45 6.43, 3.47 6.43, 3.47 6.45, 3.45 6.45, 3.45 6.43))', 4326) FROM states WHERE name = 'Lagos'
-ON CONFLICT (state_id, name) DO NOTHING;
+ON CONFLICT (state_id, name) DO UPDATE SET boundary_geom = EXCLUDED.boundary_geom;
 
 INSERT INTO lgas (state_id, name, boundary_geom) 
 SELECT id, 'Dala', ST_GeomFromText('POLYGON((8.50 12.00, 8.52 12.00, 8.52 12.02, 8.50 12.02, 8.50 12.00))', 4326) FROM states WHERE name = 'Kano'
-ON CONFLICT (state_id, name) DO NOTHING;
+ON CONFLICT (state_id, name) DO UPDATE SET boundary_geom = EXCLUDED.boundary_geom;
 
 INSERT INTO lgas (state_id, name, boundary_geom) 
 SELECT id, 'Tarauni', ST_GeomFromText('POLYGON((8.55 11.96, 8.57 11.96, 8.57 11.98, 8.55 11.98, 8.55 11.96))', 4326) FROM states WHERE name = 'Kano'
-ON CONFLICT (state_id, name) DO NOTHING;
+ON CONFLICT (state_id, name) DO UPDATE SET boundary_geom = EXCLUDED.boundary_geom;
 
 INSERT INTO lgas (state_id, name, boundary_geom) 
 SELECT id, 'Maiduguri', ST_GeomFromText('POLYGON((13.15 11.83, 13.17 11.83, 13.17 11.85, 13.15 11.85, 13.15 11.83))', 4326) FROM states WHERE name = 'Borno'
-ON CONFLICT (state_id, name) DO NOTHING;
+ON CONFLICT (state_id, name) DO UPDATE SET boundary_geom = EXCLUDED.boundary_geom;
+
+INSERT INTO lgas (state_id, name, boundary_geom)
+SELECT id, 'Konduga', ST_GeomFromText('POLYGON((13.40 11.65, 13.44 11.65, 13.44 11.69, 13.40 11.69, 13.40 11.65))', 4326) FROM states WHERE name = 'Borno'
+ON CONFLICT (state_id, name) DO UPDATE SET boundary_geom = EXCLUDED.boundary_geom;
+
+INSERT INTO lgas (state_id, name, boundary_geom)
+SELECT id, 'Abuja Municipal', ST_GeomFromText('POLYGON((7.45 9.00, 7.55 9.00, 7.55 9.10, 7.45 9.10, 7.45 9.00))', 4326) FROM states WHERE name = 'Federal Capital Territory'
+ON CONFLICT (state_id, name) DO UPDATE SET boundary_geom = EXCLUDED.boundary_geom;
+
+INSERT INTO lgas (state_id, name, boundary_geom)
+SELECT id, 'Warri South', ST_GeomFromText('POLYGON((5.70 5.50, 5.80 5.50, 5.80 5.60, 5.70 5.60, 5.70 5.50))', 4326) FROM states WHERE name = 'Delta'
+ON CONFLICT (state_id, name) DO UPDATE SET boundary_geom = EXCLUDED.boundary_geom;
 
 -- 3. Villages
 INSERT INTO villages (lga_id, name, location, population_est) 

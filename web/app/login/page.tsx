@@ -35,7 +35,7 @@ export default function LoginPage() {
             if (response.ok && data.token) {
                 await login(data.token);
             } else if (response.status === 401) {
-                setError('Session expired or invalid. Please clear your cookies and try again.');
+                setError('Invalid Phone Number or Password. Please try again.');
             } else if (response.status === 403) {
                 setError('ACCESS DENIED: Your role is unauthorized for this dashboard.');
             } else {

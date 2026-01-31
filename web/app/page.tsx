@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { verifyAlertSignature, UserRole, AgencyView, hasAccess } from '../lib/auth';
 import { fetchAlerts, fetchSystemStatus, Alert, SystemStatus } from '../lib/api';
 import CyberDashboard from '../components/dashboards/CyberDashboard';
@@ -10,8 +11,9 @@ import { Layout, Users, ShieldAlert, LogOut } from 'lucide-react';
 import { useAuth, User } from '../lib/AuthContext';
 
 export default function DashboardPage() {
-    const { user, logout } = useAuth();
-    const [currentUserRole, setCurrentUserRole] = useState<UserRole>((user?.role as UserRole) || 'TACTICAL_COMMAND');
+    const { user, logout, isLoading } = useAuth();
+    // Default to GUEST or empty to prevent flashing sensitive views
+    const [currentUserRole, setCurrentUserRole] = useState<UserRole>((user?.role as UserRole) || 'AGENCY_OFFICER');
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [securityStatus, setSecurityStatus] = useState<SystemStatus>({
@@ -20,12 +22,25 @@ export default function DashboardPage() {
         trustedDevices: 0
     });
 
+    const router = useRouter();
+
+    // Show loading state to prevent Render-Then-Redirect
+
+
     // Update role when user changes
     useEffect(() => {
+        if (!isLoading && !user) {
+            router.push('/login');
+            return;
+        }
+
         if (user?.role) {
             setCurrentUserRole(user.role as UserRole);
+        } else {
+            // Fallback only if still loading or verified guest (shouldn't happen with redirection)
+            // But to be safe, we don't default to a privileged role like TACTICAL_COMMAND
         }
-    }, [user]);
+    }, [user, isLoading, router]);
 
     // Agency View State
     const [agencyView, setAgencyView] = useState<AgencyView>('cyber');
@@ -86,6 +101,18 @@ export default function DashboardPage() {
             return () => clearInterval(interval);
         }
     }, [user]);
+
+    // Show loading state to prevent Render-Then-Redirect
+    if (isLoading) {
+        return (
+            <div className="w-full h-screen bg-black flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-slate-800 border-t-cyan-500 rounded-full animate-spin"></div>
+                    <p className="text-cyan-500 font-mono text-sm animate-pulse">AUTHENTICATING...</p>
+                </div>
+            </div>
+        );
+    }
 
     const toggleAgencyView = (view: AgencyView) => {
         if (!hasAccess(currentUserRole, view)) return;

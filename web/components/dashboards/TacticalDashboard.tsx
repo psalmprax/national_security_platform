@@ -405,7 +405,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                                     <div className="flex justify-between items-start mb-3">
                                                         <div>
                                                             <div className="text-[9px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-1">Classification: {alert.severity > 0.8 ? 'Priority-1' : 'Priority-2'}</div>
-                                                            <h3 className="font-black text-xl uppercase tracking-tight text-white">{alert.type}</h3>
+                                                            <h3 className="font-black text-xl uppercase tracking-tight text-white">{alert.type.replace(/_/g, ' ')}</h3>
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="text-[10px] font-bold text-zinc-500 mb-1">{new Date(alert.timestamp).toLocaleTimeString()}</div>

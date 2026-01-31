@@ -794,7 +794,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     <span className="text-[10px] font-black tracking-[0.3em] uppercase" style={{ color: currentTheme.primary }}>Tactical Analysis Locked</span>
                                 </div>
                                 <h2 className="text-2xl font-black text-white uppercase tracking-tight">
-                                    {selectedAlert.type} // {selectedAlert.id.substring(0, 8).toUpperCase()}
+                                    {selectedAlert.type.replace(/_/g, ' ')} // {selectedAlert.id.substring(0, 8).toUpperCase()}
                                 </h2>
                             </div>
                             <button

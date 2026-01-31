@@ -5,6 +5,9 @@
 - [x] Fix `web-dashboard` build error (import `verifyAlert`, fix `setAlerts` -> `setLiveAlerts`)
 - [x] Format alert type names to remove underscores (e.g. `CIVIL_UNREST` -> `CIVIL UNREST`)
 - [x] Implement secure logout functionality (Backend endpoint + Frontend integration)
+- [x] Verify Dashboard Login flow (POST /dashboard-login -> Cookie -> GET /me)
+- [x] Fix Logout Redirect (Prevent default "Tactical" view on logout)
+- [x] Debug 500 Error on /api/v1/assets (Missing DB tables restored)
 - [x] Successfully re-seed the database (9 users, 4 alerts, 4 agencies)
 - [x] Verify Dashboard Login and Roles (200 OK)
 - [x] Enrich Security Sentinel Service
@@ -33,3 +36,9 @@
 - [x] Implement Manual Alert Verification
     - [x] Backend: Add VerifyAlert DB function & Handler
     - [x] Frontend: Connect Verify Button to API
+- [x] **Debugging & Verification**
+    - [x] Investigate why `lga_name` is missing in alerts <!-- id: 4 -->
+    - [x] Inspect backend alert fetching logic (`GetRecentAlerts`) <!-- id: 5 -->
+    - [x] Fix data seeding to ensure alerts fall within LGA boundaries <!-- id: 6 -->
+    - [x] Update repository logic for robust spatial fallback <!-- id: 7 -->
+    - [x] Verify fix in frontend <!-- id: 8 -->

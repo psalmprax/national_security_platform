@@ -42,6 +42,24 @@ export async function middleware(request: NextRequest) {
         }
 
         // 3. Edge-based Role Protection
+
+        // Root Dashboard Protection
+        if (pathname === '/') {
+            const dashboardRoles = ['ADMIN', 'CYBER_ANALYST', 'STRATEGIC_PLANNER', 'TACTICAL_COMMAND'];
+
+            // Redirect Agency Officers to their portal
+            if (session.role === 'AGENCY_OFFICER') {
+                logAccess(request, 'redirect_home', session);
+                return NextResponse.redirect(new URL('/agency/portal', request.url));
+            }
+
+            // Block Guests / Unauthorized Roles
+            if (!session.role || !dashboardRoles.includes(session.role)) {
+                logAccess(request, 'redirect_login', session);
+                return NextResponse.redirect(new URL('/login', request.url));
+            }
+        }
+
         // Protecting Agency Portal from non-authorized roles
         if (pathname.startsWith('/agency/portal')) {
             const authorizedRoles = ['ADMIN', 'AGENCY_OFFICER'];
