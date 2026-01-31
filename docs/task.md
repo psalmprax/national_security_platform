@@ -1,9 +1,9 @@
 - [x] Detect missing tables in CockroachDB
-- [x] **Cleanup**: Update `seed_database.sh` to include new schema files (`016_add_updated_at.sql`)
+- [x] **Documentation**: Update `walkthrough.md`, `task.md`, and `architecture_design.md` with final verification results
+- [x] **Sync**: Push all changes (including new schema and docs) to GitHub `main` branch
 - [x] Resolve Seeding Freeze (disk threshold fix)
 - [x] Successfully re-seed the database (9 users, 4 alerts, 4 agencies)
 - [x] Verify Dashboard Login and Roles (200 OK)
-- [x] Sync Documentation to Root and GitHub
 - [x] Enrich Security Sentinel Service
     - [x] Implement SQL Injection Probing
     - [x] Implement Rate Limit Verification
@@ -27,6 +27,6 @@
     - [x] transition to Dynamic CORS (Environment Variables)
     - [x] Remove Default Secret Fallbacks (JWT_SECRET)
     - [x] Secure Internal Networking (Gateway -> API TLS)
-- [ ] Implement Manual Alert Verification
-    - [ ] Backend: Add VerifyAlert DB function & Handler
-    - [ ] Frontend: Connect Verify Button to API
+- [x] Implement Manual Alert Verification
+    - [x] Backend: Add VerifyAlert DB function & Handler
+    - [x] Frontend: Connect Verify Button to API
