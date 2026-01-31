@@ -117,3 +117,20 @@ Added functionality for operators to manually verify the integrity of an alert, 
 - [x] **API Test**: Successfully called the verification endpoint using a Python script in the `intelligence-service` container (simulating internal service-to-service or client call).
 - [x] **Database Update**: Verified that `verification_count` incremented from `0` to `1` for the test alert.
 - [x] **Error Resolution**: Diagnosed and fixed a 500 Internal Server Error caused by a missing `updated_at` column in the database schema.
+
+## Web Dashboard Build Resolution
+
+The final production build of the `web-dashboard` service encountered a compilation error which has been resolved.
+
+### Issue
+- **Compilation Failure**: `npm run build` failed due to a `Type error: Cannot find name 'verifyAlert'`.
+- **State Setter Mismatch**: The `setAlerts` function was referenced in `CyberDashboard.tsx` but was not defined (correct function was `setLiveAlerts`).
+
+### Fix Implemented
+- **Import Correction**: Added missing import `verifyAlert` in `CyberDashboard.tsx`.
+- **Code Correction**: Replaced `setAlerts` with `setLiveAlerts` to correctly update the local optimistic UI state.
+
+### Verification
+- [x] **Build Success**: Confirmed `docker-compose up -d --build web-dashboard` completes successfully.
+- [x] **Linting Passed**: Type checking and linting stages passed with no errors.
+- [x] **Container Status**: Verified `web-dashboard` container is `Up` and healthy.
