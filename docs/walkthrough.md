@@ -134,3 +134,10 @@ The final production build of the `web-dashboard` service encountered a compilat
 - [x] **Build Success**: Confirmed `docker-compose up -d --build web-dashboard` completes successfully.
 - [x] **Linting Passed**: Type checking and linting stages passed with no errors.
 - [x] **Container Status**: Verified `web-dashboard` container is `Up` and healthy.
+
+### Alert Display Formatting
+- **Goal**: Remove underscores from alert type names in the UI (e.g., "CIVIL_UNREST" -> "CIVIL UNREST").
+- **Changes**:
+  - Modified `CyberDashboard.tsx`: Applied `.replace(/_/g, ' ')` to `alert.type` in the Notification panel, Alert List card, and Data Table.
+  - Modified `MapboxMap.tsx`: Applied `.replace(/_/g, ' ')` to `selectedAlert.type` in the Map HUD.
+- **Verification**: Rebuilt `web-dashboard` container successfully. format is applied on the client side.

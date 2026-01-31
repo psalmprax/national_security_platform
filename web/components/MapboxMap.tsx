@@ -507,7 +507,7 @@ export default function MapboxMap({
                             </div>
                             <div className="col-span-2 pt-2 border-t border-white/5">
                                 <p className="text-[8px] opacity-40 uppercase font-black">Classification</p>
-                                <p className="text-xs font-bold uppercase">{selectedAlert.type}</p>
+                                <p className="text-xs font-bold uppercase">{selectedAlert.type.replace(/_/g, ' ')}</p>
                             </div>
                         </div>
                     </div>

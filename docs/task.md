@@ -2,6 +2,8 @@
 - [x] **Documentation**: Update `walkthrough.md`, `task.md`, and `architecture_design.md` with final verification results
 - [x] **Sync**: Push all changes (including new schema and docs) to GitHub `main` branch
 - [x] Resolve Seeding Freeze (disk threshold fix)
+- [x] Fix `web-dashboard` build error (import `verifyAlert`, fix `setAlerts` -> `setLiveAlerts`)
+- [x] Format alert type names to remove underscores (e.g. `CIVIL_UNREST` -> `CIVIL UNREST`)
 - [x] Successfully re-seed the database (9 users, 4 alerts, 4 agencies)
 - [x] Verify Dashboard Login and Roles (200 OK)
 - [x] Enrich Security Sentinel Service

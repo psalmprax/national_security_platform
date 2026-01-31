@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import MapboxMap from '../MapboxMap';
 import TriageSidebar from '../TriageSidebar';
-import { Alert, SecurityScan, fetchSecurityScans, TriangulatedAsset, fetchTriangulatedAssets, dispatchAsset, API_BASE_URL, SystemStatus } from '../../lib/api';
+import { Alert, SecurityScan, fetchSecurityScans, TriangulatedAsset, fetchTriangulatedAssets, dispatchAsset, verifyAlert, API_BASE_URL, SystemStatus } from '../../lib/api';
 import { useAuth, User as UserType } from '../../lib/AuthContext';
 import { motion } from 'framer-motion';
 
@@ -90,7 +90,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
                     // Add Notification
                     setNotifications((prevNotifs: Notification[]) => [
-                        { message: `New Alert Detected: ${newAlert.alert_type} - ${newAlert.location || 'Unknown Location'}`, timestamp: new Date(), type: 'alert' },
+                        { message: `New Alert Detected: ${newAlert.alert_type.replace(/_/g, ' ')} - ${newAlert.location || 'Unknown Location'}`, timestamp: new Date(), type: 'alert' },
                         ...prevNotifs
                     ]);
                     // Show notification badge/toast if panel is closed (optional enhancement later)
@@ -444,7 +444,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                     <div className="flex items-start justify-between mb-4">
                                                         <div className="flex items-center gap-3">
                                                             <div className={`w-3 h-3 rounded-full ${alert.severity > 0.8 ? 'bg-red-500 animate-pulse' : alert.severity > 0.6 ? 'bg-orange-500' : 'bg-yellow-500'}`} />
-                                                            <h3 className="text-white font-bold text-lg uppercase tracking-wide group-hover:text-[#00FF95] transition-colors">{alert.type}</h3>
+                                                            <h3 className="text-white font-bold text-lg uppercase tracking-wide group-hover:text-[#00FF95] transition-colors">{alert.type.replace(/_/g, ' ')}</h3>
                                                         </div>
                                                         <span className="text-xs text-white/40 font-mono">{new Date(alert.timestamp).toLocaleString()}</span>
                                                     </div>
@@ -494,7 +494,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                             <tr key={alert.id} className="hover:bg-white/5 transition-colors">
                                                                 <td className="px-4 py-2">{new Date(alert.timestamp).toISOString()}</td>
                                                                 <td className="px-4 py-2 text-[#00FF95]">{alert.id.substring(0, 8)}...</td>
-                                                                <td className="px-4 py-2">{alert.type}</td>
+                                                                <td className="px-4 py-2">{alert.type.replace(/_/g, ' ')}</td>
                                                                 <td className="px-4 py-2">{alert.location}</td>
                                                                 <td className="px-4 py-2">
                                                                     {alert.isTrusted ? (
@@ -910,7 +910,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                             // Optimistic Update
                                             const updatedAlert = { ...selectedAlert, isTrusted: true, verification_count: (selectedAlert.verification_count || 0) + 1 };
                                             setSelectedAlert(updatedAlert);
-                                            setAlerts(prev => prev.map(a => a.id === selectedAlert.id ? updatedAlert : a));
+                                            setLiveAlerts(prev => prev.map(a => a.id === selectedAlert.id ? updatedAlert : a));
                                             alert('ALERT INTEGRITY VERIFIED ON DATABASE.');
                                         } else {
                                             alert('Verification Failed. Check console.');
