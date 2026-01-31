@@ -13,8 +13,13 @@ services:
       - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
       - NATS_URL=nats://nats_token@nats:4222
       - INTELLIGENCE_SERVICE_URL=intelligence-service:50051
-      - JWT_SECRET=${JWT_SECRET:-insecure_default_secret_for_dev_only}
-      - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY:-rm64BAqWbq9WidDBHZZ4zAnTHPnwjg+SDsPAfLQUHDo=}
+      - JWT_SECRET=${JWT_SECRET}
+      - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY}
+      - TLS_CERT_FILE=/etc/nginx/certs/server.crt
+      - TLS_KEY_FILE=/etc/nginx/certs/server.key
+      - ALLOWED_ORIGINS=http://localhost:8085,http://localhost:3000
+    volumes:
+      - ./gateway/certs:/etc/nginx/certs:ro
     depends_on:
       intelligence-service:
         condition: service_started
@@ -150,7 +155,7 @@ services:
       context: ./backend/security-sentinel
       dockerfile: Dockerfile
     environment:
-      - CORE_API_URL=http://core-api:8080
+      - CORE_API_URL=https://core-api:8080
       - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
     depends_on:
       - core-api

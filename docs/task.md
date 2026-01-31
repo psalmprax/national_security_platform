@@ -1,114 +1,29 @@
-
-- [x] Phase 5: UI/UX Refinements (Current Focus)
-    - [x] Verify Pagination Functionality
-    - [X] Standardize "Intelligence Triage" sidebar across views
-    - [x] Implement consistent `.scrollbar-cyber` styling
-    - [x] Adjust scrollbar positioning to align with Triage Sidebar (Alerts, Data, Analytics, Compliance)
-    - [x] Make Settings Box Draggable (Framer Motion)
-    - [x] Make Notifications Panel Draggable & Stacked
-    - [x] Wire Notifications Panel to Real-Time SSE Stream
-    - [ ] Add tooltips to sidebar navigation icons
-    - [ ] Polish transitions between different "System Operational Modes"
-
-- [x] Search for "Sentinel Audit Ledger" in Cyber view <!-- id: 4 -->
-- [x] Check backend support for paginated security scans <!-- id: 5 -->
-- [x] Make Sector Intelligence Reports dynamic by agency
-- [x] Backend Debugging: Core API Resiliency
-    - [x] Fix 500 errors (Missing `agency_personnel` and `location_source`)
-    - [x] Fix 401 errors (Reordered seeding to preserve password hashes)
-    - [x] Fix Seeding Freeze (CockroachDB storage threshold tuning)
-- [x] Finalize Project Documentation & Sync
-    - [x] Update `docs/walkthrough.md` with Sector Reporting & Debugging
-    - [x] Update `docs/implementation_plan.md`
-    - [x] Update `docs/architecture_design.md`
-    - [x] Commit and Push to Remote GitHub
-
-- [ ] Implement System Operational Modes in Cyber View
-    - [ ] Create `systemMode` state and theme overrides
-    - [x] Finalize Cyber View Dynamic Theming (Propagation to Map & Sidebar)
-    - [x] Restrict Role and View switching to System Admin only
-        - [x] Wrap Debug Role Switcher with ADMIN check
-        - [x] Wrap Agency View Switcher with ADMIN check
-        - [x] Implement auto-view routing for non-admin roles
-    - [ ] Design and implement prominent Mode Selection HUD
-    - [ ] Add functional logic for modes (e.g., auto-filtering, panel behaviors)
-    - [ ] Expand modes list: NOMINAL, SURGICAL, TACTICAL, DARK_OPS
-- [x] Implement pagination in frontend `CyberDashboard.tsx` <!-- id: 6 -->
-- [x] Verify pagination functionality <!-- id: 7 -->
-- [x] Implement Response Team Triangulation <!-- id: 8 -->
-    - [x] Design backend triangulation logic <!-- id: 9 -->
-    - [x] Implement `GET /api/v1/alerts/:id/triangulation` endpoint <!-- id: 10 -->
-    - [x] Update frontend to display triangulation results <!-- id: 11 -->
-- [x] Verify triangulation accuracy <!-- id: 12 -->
-
-- [x] Phase 4: Capability & Performance Scale-Up <!-- id: 13 -->
-    - [x] [1.1] Redis Spatial Caching <!-- id: 14 -->
-    - [x] [1.2] Server-Sent Events (SSE) Pipeline <!-- id: 15 -->
-    - [x] [1.3] Spatial Index Tuning (Skipped due to disk space) <!-- id: 16 -->
-    - [x] [1.4] UI Enhancement: Vector Lines for Triangulation <!-- id: 17 -->
-    - [x] [1.5] Test Data: Expanded Agency Coverage <!-- id: 18 -->
-    - [x] [1.6] Feature: Asset Activation & Dispatch
-  - [x] Backend: Add `DispatchAssetHandler`
-  - [x] Backend: Register route `POST /api/v1/assets/{id}/dispatch`
-- [x] Frontend: Add ACTIVATE button to CyberDashboard
-
-- [ ] Phase 2: Advanced Capability
-  - [ ] [2.1] Asynchronous Audit Hashing
-    - [x] Integrate NATS Audit Helpers
-    - [x] Create Audit Log Worker
-    - [x] Verify Async Consumption
-    - [x] Update `audit.LogAction` to publish to NATS
-  - [x] [2.2] Unify Tactical Proximity Radar across dashboards <!-- id: 19 -->
-  - [/] [2.3] Fix triangulation SQL type mismatch (<decimal> + <float>) <!-- id: 20 -->
-  - [ ] [2.4] Predictive Coverage Analysis (Planned)
-  - [ ] [2.5] Attribute-Based Access Control (Planned)
-
-- [ ] Phase 6: Tactical View Live Integration <!-- id: 21 -->
-    - [ ] Refactor `fetchAssets` to `api.ts` <!-- id: 22 -->
-    - [ ] Wire "Active Agents" list to live data <!-- id: 23 -->
-    - [ ] Wire "Incoming Comms" to latest alert <!-- id: 24 -->
-    - [ ] Dynamic Telemetry (GridRef/Bearing) <!-- id: 25 -->
-
-- [x] Bug Fixes: Web & Connectivity
-  - [x] Fix `web-dashboard` build error: `isValidCoordinate` undefined in `MapboxMap.tsx`
-  - [x] Fix `gateway` connection refused to `mobile-client`: added Docker DNS resolver and refreshed state
-  - [x] Fix Blank Maps:
-    - [x] Restore missing Mapbox initialization logic in `MapboxMap.tsx`
-    - [x] Verify map rendering across Cyber and Tactical dashboards
-- [x] Bug Fixes: Triangulation & API
-    - [x] Fix 500 error on `/api/v1/alerts/:id/triangulation` (SQL scoping error)
-    - [x] Fix 504 timeout on SSE `/api/v1/events/stream` (Nginx buffering & timeout optimization)
-    - [x] Fix 401 Unauthorized on Assets API (MapboxMap authentication)
-
-- [ ] Phase 7: Comprehensive Security Audit <!-- id: 26 -->
-    - [x] Audit Gateway Configuration (`nginx.conf`) <!-- id: 27 -->
-    - [x] Audit Backend (Go Core API) <!-- id: 28 -->
-        - [x] Authentication & Authorization (Middleware)
-        - [x] Input Validation & SQL Injection
-        - [x] Sensitive Data Handling
-    - [x] Audit Frontend (Web Dashboard) <!-- id: 29 -->
-        - [x] XSS Prevention
-        - [x] Auth State Management
-    - [x] Generate Security Audit Report <!-- id: 30 -->
-    - [x] **Remediation Phase 1: Secure Authentication** <!-- id: 31 -->
-        - [x] Backend: Update `AuthMiddleware` to read cookies <!-- id: 32 -->
-        - [x] Backend: Update Login Handlers to set `HttpOnly` cookie <!-- id: 33 -->
-        - [x] Frontend: Remove `localStorage` token management from `AuthContext` <!-- id: 34 -->
-        - [x] Frontend: Update `api.ts` to rely on cookies <!-- id: 35 -->
-        - [x] Verify Secure Authentication Flow <!-- id: 36 -->
-
-- [x] Phase 8: Governance & Location Intelligence (Current Focus)
-    - [x] **Automatic Location Resolution (Spatial Intelligence)**
-        - [x] Backend: Add `LGAName` and `StateName` to `Alert` model
-        - [x] Backend: Implement `ST_Contains` spatial joins for automated sector tagging
-        - [x] Frontend: Display verified State/LGA names in Triage sidebar and alerts view
-    - [x] **Governance Override (Traditional Ruler Protocol)**
-        - [x] Backend: Implement role-based location snapping for `TRADITIONAL_RULER`
-        - [x] Backend: Add `location_source` field to track `GPS` vs `GOVERNANCE_OVERRIDE`
-        - [x] Backend: Implement "Community Threat" detection logic to trigger override
-        - [x] Analytics: Enable tagging for statistical auditing of alert origins
-    - [x] **Dashboard UX & Tactical Display**
-        - [x] UI: Make "Alert Triage" list items clickable to trigger map fly-to
-        - [x] UI: Implement tactical `GRID: [Lat, Lon]` fallback for unknown sectors
-        - [x] UI: Add severity-based animations (pulsing high-priority alerts)
-        - [x] Verify state propagation between Alert List and Mapbox View
+- [x] Detect missing tables in CockroachDB
+- [x] Fix `seed_database.sh` dependency order (Fixed 500 & 401 errors)
+- [x] Resolve Seeding Freeze (disk threshold fix)
+- [x] Successfully re-seed the database (9 users, 4 alerts, 4 agencies)
+- [x] Verify Dashboard Login and Roles (200 OK)
+- [x] Sync Documentation to Root and GitHub
+- [x] Enrich Security Sentinel Service
+    - [x] Implement SQL Injection Probing
+    - [x] Implement Rate Limit Verification
+    - [x] Implement Infrastructure Security Checks (NATS/Redis/MinIO)
+    - [x] Implement Frontend Header/CSP Validation
+    - [x] Update Scan Persistence with Severity/Remediation
+- [x] Verify Enriched Scans in Triage Sidebar
+- [ ] Implement Multi-Layer Rate Limiting
+    - [ ] Configure `limit_req_zone` in Nginx
+    - [ ] Apply `limit_req` to API and Dashboard routes
+    - [ ] Harden Nginx Security Headers (CSP, HSTS)
+    - [ ] Implement Go-level Throttling for Login
+- [x] Verify Remediation via Security Sentinel Scan
+- [x] Generate Real Seeding Data for Extended Schema
+    - [x] Create `013_real_seeding_data.sql` with Nigerian Geo-Hierarchy
+    - [x] Populate Devices, Media, and Corroborations
+    - [x] Integrate into `seed_database.sh`
+- [/] Address Cyber Security Loopholes (Comprehensive Audit)
+    - [x] Implement CSRF Protection (Double-Submit Cookie)
+    - [x] Prevent IDOR in Alert/Asset Handlers
+    - [x] transition to Dynamic CORS (Environment Variables)
+    - [x] Remove Default Secret Fallbacks (JWT_SECRET)
+    - [x] Secure Internal Networking (Gateway -> API TLS)

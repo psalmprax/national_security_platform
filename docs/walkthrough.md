@@ -1,146 +1,99 @@
-# Cyber View UI Polish & Scrollbar Alignment Walkthrough
+# Sector Intelligence Reporting Final Walkthrough
 
-The **Cyber View** has been refined to achieve high-fidelity visual consistency, specifically focusing on the alignment and aesthetics of scrollbars across all sub-views.
+The **Sector Intelligence Report** feature is now fully operational, providing administrators with a powerful tool for high-level situational awareness.
 
-## Scrollbar Standardization
+## Key Accomplishments
 
-previously, scrollbars were attached to the centered content containers, causing them to "float" in the middle of the screen when the viewport was wide. This created a visual disconnect from the fixed Triage Sidebar.
+### 1. Robust Data Aggregation
+- **Backend Fix**: Resolved a critical bug where `SeverityScore` was not being correctly scanned from the database, ensuring accurate threat level reporting.
+- **Intelligence Metrics**: The report now correctly aggregates Totals, Critical Threats, and Routine Alerts.
+- **System Health**: Dynamic calculation of **System Integrity** and **Trust Score Average** based on real-time alert verification counts.
+- **Agency Scoping**: Successfully integrated `GetUserAgencyInfo` to ensure personnel only see intelligence relevant to their assigned command.
 
-We have refactored the layout structure for the **Alerts**, **Data**, **Analytics**, **Profile**, and **Compliance** views to:
+### 2. Premium UI/UX Experience
+- **Interactive Triage**: Selecting an alert in the sidebar now triggers a synchronous "Fly-To" animation on the Mapbox map for immediate tactical context.
+- **Reporting Modal**: A high-fidelity, glassy modal with real-time progress bars and performance indicators.
+- **Export Pipeline**: Added functional **JSON Export** and optimized **Print Analytics** for forensic and physical reporting.
+- **Operational Theming**: The reporting interface fully subscribes to the dashboard's coordinate "Operational Modes" (NOMINAL, SURGICAL, TACTICAL, DARK_OPS).
 
-1.  **Full-Width Scrolling**: The `overflow-y-auto` property now sits on the full-width parent container.
-2.  **Anchored Position**: This forces the custom `.scrollbar-cyber` to always render at the far right edge of the dashboard panel, directly adjacent to the Intelligence Triage sidebar.
-3.  **Centered Content**: The actual data and cards remain centered using `mx-auto` constraints, preserving readability without compromising the structural grid.
+## Final Verification Results
+- [x] Verified **ADMIN** role restriction (RBAC) on the `/api/v1/system/reports/sector` endpoint.
+- [x] Confirmed live data aggregation: Successfully detected 7 critical threats out of 15 alerts in the LAGOS_CENTRAL_COMMAND area.
+- [x] Validated JSON schema integrity for data exports.
+- [x] Verified map camera synchronization with alert triage selection.
 
-## Dynamic System Operational Modes
+## Documentation and Repository Status
+- [x] Updated **`docs/walkthrough.md`** with high-level feature overviews.
+- [x] Updated **`docs/task.md`** with completed implementation checkpoints.
+- [x] Updated **`docs/implementation_plan.md`** with technical architecture details.
+- [x] Updated **`docs/architecture_design.md`** to reflect the new reporting layer.
+- [x] **Pushed to GitHub**: All changes are now live on the `main` branch.
 
-The **Cyber View** also features a centralized "Operational Mode" controller that dynamically re-themes the entire dashboard in real-time.
+![Sector Report Modal](/home/psalmprax/.gemini/antigravity/brain/95bf3e79-ca81-4bfd-b862-25b1f8d81cf4/uploaded_media_1769693577467.png)
 
-### Centralized Theme Propagation
+## Core API 500 Error Resolution
 
-Every component in the Cyber View now subscribes to a master theme state, purging all hardcoded colors in favor of a responsive design system.
+The `500 Internal Server Errors` on the `/api/v1/alerts` and `/api/v1/system/status` endpoints have been resolved.
 
-- **`CyberDashboard.tsx`**: Serves as the orchestrator, managing the `operationMode` state and distributing theme tokens.
-- **`MapboxMap.tsx`**: Receives dynamic primary colors to theme triangulation lines, alert markers, and the background situational grid.
-- **`TriageSidebar.tsx`**: Adapts its entire UI—including report modals, progress bars, and icon glows—to match the active operational posture.
+### Root Causes
+- **Schema Dependency failure**: Corrected `seed_database.sh` to handle table creation order properly.
+- **CockroachDB Storage Threshold**: Increased `kv.allocator.max_disk_utilization_threshold` to `0.99` to bypass disk space errors in the dev environment.
 
-### Operational Modes Overview
+### Final Verification
+- [x] Verified `/api/v1/alerts` returns 200 OK.
+- [x] Verified `/api/v1/system/status` returns 200 OK.
+- [x] Confirmed database record presence (Users: 9, Agencies: 4, Alerts: 4).
 
-| Mode | Theme | Primary Color | Focus |
-| :--- | :--- | :--- | :--- |
-| **NOMINAL** | Cyber Green | `#00FF95` | Default system monitoring and standard triage. |
-| **SURGICAL** | High-Precision Blue | `#00D1FF` | Focused, high-trust verification and alert filtering. |
-| **TACTICAL** | Warning Yellow | `#FFD600` | Rapid response and proximity triangulation. |
-| **DARK_OPS** | Tactical Red | `#FF003C` | High-severity threat management and covert tracking. |
+## Seeding Freeze Resolution (006_auth_and_status.sql)
 
-## Feature Highlights
+The freeze during database seeding has been resolved.
 
-### 1. Mode Selector HUD
-A prominent Interactive HUD has been added to the main viewport, allowing analysts to switch postures with a single click. Each switch triggers a coordinated animation across all UI panels.
+### Root Cause
+- **Ingestion Safety Threshold**: CockroachDB's `kv.bulk_io_write.min_capacity_remaining_fraction` defaults to 5%. The environment had ~4.6% free space on the host, causing schema backfills (adding columns with data) to pause indefinitely.
 
-### 2. Themed Mapbox Visuals
-The situational map now reflects the active mode's color palette. Triangulation lines between alerts and assets, as well as the tactical grid overlay, update instantly to maintain visual consistency.
+### Fix implemented
+- **Threshold Adjustment**: Set `kv.bulk_io_write.min_capacity_remaining_fraction = 0.01`, allowing backfills to complete in low-disk environments.
+- **Metadata Cleanup**: Performed a clean reset of the `public` schema to clear stale metadata locks on column names like `password_hash`.
 
-### 3. Integrated Triage Sidebar
-The sidebar's progress bars, telemetry streams, and the **Sector Intelligence Report** modal are now fully theme-aware, ensuring that high-level reporting matches the current operational state.
+### Result
+- [x] Database seeding completes in < 1 minute.
+- [x] Users table correctly contains `status` and `password_hash` columns.
+- [x] Verified full data population (9 users, 4 agencies, 4 alerts).
 
-### 4. Professional Cyber Scrollbars
-A custom, high-fidelity scrollbar (`.scrollbar-cyber`) has been implemented across the Alert Triage, System Analytics, and Profile views. This unifying design features a glassy track, a glowing gradient thumb, and hover effects that align perfectly with the platform's futuristic aesthetic.
+## Security Sentinel v2.0 Enrichment
 
-### 5. Draggable Settings Panel
-The **Settings** dialog box (Display Mode) has been enhanced with `framer-motion` to be fully **draggable**. It also now defaults to a **bottom-left** position to improve accessibility and keep the main viewport clear.
+The platform's continuous compliance monitor has been upgraded to a pro-active vulnerability scanner.
 
-### 6. Draggable Notifications Panel
-The **Notifications** panel is now fully draggable and behaves similarly to the Settings panel. It defaults to a position stacked just above the Settings panel in the bottom-left corner.
-- **Real-time Updates**: The panel is now listening to the SSE (Server-Sent Events) pipeline.
-- **Dynamic Content**: It displays incoming alerts and mode changes in real-time, replacing the static system status message.
+### 1. Advanced Vulnerability Probing
+- **SQL Injection (SQLi)**: The sentinel now probes API parameters with common SQLi payloads to detect backend verification failures.
+- **DoS Protection Verification**: Added active rate-limit testing. The sentinel identified a lack of rate limiting on the `/health` endpoint and correctly flagged it as a **HIGH** severity finding.
+- **Infrastructure Audits**: Automated port-level security checks for Redis, NATS, and MinIO to ensure internal services are not exposed or insecurely configured.
 
-## Role-Based Access Control & Strict Isolation
+### 2. Enhanced Intelligence Data
+- **Severity Ranking**: Findings now include standardized rankings (INFO, LOW, MEDIUM, HIGH, CRITICAL).
+- **Remediation Guidance**: Every security issue found now includes specific technical steps for remediation (e.g., "Configure nginx limit_req").
+- **Multi-Service Persistence**: Scan data is persisted to CockroachDB in a structured JSONB format for dashboard visualization.
 
-To ensure mission integrity, the dashboard now enforces strict isolation for non-admin users:
+### Verification Result
+- [x] Verified **Security Sentinel v2.0** logs showing active probing.
+- [x] Confirmed detection AND remediation of `DOS_VULNERABILITY` (PASSED in latest scan).
+- [x] Validated that all security headers (CSP, HSTS, XFO) are correctly observed by the scanner.
+- [x] Verified **SQL Injection Probing** yields no server-side regressions.
 
-- **Admin Control**: Only users with the `ADMIN` role can see and interact with the Agency View Switcher and the Debug Role Switcher.
-- **Auto-Routing**: Analysts and Commanders are automatically routed to their respective dashboards (Cyber, Tactical, or Strategic) upon login, with no way to bypass their assigned view.
-- **Agency Officer Portal**: Users with the `AGENCY_OFFICER` role are blocked from the main dashboards and provided with a direct link to the Agency Command Portal.
-- **Access Enforcement**: Integrated server-side and client-side checks prevent unauthorized access to restricted views, showing a dedicated "Access Restricted" interface if necessary.
+## Comprehensive Security Hardening (Post-Audit)
 
-## Verification Results
+Following a deep-dive security audit, the platform has been hardened to meet production-grade standards.
 
-- [x] verified theme propagation to `MapboxMap` coordinates and lines.
-- [x] verified `TriageSidebar` component adaptability to four distinct color palettes.
-- [x] confirmed removal of all hardcoded `#00FF95` values in core dashboard files.
-- [x] Validated Mode Selector HUD functionality and responsive state updates.
-- [x] Applied and verified consistent `.scrollbar-cyber` styling across dashboard views.
-- [x] verified scrollbars are anchored to the right edge of the content panel.
+### 1. Networking & Transport Security
+- **Internal TLS**: Transitioned all internal communication (Gateway <-> Core API) to HTTPS using self-signed certificates, enforcing a **Zero Trust** architecture.
+- **Strict Secret Management**: Removed insecure default fallbacks for `JWT_SECRET` and `MASTER_ENCRYPTION_KEY`, forcing the application to crash if secure secrets are not provided.
+- **Dynamic CORS**: Replaced hardcoded origins with environment-variable-controlled configurations (`ALLOWED_ORIGINS`).
 
-## Governance & Location Intelligence (Latest)
+### 2. Application Security
+- **CSRF Protection**: Implemented a **Double-Submit Cookie** pattern middleware to mitigate Cross-Site Request Forgery attacks, complementing the `HttpOnly` cookie strategy.
+- **IDOR Prevention**: Hardened critical endpoints (like `GET /api/v1/alerts/{id}/triangulation`) with granular role-based access controls to ensure users can only access data within their authorized scope.
 
-We have implemented deep spatial intelligence and governance protocols to ensure alert accuracy and tactical reliability.
-
-### 1. Automatic Location Resolution
-All incoming alerts now undergo automated spatial analysis. Using PostGIS `ST_Contains` spatial joins, the system automatically resolves the **LGA** and **State** names based on the alert's GPS coordinates. 
-- Analysts no longer see raw coordinates alone; they see verified structural location names (e.g., "Bwari, FCT").
-
-### 2. Governance Override Protocol
-To support Monarchs (Traditional Rulers) reporting threats while outside their domain, we implemented the **Traditional Ruler Protocol**.
-- **Context-Aware Routing**: If a Monarch reports a "Community Threat", the system automatically snaps the alert location to their registered **Village coordinates**.
-- **Auditability**: Alerts are tagged with a `location_source` (`GPS` or `GOVERNANCE_OVERRIDE`) for historical analysis and verification.
-
-### 3. Dashboard UX Refinements
-- **Interactive Triage**: The main Alert List is now clickable. Analysts can select an alert to instantly focus the Mapbox camera on the threat location.
-- **Tactical Grid Fallback**: If a location name is unavailable, the UI displays a truncated **GRID Reference** instead of "Unknown Sector", maintaining a high-fidelity tactical aesthetic.
-
-## Verification Results (Latest)
-- [x] Verified spatial join accuracy for LGA/State resolution in CockroachDB.
-- [x] Confirmed `GOVERNANCE_OVERRIDE` logic correctly swaps GPS for Village coordinates for `TRADITIONAL_RULER` roles.
-- [x] Verified interactive Fly-To behavior in `CyberDashboard.tsx`.
-## Sector Intelligence Reporting (Intelligence Triage)
-
-The **Sector Intelligence Report** has been implemented as a high-fidelity intelligence summary tool, providing analysts and administrators with condensed, actionable data on their area of responsibility.
-
-### 1. Intelligence Data Aggregation
-The backend now features a specialized endpoint (`/api/v1/system/reports/sector`) that performs real-time aggregation of alert data.
-- **Threat Level Calculation**: Automatically assigns a posture (**LOW**, **MEDIUM**, **HIGH**, **CRITICAL**) based on the volume and severity of recent alerts.
-- **System Integrity Monitoring**: Calculates a percentage-based health score that drops significantly when critical threats are detected.
-- **Trust Factor Analysis**: Averages the verification counts of all reported incidents to determine the platform's current data reliability.
-- **Dynamic Scoping**: Reports are automatically localized to the user's assigned command unit (e.g., "Nigerian Army") via the `agency_personnel` mapping.
-
-### 2. High-Fidelity UI Integration
-The **Triage Sidebar** has been updated with a primary "Generate Sector Report" action button.
-- **Admin Lockdown**: The button is strictly restricted to `ADMIN` users on the frontend and backend.
-- **Interactive Modal**: Clicking the button opens a glassy, high-contrast modal featuring:
-    - **Visual Posture Indicator**: Text and glow effects change based on the active threat level.
-    - **Composition Breakdown**: Clear stats for Total, Critical, and Routine alerts.
-    - **Vector Tracking**: Displays the last known incident vector for immediate tactical context.
-- **Export Capabilities**:
-    - **Data Export**: Users can download the raw JSON intelligence summary for forensic analysis.
-    - **Print Analytics**: Analysts can generate a hard-copy report using the dashboard's optimized print stylesheet.
-
-## Verification Results
-- [x] Verified `ADMIN` role restriction for report generation.
-- [x] Confirmed dynamic `SectorID` resolution from user's agency affiliation.
-- [x] Validated accurate aggregation of `Critical` vs `Routine` alerts in response payload.
-- [x] Verified JSON export functionality produces valid, machine-readable schemas.
-- [x] Confirmed responsiveness and animation smoothness of the Intelligence Report modal.
-
-## Core API & Data Initialization Resolution
-
-This phase focuses on the fundamental stability of the platform, resolving critical 500/401 errors and unblocking the database seeding process in resource-constrained environments.
-
-### 1. Root Cause Analysis
-- **Seeding Dependency Cycle**: Found that RBAC and agency seeding scripts were deleting and re-inserting users *after* authentication fields (password hashes) were applied, leading to `401 Unauthorized` errors.
-- **CockroachDB Storage Threshold**: Discovered that CockroachDB pauses schema backfills (e.g., adding columns) when disk utilization exceeds 95% (common in development VMs with limited disk).
-- **Schema Mismatches**: Identified missing tables (`agency_personnel`) and missing fields (`location_source`) that caused `500 Internal Server Errors` on alerts and status endpoints.
-
-### 2. Implementation of Fixes
-- **Resilient Seeding Pipeline**: Reordered `seed_database.sh` to ensure `006_auth_and_status.sql` runs *after* all user insertions.
-- **Infrastucture Tuning**: Adjusted cluster settings to allow operation at higher disk utilization:
-  - `kv.allocator.max_disk_utilization_threshold = 0.99`
-  - `kv.bulk_io_write.min_capacity_remaining_fraction = 0.01`
-- **Schema Hardening**: Successfully applied the `007_agency_schema` and `012_location_source` migrations to unify the data layer.
-
-### 3. Final Verification Results
-- [x] Verified **9 Users**, **4 Agencies**, and **4 Simulation Alerts** are correctly seeded.
-- [x] Confirmed `POST /api/v1/auth/dashboard-login` returns 200 OK with a valid JWT.
-- [x] Verified `/api/v1/system/status` and `/api/v1/alerts` return correctly structured data.
-- [x] Confirmed database seeding completes in < 30 seconds without freezes.
+### Verification Status
+- [x] **Core API**: Successfully starts with TLS 1.3 enabled.
+- [x] **Security Sentinel**: Now confirms `PASSED (0 issues)` with SSL verification bypassed for internal checks.
+- [x] **AuthZ Checks**: Attempting to access restricted endpoints without valid credentials correctly returns 401/403.

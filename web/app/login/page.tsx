@@ -13,7 +13,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, getCsrfToken } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,6 +25,7 @@ export default function LoginPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken(),
                 },
                 body: JSON.stringify({ phone_number: phoneNumber, password }),
             });
@@ -33,6 +34,8 @@ export default function LoginPage() {
 
             if (response.ok && data.token) {
                 await login(data.token);
+            } else if (response.status === 401) {
+                setError('Session expired or invalid. Please clear your cookies and try again.');
             } else if (response.status === 403) {
                 setError('ACCESS DENIED: Your role is unauthorized for this dashboard.');
             } else {

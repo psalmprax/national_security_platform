@@ -287,6 +287,8 @@ erDiagram
 ## 5. Security & Trust Model
 
 ### 5.1 Trust Architecture
+*   **Zero Trust Networking**: Internal service-to-service communication (e.g., Gateway <-> Core API) is encrypted via TLS 1.3.
+*   **Strict Secrets Management**: No default fallbacks for critical keys; system enforces secure environment configuration.
 *   **End-to-End Encryption (E2EE)**: Implementation of the Signal Protocol. Only the sender and authorized command centers can decrypt the payload. Intermediaries (telecoms, ISPs) see opaque blobs.
 *   **Non-Repudiation**: Every alert is digitally signed by the private key generated on the user's device during government-verified onboarding.
 *   **Device Fingerprinting**: Alerts must match registered device HWIDs.

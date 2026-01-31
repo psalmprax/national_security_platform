@@ -76,6 +76,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// Essential Security Check
+	if os.Getenv("JWT_SECRET") == "" {
+		log.Fatalf("FATAL ERROR: JWT_SECRET environment variable is not set. Refusing to start in insecure state.")
+	}
+
 	// Initialize Redis
 	if err := db.InitRedis(); err != nil {
 		log.Printf("Failed to initialize Redis (caching disabled): %v", err)
@@ -145,10 +150,7 @@ func main() {
 		r.Use(middleware.AuthMiddleware)
 
 		r.Get("/api/v1/auth/me", handleMe)
-
-		// Alerts (authenticated)
 		r.Get("/api/v1/alerts", handleGetAlerts)
-		r.Get("/api/v1/alerts/{id}/triangulation", handleGetAlertTriangulation)
 		r.Post("/api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
 			handleSubmitAlert(w, r, alertService, intelClient)
 		})
@@ -173,11 +175,13 @@ func main() {
 		r.Post("/api/v1/assets", agency.CreateAssetHandler)
 	})
 
-	// Reporting Routes (Wider Access)
+	// Reporting & Analysis Routes (Restricted)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware)
 		r.Use(middleware.RequireAnyRole("ADMIN", "CYBER_ANALYST", "STRATEGIC_PLANNER", "TACTICAL_COMMAND", "AGENCY_OFFICER"))
+
 		r.Get("/api/v1/system/reports/sector", handleGetSectorReport)
+		r.Get("/api/v1/alerts/{id}/triangulation", handleGetAlertTriangulation)
 	})
 
 	port := os.Getenv("PORT")
@@ -333,7 +337,7 @@ func handleDashboardLogin(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,
-		Secure:   false, // Set to true in production
+		Secure:   true, // Enforced by internal TLS and production usage
 		SameSite: http.SameSiteLaxMode,
 	})
 

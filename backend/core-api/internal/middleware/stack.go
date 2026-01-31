@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -24,7 +26,10 @@ func SecurityStack(r *chi.Mux) {
 		})
 	})
 
-	// 1. Rate Limiting (IP-based)
+	// 1. CSRF Protection
+	r.Use(CSRFMiddleware)
+
+	// 2. Rate Limiting (IP-based)
 	limiter := NewRateLimiter(5, 10) // 5 req/s, burst 10
 	r.Use(limiter.Handler)
 
@@ -34,9 +39,15 @@ func SecurityStack(r *chi.Mux) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// 3. CORS Configuration (Hardened)
+	// 3. CORS Configuration (Dynamic)
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	origins := []string{"http://localhost:8085", "http://localhost:3000"} // Defaults
+	if allowedOrigins != "" {
+		origins = strings.Split(allowedOrigins, ",")
+	}
+
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8085", "http://localhost:3000"},
+		AllowedOrigins:   origins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link", "X-Security-Status", "X-User-Role"},

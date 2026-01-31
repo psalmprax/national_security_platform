@@ -82,7 +82,7 @@ def perform_scan():
     for ep in ENDPOINTS_TO_SCAN:
         full_url = f"{TARGET_URL}{ep['path']}"
         try:
-            response = requests.get(full_url, timeout=5)
+            response = requests.get(full_url, timeout=5, verify=False)
             # logger.info(f"DEBUG Headers for {ep['path']}: {dict(response.headers)}")
             
             # Auth Regressions
@@ -109,7 +109,7 @@ def perform_scan():
             # SQL Injection Probing (GET params)
             for payload in SQLI_PAYLOADS:
                 probe_url = f"{full_url}?id={payload}"
-                probe_res = requests.get(probe_url, timeout=5)
+                probe_res = requests.get(probe_url, timeout=5, verify=False)
                 if probe_res.status_code == 500:
                     findings.append({
                         "type": "SQL_INJECTION",
@@ -127,7 +127,7 @@ def perform_scan():
     rate_limit_hits = 0
     for _ in range(15):
         try:
-            res = requests.get(f"{TARGET_URL}/health", timeout=1)
+            res = requests.get(f"{TARGET_URL}/health", timeout=1, verify=False)
             if res.status_code == 429:
                 rate_limit_hits += 1
         except: pass
