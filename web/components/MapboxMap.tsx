@@ -19,7 +19,6 @@ interface MapboxMapProps {
     mode?: 'cyber' | 'tactical';
     onSelect?: (alert: Alert) => void;
     showSatellite?: boolean;
-    token?: string | null;
     primaryColor?: string; // NEW PROP
 }
 
@@ -30,7 +29,6 @@ export default function MapboxMap({
     mode = 'cyber',
     onSelect,
     showSatellite = false,
-    token: authToken,
     primaryColor = '#00FF95' // Default to Cyber Green
 }: MapboxMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -319,7 +317,7 @@ export default function MapboxMap({
         const fetchResources = async () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
-                    headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+                    headers: {},
                 });
                 if (!res.ok) return;
                 const resources = await res.json();
@@ -360,7 +358,7 @@ export default function MapboxMap({
 
         fetchResources();
 
-    }, [showResources, isMapSupported, authToken]);
+    }, [showResources, isMapSupported]);
 
     // Handle Selection Fly-To
     useEffect(() => {

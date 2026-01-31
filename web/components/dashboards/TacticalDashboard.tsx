@@ -28,7 +28,8 @@ interface TacticalDashboardProps {
 }
 
 export default function TacticalDashboard({ alerts, currentTime, securityStatus, user, logout }: TacticalDashboardProps) {
-    const { token } = useAuth();
+    // We no longer need token here as we use cookies
+    // const { token } = useAuth();
     const [activeView, setActiveView] = useState<'map' | 'list'>('map');
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
@@ -47,28 +48,27 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
 
     // Fetch Live Assets
     useEffect(() => {
-        if (!token) return;
         const loadAssets = async () => {
-            const results = await fetchAssets(token);
+            const results = await fetchAssets();
             setAssets(results);
         };
         loadAssets(); // Initial load
         const interval = setInterval(loadAssets, 30000); // Poll every 30s
         return () => clearInterval(interval);
-    }, [token]);
+    }, []);
 
     // Fetch Triangulation data when alert is selected (NEW)
     useEffect(() => {
-        if (selectedAlert && token) {
+        if (selectedAlert) {
             const loadTriangulation = async () => {
-                const results = await fetchTriangulatedAssets(selectedAlert.id, token);
+                const results = await fetchTriangulatedAssets(selectedAlert.id);
                 setTriangulatedAssets(results);
             };
             loadTriangulation();
         } else {
             setTriangulatedAssets([]);
         }
-    }, [selectedAlert, token]);
+    }, [selectedAlert]);
 
     return (
         <div className="relative w-full h-full bg-[#121212] text-zinc-100 font-mono overflow-hidden">
@@ -198,7 +198,6 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                 mode="tactical"
                                 onSelect={setSelectedAlert}
                                 showSatellite={showSatellite}
-                                token={token}
                             />
 
                             {/* Style Toggle */}
@@ -341,8 +340,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                                                 <button
                                                                     onClick={async (e) => {
                                                                         e.stopPropagation();
-                                                                        if (!token) return;
-                                                                        const success = await dispatchAsset(ta.asset.id, token);
+                                                                        const success = await dispatchAsset(ta.asset.id);
                                                                         if (success) {
                                                                             setTriangulatedAssets(prev => prev.map(p =>
                                                                                 p.asset.id === ta.asset.id ? { ...p, asset: { ...p.asset, status: 'DISPATCHED' } } : p

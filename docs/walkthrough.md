@@ -72,3 +72,26 @@ To ensure mission integrity, the dashboard now enforces strict isolation for non
 - [x] Validated Mode Selector HUD functionality and responsive state updates.
 - [x] Applied and verified consistent `.scrollbar-cyber` styling across dashboard views.
 - [x] verified scrollbars are anchored to the right edge of the content panel.
+
+## Governance & Location Intelligence (Latest)
+
+We have implemented deep spatial intelligence and governance protocols to ensure alert accuracy and tactical reliability.
+
+### 1. Automatic Location Resolution
+All incoming alerts now undergo automated spatial analysis. Using PostGIS `ST_Contains` spatial joins, the system automatically resolves the **LGA** and **State** names based on the alert's GPS coordinates. 
+- Analysts no longer see raw coordinates alone; they see verified structural location names (e.g., "Bwari, FCT").
+
+### 2. Governance Override Protocol
+To support Monarchs (Traditional Rulers) reporting threats while outside their domain, we implemented the **Traditional Ruler Protocol**.
+- **Context-Aware Routing**: If a Monarch reports a "Community Threat", the system automatically snaps the alert location to their registered **Village coordinates**.
+- **Auditability**: Alerts are tagged with a `location_source` (`GPS` or `GOVERNANCE_OVERRIDE`) for historical analysis and verification.
+
+### 3. Dashboard UX Refinements
+- **Interactive Triage**: The main Alert List is now clickable. Analysts can select an alert to instantly focus the Mapbox camera on the threat location.
+- **Tactical Grid Fallback**: If a location name is unavailable, the UI displays a truncated **GRID Reference** instead of "Unknown Sector", maintaining a high-fidelity tactical aesthetic.
+
+## Verification Results (Latest)
+- [x] Verified spatial join accuracy for LGA/State resolution in CockroachDB.
+- [x] Confirmed `GOVERNANCE_OVERRIDE` logic correctly swaps GPS for Village coordinates for `TRADITIONAL_RULER` roles.
+- [x] Verified interactive Fly-To behavior in `CyberDashboard.tsx`.
+- [x] Validated display of `GRID` coordinates in `TriageSidebar.tsx` when location data is missing.

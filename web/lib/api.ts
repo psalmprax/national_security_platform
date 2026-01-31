@@ -40,18 +40,13 @@ function isBase64(str: string) {
     return firstPaddingChar === -1 || firstPaddingChar === str.length - 1 || (firstPaddingChar === str.length - 2 && str[str.length - 1] === '=');
 }
 
-export async function fetchAlerts(token?: string): Promise<Alert[]> {
+export async function fetchAlerts(): Promise<Alert[]> {
     try {
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-        };
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
         const response = await fetch(`${API_BASE_URL}/api/v1/alerts`, {
             method: 'GET',
-            headers,
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
 
         if (!response.ok) {
@@ -106,18 +101,13 @@ export interface SystemStatus {
     systemIntegrity?: number;
 }
 
-export async function fetchSystemStatus(token?: string): Promise<SystemStatus | null> {
+export async function fetchSystemStatus(): Promise<SystemStatus | null> {
     try {
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-        };
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
         const response = await fetch(`${API_BASE_URL}/api/v1/system/status`, {
             method: 'GET',
-            headers,
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
 
         if (!response.ok) {
@@ -140,12 +130,11 @@ export interface SecurityScan {
     meta_data: any;
 }
 
-export async function fetchSecurityScans(token: string, page: number = 1, limit: number = 10): Promise<SecurityScan[]> {
+export async function fetchSecurityScans(page: number = 1, limit: number = 10): Promise<SecurityScan[]> {
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1/system/security-scans?page=${page}&limit=${limit}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
         });
@@ -192,12 +181,11 @@ export interface TriangulatedAsset {
     suitability_score: number;
 }
 
-export async function fetchTriangulatedAssets(alertId: string, token: string): Promise<TriangulatedAsset[]> {
+export async function fetchTriangulatedAssets(alertId: string): Promise<TriangulatedAsset[]> {
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1/alerts/${alertId}/triangulation`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
         });
@@ -213,12 +201,11 @@ export async function fetchTriangulatedAssets(alertId: string, token: string): P
     }
 }
 
-export async function fetchSectorReport(token: string): Promise<SectorReport | null> {
+export async function fetchSectorReport(): Promise<SectorReport | null> {
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1/system/reports/sector`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
         });
@@ -234,12 +221,11 @@ export async function fetchSectorReport(token: string): Promise<SectorReport | n
     }
 }
 
-export async function dispatchAsset(assetId: string, token: string): Promise<boolean> {
+export async function dispatchAsset(assetId: string): Promise<boolean> {
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1/assets/${assetId}/dispatch`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
         });
@@ -251,12 +237,11 @@ export async function dispatchAsset(assetId: string, token: string): Promise<boo
     }
 }
 
-export async function fetchAssets(token: string): Promise<Asset[]> {
+export async function fetchAssets(): Promise<Asset[]> {
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1/assets`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
         });

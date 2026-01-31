@@ -18,19 +18,31 @@ const (
 // AuthMiddleware is chi-compatible middleware for JWT verification
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenString := ""
+
+		// 1. Try Authorization Header
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				tokenString = parts[1]
+			}
+		}
+
+		// 2. Try Cookie if Header failed
+		if tokenString == "" {
+			cookie, err := r.Cookie("auth_token")
+			if err == nil {
+				tokenString = cookie.Value
+			}
+		}
+
+		if tokenString == "" {
+			http.Error(w, "Unauthorized: No token found", http.StatusUnauthorized)
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			http.Error(w, "Invalid authorization format", http.StatusUnauthorized)
-			return
-		}
-
-		claims, err := security.VerifyToken(parts[1])
+		claims, err := security.VerifyToken(tokenString)
 		if err != nil {
 			http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
 			return

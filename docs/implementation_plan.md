@@ -45,6 +45,31 @@ This plan addresses the user's request to adjust the alignment of scrollbars in 
 - [x] Make Notifications Panel Draggable & Stacked
 - [x] Wire Notifications Panel to Real-Time SSE Stream
 
+## Governance & Location Intelligence Refinement
+
+This phase enhances the accuracy of situational awareness through automated spatial resolution and monarch-specific governance protocols.
+
+### Backend (Go / CockroachDB)
+- **Spatial Triage Engine**:
+    - Update `GetRecentAlerts` to perform `ST_Contains` joins with the `states` and `lgas` geometry tables.
+    - Automated mapping of raw GPS coordinates to administrative sector names.
+- **Traditional Ruler Protocol (TRP)**:
+    - Implement "Governance Override" logic in `SubmitAlert`.
+    - Detect `TRADITIONAL_RULER` role and "Community Threat" alert types.
+    - Snap alert location to the Monarch's registered `VillageID` coordinates if they match the TRP criteria.
+    - Introduce `location_source` (Enum: `GPS`, `GOVERNANCE_OVERRIDE`) for data integrity.
+
+### Frontend (Next.js)
+- **Tactical UX**:
+    - Update `CyberDashboard.tsx` to handle selected alerts and provide a "Fly-To" map interaction.
+    - Refine `TriageSidebar.tsx` to handle missing location data with a tactical `GRID` fallback.
+
+## Verification Plan
+- [x] **Spatial Join Test**: Ensure alerts correctly identify their LGA/State.
+- [x] **Governance Override Test**: Simulate a Monarch reporting from a remote location and verify snapping to village coords.
+- [x] **UX Interactive Test**: Click an alert in the list and verify map navigation.
+- [x] **Tactical Fallback Test**: Verify "GRID" display for alerts outside administrative boundaries.
+
 ### Tactical View Live Integration
 - [ ] Refactor `fetchAssets` to `api.ts`
 - [ ] Update `TacticalDashboard.tsx` to use live `activeAgents`

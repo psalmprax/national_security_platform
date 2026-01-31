@@ -34,7 +34,7 @@ interface CyberDashboardProps {
 }
 
 export default function CyberDashboard({ alerts, currentTime, securityStatus, user, logout }: CyberDashboardProps) {
-    const { token } = useAuth();
+    // const { user, logout } = useAuth(); // Redundant, passed as props
     const [activeView, setActiveView] = useState<'map' | 'alerts' | 'data' | 'analytics' | 'profile' | 'registry' | 'compliance'>('map');
     const [filterMode, setFilterMode] = useState<'all' | 'secure' | 'active' | 'signal'>('all');
     const [operationMode, setOperationMode] = useState<'NOMINAL' | 'SURGICAL' | 'TACTICAL' | 'DARK_OPS'>('NOMINAL');
@@ -115,16 +115,16 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
     // Fetch Security Scans if Admin
     useEffect(() => {
-        if (user?.role === 'ADMIN' && token) {
+        if (user?.role === 'ADMIN') {
             const loadScans = async () => {
-                const scans = await fetchSecurityScans(token, currentPage, itemsPerPage);
+                const scans = await fetchSecurityScans(currentPage, itemsPerPage);
                 setSecurityScans(scans);
             };
             loadScans();
             const interval = setInterval(loadScans, 30000); // Poll every 30s
             return () => clearInterval(interval);
         }
-    }, [user, token, currentPage]);
+    }, [user, currentPage]);
 
     // Mode-specific behaviors
     useEffect(() => {
@@ -152,9 +152,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
     const handleAlertSelect = (alert: Alert) => {
         setSelectedAlert(alert);
-        if (token) {
-            fetchTriangulatedAssets(alert.id, token).then(setTriangulatedAssets).catch(console.error);
-        }
+        fetchTriangulatedAssets(alert.id).then(setTriangulatedAssets).catch(console.error);
     };
 
     // Auto-trigger triangulation when in Tactical mode and an alert is selected
@@ -162,7 +160,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
         if (operationMode === 'TACTICAL' && selectedAlert) {
             handleAlertSelect(selectedAlert);
         }
-    }, [operationMode, selectedAlert, token]); // Added token to dependencies
+    }, [operationMode, selectedAlert]);
 
     // Clear triangulation data when no alert is selected
     useEffect(() => {
@@ -404,7 +402,6 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     triangulatedAssets={triangulatedAssets}
                                     onSelect={handleAlertSelect}
                                     showSatellite={showSatellite}
-                                    token={token}
                                     primaryColor={currentTheme.primary}
                                 />
 
@@ -871,8 +868,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                         <button
                                                             onClick={async (e) => {
                                                                 e.stopPropagation();
-                                                                if (!token) return;
-                                                                const success = await dispatchAsset(ta.asset.id, token);
+                                                                const success = await dispatchAsset(ta.asset.id);
                                                                 if (success) {
                                                                     // Optimistic Update
                                                                     setTriangulatedAssets(prev => prev.map(p =>

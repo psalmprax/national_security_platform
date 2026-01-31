@@ -18,7 +18,7 @@ export default function TriageSidebar({
     selectedId?: string | null,
     themeColor?: string
 }) {
-    const { token, user } = useAuth();
+    const { user } = useAuth();
     const [isMounted, setIsMounted] = React.useState(false);
     const [report, setReport] = React.useState<SectorReport | null>(null);
     const [isGenerating, setIsGenerating] = React.useState(false);
@@ -28,12 +28,11 @@ export default function TriageSidebar({
     }, []);
 
     const handleGenerateReport = async () => {
-        if (!token) return;
         setIsGenerating(true);
         // Artificial delay for "premium" feel
         await new Promise(resolve => setTimeout(resolve, 1500));
         try {
-            const data = await fetchSectorReport(token);
+            const data = await fetchSectorReport();
             setReport(data);
         } catch (error) {
             console.error('Failed to generate report:', error);

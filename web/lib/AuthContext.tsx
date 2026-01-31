@@ -15,7 +15,6 @@ export interface User {
 
 interface AuthContextType {
     user: User | null;
-    token: string | null;
     isLoading: boolean;
     login: (token: string) => Promise<void>;
     logout: () => void;
@@ -26,73 +25,58 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
-        const storedToken = localStorage.getItem('auth_token');
-        if (storedToken) {
-            // Ensure cookie is in sync with localStorage
-            document.cookie = `auth_token=${storedToken}; path=/; SameSite=Lax`;
-            setToken(storedToken);
-            fetchUserInfo(storedToken);
-        } else {
-            setIsLoading(false);
-        }
+        // We no longer read from localStorage. 
+        // We just attempt to fetch user info. If the auth_token cookie exists and is valid, 
+        // the backend will return the user data.
+        fetchUserInfo();
     }, []);
 
-    const fetchUserInfo = async (authToken: string) => {
+    const fetchUserInfo = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
-                headers: {
-                    'Authorization': `Bearer ${authToken}`
-                }
-            });
+            // No need to pass token explicitly; browser sends HttpOnly cookie automatically
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`);
 
             if (response.ok) {
                 const userData = await response.json();
                 setUser(userData);
             } else {
-                // Token might be invalid or expired
-                logout();
+                // If 401, we are unauthenticated
+                setUser(null);
             }
         } catch (error) {
             console.error('Failed to fetch user info:', error);
-            logout();
+            setUser(null);
         } finally {
             setIsLoading(false);
         }
     };
 
     const login = async (newToken: string) => {
-        localStorage.setItem('auth_token', newToken);
-        // Use SameSite=Lax to ensure cookie is sent after redirects across local hostnames
-        document.cookie = `auth_token=${newToken}; path=/; SameSite=Lax`;
-        setToken(newToken);
-        await fetchUserInfo(newToken);
+        // Note: newToken is still returned by the API for legacy/mobile support,
+        // but the web dashboard now relies on the HttpOnly cookie set by the backend.
+        await fetchUserInfo();
         router.push('/');
     };
 
     const logout = () => {
-        localStorage.removeItem('auth_token');
+        // To clear an HttpOnly cookie, we ideally need a backend logout endpoint.
+        // For now, we'll clear the client-side state and overwrite the cookie if possible, 
+        // though HttpOnly cookies can only be fully cleared by the server.
         document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        setToken(null);
         setUser(null);
         router.push('/login');
     };
 
     const checkAuth = async () => {
-        const currentToken = localStorage.getItem('auth_token');
-        if (currentToken) {
-            await fetchUserInfo(currentToken);
-        } else {
-            logout();
-        }
+        await fetchUserInfo();
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, isLoading, login, logout, checkAuth }}>
+        <AuthContext.Provider value={{ user, isLoading, login, logout, checkAuth }}>
             {children}
         </AuthContext.Provider>
     );

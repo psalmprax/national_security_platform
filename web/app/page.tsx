@@ -10,7 +10,7 @@ import { Layout, Users, ShieldAlert, LogOut } from 'lucide-react';
 import { useAuth, User } from '../lib/AuthContext';
 
 export default function DashboardPage() {
-    const { user, logout, token } = useAuth();
+    const { user, logout } = useAuth();
     const [currentUserRole, setCurrentUserRole] = useState<UserRole>((user?.role as UserRole) || 'TACTICAL_COMMAND');
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -56,7 +56,7 @@ export default function DashboardPage() {
     useEffect(() => {
         const loadAlerts = async () => {
             try {
-                const rawAlerts = await fetchAlerts(token || undefined);
+                const rawAlerts = await fetchAlerts();
 
                 const transformedAlerts = await Promise.all(rawAlerts.map(async (a: Alert) => {
                     const mockSignature = a.priority_class === 'CRITICAL' ? 'sig_trusted_' + a.id.substring(0, 8) : 'invalid_sig';
@@ -67,7 +67,7 @@ export default function DashboardPage() {
                     };
                 }));
 
-                const systemStatus = await fetchSystemStatus(token || undefined);
+                const systemStatus = await fetchSystemStatus();
 
                 setAlerts(transformedAlerts);
                 setSecurityStatus((prev) => ({
@@ -80,12 +80,12 @@ export default function DashboardPage() {
             }
         };
 
-        if (token) {
+        if (user) {
             loadAlerts();
             const interval = setInterval(loadAlerts, 10000);
             return () => clearInterval(interval);
         }
-    }, [token]);
+    }, [user]);
 
     const toggleAgencyView = (view: AgencyView) => {
         if (!hasAccess(currentUserRole, view)) return;

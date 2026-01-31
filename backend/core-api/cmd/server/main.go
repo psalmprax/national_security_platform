@@ -280,6 +280,17 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set HttpOnly Cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    token,
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		Secure:   false, // Set to true in production (checking TLS)
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Login successful", Token: token})
 }
 
@@ -314,6 +325,17 @@ func handleDashboardLogin(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Token generation failed"})
 		return
 	}
+
+	// Set HttpOnly Cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    token,
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		Secure:   false, // Set to true in production
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Dashboard Access Granted", Token: token})
 }

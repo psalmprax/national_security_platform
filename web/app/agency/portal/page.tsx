@@ -18,7 +18,7 @@ interface Asset {
 }
 
 export default function AgencyPortalPage() {
-    const { user, token, logout, isLoading: isAuthLoading } = useAuth();
+    const { user, logout, isLoading: isAuthLoading } = useAuth();
     const [assets, setAssets] = useState<Asset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showAssetForm, setShowAssetForm] = useState(false);
@@ -41,9 +41,6 @@ export default function AgencyPortalPage() {
     const fetchAssets = async () => {
         try {
             const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
             });
             if (res.ok) {
                 const data = await res.json();
@@ -106,8 +103,7 @@ export default function AgencyPortalPage() {
             const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(newAsset)
             });

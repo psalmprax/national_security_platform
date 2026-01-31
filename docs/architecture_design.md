@@ -247,6 +247,8 @@ erDiagram
     *   **Event Pipeline**: NATS JetStream for asynchronous message decoupling.
     *   **Broadcasting**: Server-Sent Events (SSE) for sub-second delivery of alerts to the dashboard (replacing polling).
 *   **Performance Optimization**: Redis-based spatial caching for high-cost geometric queries (e.g., Triangulation).
+*   **Spatial Intelligence Layer**: Automated resolution of administrative boundaries (State/LGA) using PostGIS `ST_Contains` spatial joins during ingestion, reducing manual triage effort.
+*   **Governance Logic**: Implementation of role-based location snapping (e.g., Traditional Ruler Protocol) to ensure alert accuracy when reporting from remote or non-standard locations.
 *   **Map/Vis**: Mapbox GL JS (Self-hosted/Vector tiles) or Cesium for 3D terrain understanding.
 
 ### 3.3 Secure Operations Dashboard (Web)
@@ -258,6 +260,8 @@ erDiagram
 *   **Identity Layer Integrity**: The frontend leverages a strictly typed `User` identity schema, preventing role-spoofing and ensuring that RBAC enforcement is checked at both the UI rendering and API consumption layers.
 *   **Active Command UX**: Implementation of "Tactical Analysis Locked" overlays as draggable objects. This design choice ensures that detailed intelligence analysis does not obscure the primary situational awareness layer (map), allowing operators to maintain visual lock on moving targets while reviewing triage metadata.
 *   **Situational Awareness (Operational Modes)**: Implementation of dynamic platform "Operational Modes" (e.g., NOMINAL, TACTICAL, DARK_OPS). This design pattern uses a centralized theme engine to propagate visual cues and triage logic across the 3D map, telemetry streams, and intelligence sidebars, ensuring thematic cohesion during critical incidents.
+*   **Interactive Triage Engine**: High-fidelity coordination between the Alert List and Mapbox View. Selecting an alert triggers a synchronized "Fly-To" camera transition and tactical focus, enabling sub-second situational context for analysts.
+*   **Tactical Data Fallback**: Aesthetic-first design for incomplete telemetry. Replaces "Unknown" placeholders with precision-formatted Grid References to maintain analyst trust and system professionalism.
 *   **Observability & Auditing**:
     *   **Access Logging**: Structured JSON logging of every request (Public/Protected) to standard output for non-repudiation.
     *   **Traceability**: Captures IP, User Identity, Role, and Resource Access attempts for intrusion detection.

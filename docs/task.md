@@ -76,7 +76,7 @@
     - [x] Fix 504 timeout on SSE `/api/v1/events/stream` (Nginx buffering & timeout optimization)
     - [x] Fix 401 Unauthorized on Assets API (MapboxMap authentication)
 
-- [x] Phase 7: Comprehensive Security Audit <!-- id: 26 -->
+- [ ] Phase 7: Comprehensive Security Audit <!-- id: 26 -->
     - [x] Audit Gateway Configuration (`nginx.conf`) <!-- id: 27 -->
     - [x] Audit Backend (Go Core API) <!-- id: 28 -->
         - [x] Authentication & Authorization (Middleware)
@@ -86,3 +86,25 @@
         - [x] XSS Prevention
         - [x] Auth State Management
     - [x] Generate Security Audit Report <!-- id: 30 -->
+    - [x] **Remediation Phase 1: Secure Authentication** <!-- id: 31 -->
+        - [x] Backend: Update `AuthMiddleware` to read cookies <!-- id: 32 -->
+        - [x] Backend: Update Login Handlers to set `HttpOnly` cookie <!-- id: 33 -->
+        - [x] Frontend: Remove `localStorage` token management from `AuthContext` <!-- id: 34 -->
+        - [x] Frontend: Update `api.ts` to rely on cookies <!-- id: 35 -->
+        - [x] Verify Secure Authentication Flow <!-- id: 36 -->
+
+- [x] Phase 8: Governance & Location Intelligence (Current Focus)
+    - [x] **Automatic Location Resolution (Spatial Intelligence)**
+        - [x] Backend: Add `LGAName` and `StateName` to `Alert` model
+        - [x] Backend: Implement `ST_Contains` spatial joins for automated sector tagging
+        - [x] Frontend: Display verified State/LGA names in Triage sidebar and alerts view
+    - [x] **Governance Override (Traditional Ruler Protocol)**
+        - [x] Backend: Implement role-based location snapping for `TRADITIONAL_RULER`
+        - [x] Backend: Add `location_source` field to track `GPS` vs `GOVERNANCE_OVERRIDE`
+        - [x] Backend: Implement "Community Threat" detection logic to trigger override
+        - [x] Analytics: Enable tagging for statistical auditing of alert origins
+    - [x] **Dashboard UX & Tactical Display**
+        - [x] UI: Make "Alert Triage" list items clickable to trigger map fly-to
+        - [x] UI: Implement tactical `GRID: [Lat, Lon]` fallback for unknown sectors
+        - [x] UI: Add severity-based animations (pulsing high-priority alerts)
+        - [x] Verify state propagation between Alert List and Mapbox View

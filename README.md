@@ -8,6 +8,7 @@ The system follows a resilient, distributed, and event-driven architecture:
 
 - **Secured Ingestion (Go)**: High-throughput API handling encryption, RBAC, and auditing.
 - **Intelligence Service (Python)**: gRPC-based AI service for threat classification and severity scoring.
+- **Spatial Triage Engine (PostGIS)**: Automated LGA/State resolution and monarch-specific location protocols.
 - **Offline-First Mobile (Flutter)**: Icon-centric Panic UI with local SQLite persistence and PKI signing.
 - **Command Dashboard (Next.js)**: Real-time geospatial triage center for intelligence analysts.
 - **Infrastructure**: NATS JetStream (Message Bus), CockroachDB (Distributed SQL), Redis (Cache).
