@@ -70,8 +70,32 @@ This phase enhances the accuracy of situational awareness through automated spat
 - [x] **UX Interactive Test**: Click an alert in the list and verify map navigation.
 - [x] **Tactical Fallback Test**: Verify "GRID" display for alerts outside administrative boundaries.
 
-### Tactical View Live Integration
-- [ ] Refactor `fetchAssets` to `api.ts`
-- [ ] Update `TacticalDashboard.tsx` to use live `activeAgents`
-- [ ] Link "Incoming Comms" to `alerts` stream
-- [ ] Update "GridRef" to dynamic coordinates
+### Sector Intelligence Reporting
+
+This phase adds automated intelligence summaries at the sector/agency level, enabling high-level situational awareness for administrators.
+
+#### Backend (Go / CockroachDB)
+- **Intelligence Schema**: 
+    - Define `SectorReport` struct in `models.go`.
+- **Reporting Engine**:
+    - Implement `handleGetSectorReport` in `main.go`.
+    - Integrate `GetUserAgencyInfo` to scope reports to the user's specific command.
+    - Aggregation logic: Calculate threat levels, system integrity, and trust scores based on recent alert patterns.
+- **Security & RBAC**:
+    - Register protected route `GET /api/v1/system/reports/sector`.
+    - Enforce `ADMIN` role requirement via existing auth middleware.
+
+#### Frontend (Next.js)
+- **API Client**:
+    - Add `SectorReport` interface to `api.ts`.
+    - Implement `fetchSectorReport` function.
+- **Triage Sidebar**:
+    - Add "Generate Sector Report" button with loading states.
+    - Implement high-fidelity `SectorReportModal` with data visualization (progress bars, stats).
+    - Add export functionality (JSON and print styles).
+
+## Verification Plan
+- [x] **RBAC Test**: Verify non-admin users cannot access the reporting endpoint.
+- [x] **Data Integrity Test**: Ensure aggregated stats match actual database records.
+- [x] **UI/UX Test**: Confirm modal transparency, glow effects, and transitions.
+- [x] **Export Test**: Validate JSON and Print outputs.

@@ -94,4 +94,31 @@ To support Monarchs (Traditional Rulers) reporting threats while outside their d
 - [x] Verified spatial join accuracy for LGA/State resolution in CockroachDB.
 - [x] Confirmed `GOVERNANCE_OVERRIDE` logic correctly swaps GPS for Village coordinates for `TRADITIONAL_RULER` roles.
 - [x] Verified interactive Fly-To behavior in `CyberDashboard.tsx`.
-- [x] Validated display of `GRID` coordinates in `TriageSidebar.tsx` when location data is missing.
+## Sector Intelligence Reporting (Intelligence Triage)
+
+The **Sector Intelligence Report** has been implemented as a high-fidelity intelligence summary tool, providing analysts and administrators with condensed, actionable data on their area of responsibility.
+
+### 1. Intelligence Data Aggregation
+The backend now features a specialized endpoint (`/api/v1/system/reports/sector`) that performs real-time aggregation of alert data.
+- **Threat Level Calculation**: Automatically assigns a posture (**LOW**, **MEDIUM**, **HIGH**, **CRITICAL**) based on the volume and severity of recent alerts.
+- **System Integrity Monitoring**: Calculates a percentage-based health score that drops significantly when critical threats are detected.
+- **Trust Factor Analysis**: Averages the verification counts of all reported incidents to determine the platform's current data reliability.
+- **Dynamic Scoping**: Reports are automatically localized to the user's assigned command unit (e.g., "Nigerian Army") via the `agency_personnel` mapping.
+
+### 2. High-Fidelity UI Integration
+The **Triage Sidebar** has been updated with a primary "Generate Sector Report" action button.
+- **Admin Lockdown**: The button is strictly restricted to `ADMIN` users on the frontend and backend.
+- **Interactive Modal**: Clicking the button opens a glassy, high-contrast modal featuring:
+    - **Visual Posture Indicator**: Text and glow effects change based on the active threat level.
+    - **Composition Breakdown**: Clear stats for Total, Critical, and Routine alerts.
+    - **Vector Tracking**: Displays the last known incident vector for immediate tactical context.
+- **Export Capabilities**:
+    - **Data Export**: Users can download the raw JSON intelligence summary for forensic analysis.
+    - **Print Analytics**: Analysts can generate a hard-copy report using the dashboard's optimized print stylesheet.
+
+## Verification Results
+- [x] Verified `ADMIN` role restriction for report generation.
+- [x] Confirmed dynamic `SectorID` resolution from user's agency affiliation.
+- [x] Validated accurate aggregation of `Critical` vs `Routine` alerts in response payload.
+- [x] Verified JSON export functionality produces valid, machine-readable schemas.
+- [x] Confirmed responsiveness and animation smoothness of the Intelligence Report modal.
