@@ -44,6 +44,12 @@ The `500 Internal Server Errors` on the `/api/v1/alerts` and `/api/v1/system/sta
 - [x] Verified `/api/v1/system/status` returns 200 OK.
 - [x] Confirmed database record presence (Users: 9, Agencies: 4, Alerts: 4).
 
+### SSE Stream Resolution (Protocol Mismatch)
+- **Issue**: The dashboard event stream (`/api/v1/events/stream`) was failing with `400 Bad Request` / `ERR_INCOMPLETE_CHUNKED_ENCODING`.
+- **Root Cause**: Nginx was proxying SSE requests via `http://` while the Core API was enforcing `https://` (TLS 1.3), causing the backend to reject the connection.
+- **Fix**: Updated Nginx upstream to `https://` and enabled `proxy_ssl_verify off` for the SSE location block.
+- **Verification**: Confirmed real-time alerts are now streaming correctly to the dashboard without errors.
+
 ## Seeding Freeze Resolution (006_auth_and_status.sql)
 
 The freeze during database seeding has been resolved.
