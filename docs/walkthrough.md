@@ -122,3 +122,25 @@ The **Triage Sidebar** has been updated with a primary "Generate Sector Report" 
 - [x] Validated accurate aggregation of `Critical` vs `Routine` alerts in response payload.
 - [x] Verified JSON export functionality produces valid, machine-readable schemas.
 - [x] Confirmed responsiveness and animation smoothness of the Intelligence Report modal.
+
+## Core API & Data Initialization Resolution
+
+This phase focuses on the fundamental stability of the platform, resolving critical 500/401 errors and unblocking the database seeding process in resource-constrained environments.
+
+### 1. Root Cause Analysis
+- **Seeding Dependency Cycle**: Found that RBAC and agency seeding scripts were deleting and re-inserting users *after* authentication fields (password hashes) were applied, leading to `401 Unauthorized` errors.
+- **CockroachDB Storage Threshold**: Discovered that CockroachDB pauses schema backfills (e.g., adding columns) when disk utilization exceeds 95% (common in development VMs with limited disk).
+- **Schema Mismatches**: Identified missing tables (`agency_personnel`) and missing fields (`location_source`) that caused `500 Internal Server Errors` on alerts and status endpoints.
+
+### 2. Implementation of Fixes
+- **Resilient Seeding Pipeline**: Reordered `seed_database.sh` to ensure `006_auth_and_status.sql` runs *after* all user insertions.
+- **Infrastucture Tuning**: Adjusted cluster settings to allow operation at higher disk utilization:
+  - `kv.allocator.max_disk_utilization_threshold = 0.99`
+  - `kv.bulk_io_write.min_capacity_remaining_fraction = 0.01`
+- **Schema Hardening**: Successfully applied the `007_agency_schema` and `012_location_source` migrations to unify the data layer.
+
+### 3. Final Verification Results
+- [x] Verified **9 Users**, **4 Agencies**, and **4 Simulation Alerts** are correctly seeded.
+- [x] Confirmed `POST /api/v1/auth/dashboard-login` returns 200 OK with a valid JWT.
+- [x] Verified `/api/v1/system/status` and `/api/v1/alerts` return correctly structured data.
+- [x] Confirmed database seeding completes in < 30 seconds without freezes.

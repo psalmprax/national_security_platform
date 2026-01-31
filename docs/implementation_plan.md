@@ -99,3 +99,20 @@ This phase adds automated intelligence summaries at the sector/agency level, ena
 - [x] **Data Integrity Test**: Ensure aggregated stats match actual database records.
 - [x] **UI/UX Test**: Confirm modal transparency, glow effects, and transitions.
 - [x] **Export Test**: Validate JSON and Print outputs.
+
+### Phase 9: Backend Resiliency & Environment Hardening
+
+This phase addresses critical stability issues discovered during live environment testing, specifically targeting 500/401 errors and database seeding freezes.
+
+#### Infrastructure & Database
+- **Storage Threshold Tuning**: 
+    - Adjust CockroachDB settings to allow operations in resource-constrained (95%+ disk) environments.
+    - Settings: `kv.allocator.max_disk_utilization_threshold = 0.99`, `kv.bulk_io_write.min_capacity_remaining_fraction = 0.01`.
+- **Seeding Pipeline Optimization**:
+    - Reorder `seed_database.sh` to ensure user credentials (password hashes) are applied *after* all user deletions/insertions.
+    - Synchronize schema migrations (`007_agency_schema`, `012_location_source`) to ensure model consistency.
+
+## Verification Plan
+- [x] **Full Reseed Test**: Verify `./seed_database.sh` completes successfully in < 1 minute.
+- [x] **Auth Loopback Test**: Confirm dashboard login grants a 24h JWT cookie.
+- [x] **Data Integrity Test**: Verify 9 users and 4 agencies are active in CockroachDB.

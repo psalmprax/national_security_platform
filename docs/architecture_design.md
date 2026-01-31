@@ -263,9 +263,10 @@ erDiagram
 *   **Sector Intelligence Reporting**: Specialized automated reporting layer for high-level tactical oversight. Scopes intelligence data to the user's specific command or agency, providing real-time aggregation of threat levels and system integrity.
 *   **Interactive Triage Engine**: High-fidelity coordination between the Alert List and Mapbox View. Selecting an alert triggers a synchronized "Fly-To" camera transition and tactical focus, enabling sub-second situational context for analysts.
 *   **Tactical Data Fallback**: Aesthetic-first design for incomplete telemetry. Replaces "Unknown" placeholders with precision-formatted Grid References to maintain analyst trust and system professionalism.
-*   **Observability & Auditing**:
-    *   **Access Logging**: Structured JSON logging of every request (Public/Protected) to standard output for non-repudiation.
-    *   **Traceability**: Captures IP, User Identity, Role, and Resource Access attempts for intrusion detection.
+
+*   **Operational Resilience & Self-Healing**:
+    - **Infrastructure Tuning**: Automatic adjustment of database storage thresholds (e.g., `max_disk_utilization_threshold`) to maintain availability during local disk pressure, crucial for survival in degraded hardware environments.
+    - **Seeding Integrity**: Atomic validation of the data initialization sequence, ensuring that authentication entities and agency mappings are consistently applied following schema rotations.
 
 ---
 

@@ -13,13 +13,12 @@
 - [x] Search for "Sentinel Audit Ledger" in Cyber view <!-- id: 4 -->
 - [x] Check backend support for paginated security scans <!-- id: 5 -->
 - [x] Make Sector Intelligence Reports dynamic by agency
-    - [x] Implement `GetUserAgencyInfo` in `repository.go`
-    - [x] Create `RequireAnyRole` middleware in `rbac.go`
-    - [x] Update `handleGetSectorReport` and routes in `main.go`
-    - [x] Update `TriageSidebar.tsx` and `api.ts` on frontend
-    - [x] Seed test personnel data for verification
+- [x] Backend Debugging: Core API Resiliency
+    - [x] Fix 500 errors (Missing `agency_personnel` and `location_source`)
+    - [x] Fix 401 errors (Reordered seeding to preserve password hashes)
+    - [x] Fix Seeding Freeze (CockroachDB storage threshold tuning)
 - [x] Finalize Project Documentation & Sync
-    - [x] Update `docs/walkthrough.md` with Sector Reporting
+    - [x] Update `docs/walkthrough.md` with Sector Reporting & Debugging
     - [x] Update `docs/implementation_plan.md`
     - [x] Update `docs/architecture_design.md`
     - [x] Commit and Push to Remote GitHub
