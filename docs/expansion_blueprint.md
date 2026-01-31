@@ -44,7 +44,25 @@ This is the most powerful part of the expansion.
 
 ---
 
-## 🔊 Advanced Feature: Acoustic Intelligence (Audio AI)
+## 4. Command & Control Evolution (Tactical View)
+
+To elevate the platform from "Situational Awareness" to "Active Command", the Tactical View will evolve into a bidirectional controller.
+
+### A. Environmental Intelligence
+Commanders need context beyond just coordinates.
+- **Live Weather Overlay**: Integration with APIs (e.g., OpenWeatherMap) to visualize rain/sandstorms that impact logistical response times.
+- **Dynamic Day/Night Cycle**: The map style will automatically shift to a high-contrast "Night Vision" mode (Simulated Thermal/Phosphor) based on local time.
+
+### B. Interactive Geofencing
+- **Exclusion Zones**: Commanders can draw polygons on the map to mark "No-Go Zones" or "Perimeters".
+- **Logic**: Assets entering/leaving these drawn zones trigger automatic alerts in the `audit_log`.
+
+### C. Drone Integration
+- **VideoStream Placeholder**: UI support for Picture-in-Picture (PiP) RTMP streams when a specific drone unit is selected.
+
+---
+
+## 5. Advanced Feature: Acoustic Intelligence (Audio AI)
 
 Integrating audio recognition (Acoustic Event Detection) allows the platform to capture and verify threats that might not be visible or described in text.
 
@@ -70,7 +88,7 @@ Integrating audio recognition (Acoustic Event Detection) allows the platform to 
 To maintain national trust, audio recognition must be **opt-in only** and processed on the **Edge (local device)** whenever possible to ensure we are not "spying" on citizens, but rather "protecting" them.
 ---
 
-## 4. Feature Implementation Status (Audit)
+## 6. Feature Implementation Status (Audit)
 
 Based on the **Architecture Design Document (Sections 5-11)**, the following table tracks the implementation status of advanced platform features:
 

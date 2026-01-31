@@ -14,8 +14,9 @@ import {
     LocateFixed,
     Users
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import MapboxMap from '../MapboxMap';
-import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset, SystemStatus } from '../../lib/api';
+import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset, SystemStatus, Asset, fetchAssets } from '../../lib/api';
 import { useAuth, User } from '../../lib/AuthContext';
 
 interface TacticalDashboardProps {
@@ -34,6 +35,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     const [showSatellite, setShowSatellite] = useState(false);
     const [radarAngle, setRadarAngle] = useState(0);
     const [triangulatedAssets, setTriangulatedAssets] = useState<TriangulatedAsset[]>([]);
+    const [assets, setAssets] = useState<Asset[]>([]);
 
     // Simulated Radar Sweep
     useEffect(() => {
@@ -43,12 +45,17 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
         return () => clearInterval(interval);
     }, []);
 
-    // Mock Field Agents
-    const fieldAgents = [
-        { id: 'T-ALPHA', status: 'ACTIVE', battery: '88%', dist: '1.2km' },
-        { id: 'T-BRAVO', status: 'ENGAGED', battery: '42%', dist: '0.8km' },
-        { id: 'T-DELTA', status: 'IDLE', battery: '95%', dist: '2.4km' }
-    ];
+    // Fetch Live Assets
+    useEffect(() => {
+        if (!token) return;
+        const loadAssets = async () => {
+            const results = await fetchAssets(token);
+            setAssets(results);
+        };
+        loadAssets(); // Initial load
+        const interval = setInterval(loadAssets, 30000); // Poll every 30s
+        return () => clearInterval(interval);
+    }, [token]);
 
     // Fetch Triangulation data when alert is selected (NEW)
     useEffect(() => {
@@ -90,7 +97,11 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                         </div>
                         <div className="text-center px-4 border-l border-zinc-800">
                             <div className="text-[10px] text-zinc-500 font-bold uppercase">GridRef</div>
-                            <div className="text-xs font-black text-white tabular-nums">14P.QH-92</div>
+                            <div className="text-xs font-black text-white tabular-nums">
+                                {alerts.length > 0
+                                    ? `14P.${alerts[0].latitude.toFixed(2)}-${alerts[0].longitude.toFixed(2)}`
+                                    : 'Searching...'}
+                            </div>
                         </div>
                     </div>
                     <div className="text-right bg-yellow-500/10 border-l border-r border-yellow-500/20 px-6 py-1">
@@ -229,9 +240,13 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                 </div>
                             </div>
 
-                            {/* Tactical Overlays */}
-                            <div className="absolute bottom-6 left-6 flex flex-col gap-4">
-                                <div className="bg-black/90 p-4 border-2 border-yellow-500/50 rounded-sm shadow-2xl backdrop-blur-md w-64">
+                            {/* Tactical Overlays (Draggable) */}
+                            <motion.div
+                                drag
+                                dragMomentum={false}
+                                className="absolute bottom-6 left-6 flex flex-col gap-4 cursor-move"
+                            >
+                                <div className="bg-black/90 p-4 border-2 border-yellow-500/50 rounded-sm shadow-2xl backdrop-blur-md w-64 pointer-events-auto">
                                     <div className="flex items-center justify-between border-b border-yellow-500/20 mb-3 pb-2">
                                         <h3 className="font-black text-[11px] uppercase tracking-widest text-yellow-500 flex items-center gap-2">
                                             <Target className="w-4 h-4" /> Sector Threats
@@ -253,27 +268,44 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                         </button>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
 
-                            {/* Right Panel - Field Agents */}
-                            <div className="absolute top-6 right-6 w-64 flex flex-col gap-4">
-                                <div className="bg-black/80 backdrop-blur-md border border-white/5 rounded-sm p-4">
+                            {/* Right Panel - Field Agents (Draggable) */}
+                            <motion.div
+                                drag
+                                dragMomentum={false}
+                                className="absolute top-6 right-6 w-64 flex flex-col gap-4 cursor-move"
+                            >
+                                <div className="bg-black/80 backdrop-blur-md border border-white/5 rounded-sm p-4 pointer-events-auto">
                                     <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                         <Users className="w-3 h-3 text-yellow-500" /> Active Agents
                                     </h4>
-                                    <div className="space-y-3">
-                                        {fieldAgents.map(agent => (
-                                            <div key={agent.id} className="flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                                                <div className="flex justify-between items-center text-[10px]">
-                                                    <span className="font-black text-white">{agent.id}</span>
-                                                    <span className={`px-1 rounded-sm text-[8px] font-black ${agent.status === 'ENGAGED' ? 'bg-orange-600 text-white' : 'text-green-500'}`}>{agent.status}</span>
+                                    <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
+                                        {assets.length === 0 ? (
+                                            <div className="text-[10px] text-zinc-600 italic text-center py-4">No active field units.</div>
+                                        ) : (
+                                            assets.map(agent => (
+                                                <div key={agent.id} className="flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                                    <div className="flex justify-between items-center text-[10px]">
+                                                        <span className="font-black text-white">{agent.call_sign || agent.name}</span>
+                                                        <span className={`px-1 rounded-sm text-[8px] font-black ${agent.status === 'ENGAGED' ? 'bg-orange-600 text-white' : 'text-green-500'}`}>{agent.status}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-[8px] font-bold text-zinc-500 uppercase">
+                                                        <div className="flex items-center gap-1">
+                                                            <span>R:</span>
+                                                            <div className="w-8 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full ${agent.capacity_level < 30 ? 'bg-red-500' : 'bg-green-500'}`}
+                                                                    style={{ width: `${agent.capacity_level}%` }}
+                                                                />
+                                                            </div>
+                                                            <span>{agent.capacity_level}%</span>
+                                                        </div>
+                                                        <span className="flex items-center gap-1"><Navigation className="w-2 h-2" /> LOC: {agent.latitude.toFixed(2)}, {agent.longitude.toFixed(2)}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between text-[8px] font-bold text-zinc-500 uppercase">
-                                                    <span>Batt: {agent.battery}</span>
-                                                    <span className="flex items-center gap-1"><Navigation className="w-2 h-2" /> {agent.dist}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            ))
+                                        )}
                                     </div>
                                 </div>
 
@@ -344,10 +376,10 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                     </div>
                                     <div>
                                         <p className="text-[10px] font-black text-orange-500 uppercase leading-none mb-1">Incoming Comms</p>
-                                        <p className="text-[9px] text-orange-500/60 font-medium">RE: Incident #822-Delta</p>
+                                        <p className="text-[9px] text-orange-500/60 font-medium">RE: Incident #{alerts[0]?.id.slice(0, 8) || 'NO-SIGNAL'}</p>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         </div>
                     )}
 
