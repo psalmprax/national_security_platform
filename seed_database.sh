@@ -20,6 +20,7 @@ FILES=(
     "platform/schema/011_seed_agency_personnel.sql"    # Linking users to agencies
     "platform/schema/006_auth_and_status.sql"          # Users auth fields (MUST RUN AFTER USER CREATION)
     "platform/schema/005_simulation_data.sql"          # Scenario-specific alerts
+    "platform/schema/013_real_seeding_data.sql"        # REAL Nigerian location data
 )
 
 for file in "${FILES[@]}"; do

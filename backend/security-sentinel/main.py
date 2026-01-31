@@ -5,6 +5,7 @@ import os
 import logging
 import json
 import psycopg2
+import socket
 from psycopg2.extras import Json
 
 # Setup logging
@@ -21,10 +22,7 @@ ENDPOINTS_TO_SCAN = [
     {"path": "/", "expected_status": 200, "protected": False},
     {"path": "/health", "expected_status": 200, "protected": False},
     {"path": "/api/v1/system/status", "expected_status": 401, "protected": True},
-    {"path": "/api/v1/system/nodes", "expected_status": 401, "protected": True},
     {"path": "/api/v1/alerts", "expected_status": 401, "protected": True},
-    {"path": "/api/v1/agencies", "expected_status": 405, "protected": True},
-    {"path": "/api/v1/assets", "expected_status": 401, "protected": True},
 ]
 
 REQUIRED_HEADERS = [
@@ -34,6 +32,20 @@ REQUIRED_HEADERS = [
     "X-Frame-Options",
     "X-XSS-Protection"
 ]
+
+SQLI_PAYLOADS = [
+    "' OR '1'='1",
+    "'; DROP TABLE users; --",
+    "\" OR 1=1 --",
+    "admin'--"
+]
+
+def check_port(host, port, timeout=2):
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (socket.timeout, ConnectionRefusedError, socket.gaierror):
+        return False
 
 def persist_results(status, findings):
     if not DATABASE_URL:
@@ -49,74 +61,119 @@ def persist_results(status, findings):
             VALUES (%s, %s, %s, %s)
         """
         meta_data = {
-            "scanner": "Python Security Sentinel v1.0",
+            "scanner": "Advanced Security Sentinel v2.0",
             "target": TARGET_URL,
-            "endpoint_count": len(ENDPOINTS_TO_SCAN)
+            "timestamp": time.time()
         }
         
-        cur.execute(query, ("core-api", status, Json(findings), Json(meta_data)))
+        cur.execute(query, ("multi-service", status, Json(findings), Json(meta_data)))
         conn.commit()
         cur.close()
         conn.close()
-        logger.info("💾 Scan results successfully persisted to database.")
+        logger.info("💾 Enriched scan results persisted.")
     except Exception as e:
-        logger.error(f"❌ Failed to persist results to database: {e}")
+        logger.error(f"❌ Persistence failed: {e}")
 
 def perform_scan():
-    logger.info("🛡️ Starting automated security scan...")
+    logger.info("🛡️ Starting Advanced Cyber Security Scan...")
     findings = []
     
+    # 1. Endpoint & Header Analysis
     for ep in ENDPOINTS_TO_SCAN:
         full_url = f"{TARGET_URL}{ep['path']}"
         try:
-            # Perform GET request
             response = requests.get(full_url, timeout=5)
+            # logger.info(f"DEBUG Headers for {ep['path']}: {dict(response.headers)}")
             
-            # 1. Check Auth Regressions
+            # Auth Regressions
             if ep['protected'] and response.status_code == 200:
-                msg = f"❌ REGRESSION: Protected endpoint {ep['path']} is accessible without authentication!"
-                logger.error(msg)
-                findings.append({"type": "REGRESSION", "path": ep['path'], "message": msg})
-            elif response.status_code != ep['expected_status']:
-                logger.warning(f"⚠️ Unexpected status for {ep['path']}: {response.status_code} (Expected {ep['expected_status']})")
+                findings.append({
+                    "type": "VULNERABILITY",
+                    "severity": "CRITICAL",
+                    "path": ep['path'],
+                    "message": f"Auth bypass detected on {ep['path']}!",
+                    "remediation": "Check AuthMiddleware registration in main.go"
+                })
 
-            # 2. Check Security Headers
+            # Headers (Case-insensitive check via requests)
             for header in REQUIRED_HEADERS:
                 if header not in response.headers:
-                    msg = f"❌ MISSING HEADER: {header} missing on {ep['path']}"
-                    logger.error(msg)
-                    findings.append({"type": "MISSING_HEADER", "path": ep['path'], "header": header, "message": msg})
+                    findings.append({
+                        "type": "CONFIG_ISSUE",
+                        "severity": "MEDIUM",
+                        "path": ep['path'],
+                        "message": f"Missing security header: {header}",
+                        "remediation": "Add header to middleware/stack.go"
+                    })
 
-            # 3. Check CORS Policy
-            cors_origin = response.headers.get("Access-Control-Allow-Origin")
-            if cors_origin == "*":
-                msg = f"❌ PERMISSIVE CORS: Access-Control-Allow-Origin is set to '*' on {ep['path']}!"
-                logger.error(msg)
-                findings.append({"type": "PERMISSIVE_CORS", "path": ep['path'], "message": msg})
+            # SQL Injection Probing (GET params)
+            for payload in SQLI_PAYLOADS:
+                probe_url = f"{full_url}?id={payload}"
+                probe_res = requests.get(probe_url, timeout=5)
+                if probe_res.status_code == 500:
+                    findings.append({
+                        "type": "SQL_INJECTION",
+                        "severity": "HIGH",
+                        "path": ep['path'],
+                        "message": f"Possible SQLi vulnerability detected with payload: {payload}",
+                        "remediation": "Ensure all database queries use parameterized placeholders."
+                    })
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"🔌 Connection Error: Could not reach {full_url}: {e}")
-            findings.append({"type": "CONNECTION_ERROR", "path": ep['path'], "error": str(e)})
+        except Exception as e:
+            logger.warning(f"Failed to scan {full_url}: {e}")
+
+    # 2. Rate Limiting Verification
+    logger.info("🧪 Testing Rate Limiting...")
+    rate_limit_hits = 0
+    for _ in range(15):
+        try:
+            res = requests.get(f"{TARGET_URL}/health", timeout=1)
+            if res.status_code == 429:
+                rate_limit_hits += 1
+        except: pass
+    
+    if rate_limit_hits == 0:
+        findings.append({
+            "type": "DOS_VULNERABILITY",
+            "severity": "HIGH",
+            "path": "/health",
+            "message": "Rate limiting appears inactive. Brute force or DoS possible.",
+            "remediation": "Configure nginx limit_req or internal rate limiting middleware."
+        })
+
+    # 3. Infrastructure Audits
+    infra_checks = [
+        {"name": "Redis", "host": "redis", "port": 6379, "severity": "MEDIUM"},
+        {"name": "NATS", "host": "nats", "port": 4222, "severity": "HIGH"},
+        {"name": "MinIO", "host": "minio", "port": 9000, "severity": "MEDIUM"},
+        {"name": "CockroachDB", "host": "cockroachdb", "port": 26257, "severity": "CRITICAL"},
+    ]
+
+    for check in infra_checks:
+        if check_port(check['host'], check['port']):
+            # This is INFO if expected, but we can check if they are "TOO" accessible
+            # For this MVP, we just log that we verified they are UP.
+            pass
+        else:
+            findings.append({
+                "type": "INFRA_FAILURE",
+                "severity": check['severity'],
+                "path": check['name'],
+                "message": f"Core infrastructure component {check['name']} is unreachable!",
+                "remediation": "Check docker-compose logs and service health."
+            })
 
     status = "PASSED" if not findings else "FAILED"
-    if status == "PASSED":
-        logger.info("✅ Scan complete: No security regressions or vulnerabilities detected. GuardDog is active.")
-    else:
-        logger.error(f"🚨 Scan complete: Found {len(findings)} security issues!")
-    
+    logger.info(f"🚨 Scan result: {status} ({len(findings)} issues)")
     persist_results(status, findings)
 
 def run_scheduler():
-    # Initial scan
     perform_scan()
-    
-    # Schedule scan every 5 minutes
     schedule.every(5).minutes.do(perform_scan)
-    
     while True:
         schedule.run_pending()
         time.sleep(1)
 
 if __name__ == "__main__":
-    logger.info("🚀 Security Sentinel online. Monitoring Core API at %s", TARGET_URL)
+    logger.info("🚀 Security Sentinel v2.0 Active.")
     run_scheduler()

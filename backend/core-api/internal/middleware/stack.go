@@ -10,24 +10,7 @@ import (
 
 // SecurityStack applies a suite of security headers and policies to the router
 func SecurityStack(r *chi.Mux) {
-	// 1. Basic Middleware
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-
-	// 2. CORS Configuration (Hardened)
-	// We only allow the specific dashboard and mobile simulation origins
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8085", "http://localhost:3000"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link", "X-Security-Status", "X-User-Role"},
-		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
-	}))
-
-	// 3. Secure Headers
+	// 0. Secure Headers (Must be first to ensure they are set even on early returns)
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -40,4 +23,24 @@ func SecurityStack(r *chi.Mux) {
 			next.ServeHTTP(w, r)
 		})
 	})
+
+	// 1. Rate Limiting (IP-based)
+	limiter := NewRateLimiter(5, 10) // 5 req/s, burst 10
+	r.Use(limiter.Handler)
+
+	// 2. Basic Middleware
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	// 3. CORS Configuration (Hardened)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:8085", "http://localhost:3000"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link", "X-Security-Status", "X-User-Role"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 }

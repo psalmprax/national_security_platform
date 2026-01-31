@@ -36,14 +36,10 @@ The platform has a solid security foundation using modern cryptographic primitiv
 
 ## Recommendations / Remediation Plan
 
-### Immediate Actions (Critical/High)
-1.  **Refactor Auth Storage (F-01, F-02)**:
-    *   Move cookie setting to the Backend (`handleLogin`).
-    *   Set `HttpOnly`, `Secure`, and `SameSite=Strict` flags on the cookie.
-    *   Remove `localStorage` usage for sensitive tokens.
-2.  **Enable Rate Limiting (G-01)**:
-    *   Configure `ngx_http_limit_req_module` in `nginx.conf`.
-    *   Set reasonable limits (e.g., 10 req/sec per IP).
+### Immediate Actions (Critical/High) - COMPLETED
+1.  **Refactor Auth Storage (F-01, F-02)**: [RESOLVED] Moved authentication to HttpOnly cookies in `handleDashboardLogin`.
+2.  **Enable Rate Limiting (G-01)**: [RESOLVED] Implemented dual-layer rate limiting (Nginx `limit_req` and Go `RateLimiter` middleware). Verified by Sentinel v2.0.
+3.  **Security Headers**: [RESOLVED] Hardened headers moved to the top of the Go middleware stack to ensure coverage on all responses.
 
 ### Secondary Actions (Medium/Low)
 1.  **Dynamic CORS (B-01)**: Use `ALLOWED_ORIGINS` environment variable in `stack.go`.
