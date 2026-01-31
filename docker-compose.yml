@@ -161,6 +161,10 @@ services:
       - core-api
     networks:
       - national-security-net
+    volumes:
+      - ./backend/core-api:/usr/src/scan/core-api:ro
+      - ./backend/intelligence-service:/usr/src/scan/intelligence-service:ro
+      - ./backend/security-sentinel:/usr/src/scan/self:ro
 
 # Note: In production, these volumes should be backed by encrypted storage (e.g., AWS EBS with KMS)
 volumes:

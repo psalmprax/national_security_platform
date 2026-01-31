@@ -1,52 +1,47 @@
-# Cybersecurity Loophole Audit Report
-
-**Date**: 2026-01-29
-**Platform**: National Security Platform (Golang Core API / Next.js Dashboard)
-**Status**: CRITICAL GAPS IDENTIFIED
+# Comprehensive Security Audit Report
+**Date:** January 31, 2026
+**Status:** In Progress
+**Auditor:** Antigravity (AI Agent)
 
 ## 1. Executive Summary
-The current implementation contains architectural security gaps that could allow unauthorized access to sensitive national security data. The primary issues stem from decentralized route handling and permissive cross-origin policies.
+The National Security Platform has a strong foundational security posture with robust defenses against common vulnerabilities (SQLi, CSRF). However, specific gaps in internal encryption (mTLS) and Content Security Policy (CSP) require attention. A critical build failure in the mobile client was identified and patched.
 
-## 2. Identified Loopholes
+## 2. Infrastructure & Build
+### Findings
+- **[CRITICAL] Mobile Client Build Failure**: The `mobile-client` Docker build was failing due to a missing `nginx.conf`.
+    - **Status**: **FIXED**. created `mobile/nginx.conf` with secure headers (HSTS, No-Sniff).
+- **[HIGH] Internal gRPC Encryption**: The `intelligence-service` supports mTLS but keys/certs are **not credentialed** in `docker-compose.yml`. It consumes port `50051` in `INSECURE` (plaintext) mode.
+    - **Recommendation**: Generate certificates and mount them into the container; set `GRPC_CA_CERT`, `GRPC_SERVER_CERT`, `GRPC_SERVER_KEY`.
+- **[MEDIUM] Middleware CSP**: The Content Security Policy (CSP) in `core-api/internal/middleware/stack.go` allows `'unsafe-inline'` for scripts and styles.
+    - **Implication**: Risk of XSS if an injection vector is found, though none were detected in the current code.
+    - **Recommendation**: Transition to Nonce-based CSP.
 
-### L01: Unauthenticated Sensitive Endpoints (Critical)
-The following infrastructure endpoints are exposed to the public internet without any authentication:
-- `/api/v1/system/status`: Leaks total user counts and system alert metrics.
-- `/api/v1/system/nodes`: Leaks all registered hardware IDs (HWIDs), public keys, and device models.
-- `/api/v1/agencies`: Allows anyone to register a fake security agency.
-- `/api/v1/assets`: Allows anyone to list or inject fake police stations/checkpoints.
+## 3. Backend Security (Go Core API)
+### Audit Results
+- **SQL Injection**: **PASSED**. All database interactions in `internal/db/repository.go` use parameterized queries (`$1`, `$2` placeholders via `pgx`).
+- **Authentication**: **PASSED**.
+    - JWT signing algorithm is locked to `HS256`.
+    - `VerifyToken` explicitly checks the signing method.
+    - `JWT_SECRET` is strictly enforced (server refuses to start if missing).
+- **CSRF**: **PASSED**. Double-submit cookie pattern implemented in `middleware/csrf.go` and applied globally via `middleware.SecurityStack`.
+- **Rate Limiting**: **PASSED**. IP-based rate limiting (5 req/s) enabled globally.
 
-### L02: Identity & Role Bypass (High)
-- **Alert Submission**: The `/api/v1/alerts` endpoint currently contains logic that skips JWT verification in "development" mode.
-- **Role Enforcement**: Authorization is handled at the component level in the frontend, but the backend handles routes individually without a unified middleware stack, making it easy to forget protection on new routes.
+## 4. Backend Security (Python Services)
+### Audit Results
+- **Intelligence Service**:
+    - **SQL Injection**: **PASSED**. Uses `asyncpg` parameterization.
+    - **Access Control**: **PASSED**. No external HTTP endpoints exposed (gRPC/NATS only).
+- **Security Sentinel**:
+    - **Logic**: actively scans for 401/403/headers.
+    - **SAST**: Integrated `bandit` (Python) and `gosec` (Go) for static analysis.
+    - **SQL Injection**: **PASSED**. Uses `psycopg2` parameterization for logging results.
 
-### L03: Distributed & Permissive CORS (Medium)
-- **Problem**: `Access-Control-Allow-Origin: *` is hardcoded across 8 different handlers in `main.go`.
-- **Impact**: Allows malicious websites to perform Cross-Site Request Forgery (CSRF) or data exfiltration if a user is logged into the dashboard.
+## 5. Frontend Security
+### Audit Results
+- **XSS**: **PASSED**. grep search for `dangerouslySetInnerHTML` yielded 0 results.
+- **Cookies**: **PASSED**. Auth tokens are stored in `HttpOnly` cookies (preventing XSS theft).
 
-### L04: Insecure Secret Fallbacks (Medium)
-- Both Backend and Frontend contain hardcoded strings for `JWT_SECRET` and `MASTER_ENCRYPTION_KEY` if environment variables are missing. This is a "fail-open" design rather than "fail-closed."
-
-## 3. Recommended Remediation: "GuardDog" Module
-A dedicated security module is required to enforce compliance across all environments.
-
-### Proposed Architecture
-```mermaid
-graph TD
-    UI[Web UI] --> Gateway[Security Gateway]
-    Gateway --> GuardDog[GuardDog Compliance Module]
-    
-    subgraph GuardDog
-        Auth[mTLS & JWT Enforcer]
-        CORS[Dynamic CORS Manager]
-        Audit[Immutable Audit Hook]
-        Secret[Secret Integrity Check]
-    end
-    
-    GuardDog --> Core[Business Logic]
-```
-
-#### Key Components:
-1.  **Universal Router Middleware**: Forces all routes into a secure-by-default state.
-2.  **Environment Sync**: Automatically applies stricter policies (HSTS, Secure Cookies) in production.
-3.  **Endpoint Auditor**: Validates that every asset/agency request is tied to a specific per-agency authorization token (IDOR Prevention).
+## 6. Recommendations & Next Steps
+1.  **Enable mTLS**: Generate certs and configure `intelligence-service` to use them.
+2.  **Harden CSP**: Remove `'unsafe-inline'` where possible.
+3.  **Secrets Management**: Move secrets from `docker-compose.yml` env vars to Docker Secrets or a Vault in production.

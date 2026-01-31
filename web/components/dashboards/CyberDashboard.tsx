@@ -822,7 +822,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                 <Cpu className="w-4 h-4" style={{ color: currentTheme.primary }} />
                                 <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Raw Telemetry Stream</span>
                             </div>
-                            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 font-mono text-[10px] h-32 overflow-auto scrollbar-hide" style={{ color: currentTheme.primary + 'b3', borderColor: currentTheme.primary + '1a' }}>
+                            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 font-mono text-[10px] h-32 overflow-auto scrollbar-cyber" style={{ color: currentTheme.primary + 'b3', borderColor: currentTheme.primary + '1a' }}>
                                 <pre>{JSON.stringify({
                                     event_id: selectedAlert.id,
                                     payload_digest: "sha256:e3b0c442...",

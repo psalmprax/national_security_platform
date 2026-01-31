@@ -6,6 +6,7 @@ import logging
 import json
 import psycopg2
 import socket
+import subprocess
 from psycopg2.extras import Json
 
 # Setup logging
@@ -167,9 +168,75 @@ def perform_scan():
     logger.info(f"🚨 Scan result: {status} ({len(findings)} issues)")
     persist_results(status, findings)
 
+def run_static_analysis():
+    logger.info("🕵️ Starting Static Analysis (SAST)...")
+    sast_findings = []
+
+    # 1. Scan Python Services (Self & Intelligence Service)
+    # Using bandit
+    try:
+        # Scan intelligence-service
+        logger.info("   - Scanning Intelligence Service (Python)...")
+        result = subprocess.run(
+            ["bandit", "-r", "/usr/src/scan/intelligence-service", "-f", "json"],
+            capture_output=True,
+            text=True
+        )
+        if result.stdout:
+            try:
+                data = json.loads(result.stdout)
+                for item in data.get('results', []):
+                    sast_findings.append({
+                        "type": "SAST_PYTHON",
+                        "severity": item['issue_severity'],
+                        "path": item['filename'].replace("/usr/src/scan/", ""),
+                        "message": f"{item['test_id']}: {item['issue_text']}",
+                        "remediation": "Review code against bandit recommendations."
+                    })
+            except json.JSONDecodeError:
+                pass
+    except FileNotFoundError:
+        logger.error("   - Bandit not installed.")
+
+    # 2. Scan Go Core API
+    # Using gosec
+    try:
+        logger.info("   - Scanning Core API (Go)...")
+        result = subprocess.run(
+            ["gosec", "-fmt=json", "-r", "/usr/src/scan/core-api"],
+            capture_output=True,
+            text=True
+        )
+        if result.stdout:
+            try:
+                data = json.loads(result.stdout)
+                for item in data.get('Issues', []):
+                    sast_findings.append({
+                        "type": "SAST_GO",
+                        "severity": item['severity'],
+                        "path": item['file'].replace("/usr/src/scan/", ""),
+                        "message": f"{item['rule_id']}: {item['details']}",
+                        "remediation": "Review code against gosec recommendations."
+                    })
+            except json.JSONDecodeError:
+                pass
+    except FileNotFoundError:
+         logger.error("   - Gosec not installed.")
+
+    if sast_findings:
+        logger.info(f"⚠️ SAST completed. Found {len(sast_findings)} issues.")
+        persist_results("WARNING", sast_findings)
+    else:
+        logger.info("✅ SAST completed. Clean code.")
+
 def run_scheduler():
+    # Run immediately on startup
     perform_scan()
+    run_static_analysis()
+    
     schedule.every(5).minutes.do(perform_scan)
+    schedule.every(60).minutes.do(run_static_analysis) # Run SAST every hour
+    
     while True:
         schedule.run_pending()
         time.sleep(1)

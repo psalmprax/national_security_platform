@@ -171,3 +171,7 @@ Alerts in the dashboard were displaying "GRID: [COORDS]" instead of their resolv
     - Kidnapping Alert: **Maiduguri, Borno** (previously GRID)
     - Ambush Alert: **Konduga, Borno** (previously GRID)
     - Cyber Alert: **Abuja Municipal, Federal Capital Territory** (previously GRID)
+
+## UI Polish: Telemetry Scrollbar
+
+Updated the "Raw Telemetry Stream" container in the **Tactical Analysis Locked** modal to use the custom `scrollbar-cyber` style (matching the Intelligence Triage sidebar) instead of being hidden (`scrollbar-hide`). This improves usability for inspecting long JSON payloads while maintaining the cyber-aesthetic.

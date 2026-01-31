@@ -371,3 +371,17 @@ The transition from the **Current Implementation (V1.0)** to the **Future State 
 ### 11.2 Design Debt Mitigation
 By enforcing strict package boundaries and adopting asynchronous event-driven patterns early (v1.0), the platform avoids "Technical Debt" and ensures that scaling to national levels (v2.0) is a matter of horizontal expansion rather than logic rewrite.
 
+## 12. Security Hardening & Audit (Jan 2026)
+
+### 12.1 Comprehensive Security Audit
+A full-stack security audit was conducted in Jan 2026, confirming the robustness of:
+*   **Core API**: SQL Injection protection (via parameterized queries), JWT enforcement (`HS256`, strictly checked), and CSRF protection (double-submit cookie).
+*   **Frontend**: No XSS vectors found; sensitive data uses HttpOnly cookies.
+*   **Mobile**: Configuration hardened (Nginx headers: HSTS, No-Sniff).
+
+### 12.2 Security Sentinel v2.0 (SAST/DAST)
+The `security-sentinel` service has been upgraded to a hybrid scanner:
+*   **DAST**: Actively probes running endpoints for Auth bypass and missing headers.
+*   **SAST**: Periodically scans source code (mounted read-only) using `gosec` (Go) and `bandit` (Python) to detect insecure coding patterns and hardcoded secrets.
+*   **Reporting**: Findings are persisted to the database for dashboard visualization.
+

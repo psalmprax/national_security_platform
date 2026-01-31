@@ -33,6 +33,17 @@
     - [x] transition to Dynamic CORS (Environment Variables)
     - [x] Remove Default Secret Fallbacks (JWT_SECRET)
     - [x] Secure Internal Networking (Gateway -> API TLS)
+    - [x] **Frontend Security Review** (XSS, CSP, Storage, Dependencies)
+    - [x] **Backend Security Review** (SQLi, AuthZ/AuthN, Input Validation, Logs)
+    - [x] **Network & Infrastructure** (TLS, Headers, Docker user permissions, Secrets)
+    - [x] **Encryption** (Data at Rest, Key Management)
+    - [x] **Fix**: Mobile Client Build (Missing nginx.conf)
+- [x] Enrich Security Sentinel with SAST
+    - [x] **Infrastructure**: Mount source code volumes in docker-compose
+    - [x] **Dependencies**: Install `bandit` (Python) and `gosec` (Go) in Dockerfile
+    - [x] **Implementation**: Add `run_sast_scans()` to Sentinel logic
+    - [x] **Persistence**: Store SAST findings in database
+- [x] Implement Manual Alert Verification
 - [x] Implement Manual Alert Verification
     - [x] Backend: Add VerifyAlert DB function & Handler
     - [x] Frontend: Connect Verify Button to API
