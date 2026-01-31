@@ -1,5 +1,5 @@
 - [x] Detect missing tables in CockroachDB
-- [x] Fix `seed_database.sh` dependency order (Fixed 500 & 401 errors)
+- [x] **Cleanup**: Update `seed_database.sh` to include new schema files (`016_add_updated_at.sql`)
 - [x] Resolve Seeding Freeze (disk threshold fix)
 - [x] Successfully re-seed the database (9 users, 4 alerts, 4 agencies)
 - [x] Verify Dashboard Login and Roles (200 OK)
@@ -27,3 +27,6 @@
     - [x] transition to Dynamic CORS (Environment Variables)
     - [x] Remove Default Secret Fallbacks (JWT_SECRET)
     - [x] Secure Internal Networking (Gateway -> API TLS)
+- [ ] Implement Manual Alert Verification
+    - [ ] Backend: Add VerifyAlert DB function & Handler
+    - [ ] Frontend: Connect Verify Button to API

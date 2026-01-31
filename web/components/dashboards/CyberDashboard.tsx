@@ -902,7 +902,22 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                 style={{ borderColor: currentTheme.primary + '33', color: currentTheme.primary }}>
                                 Dispatch Response
                             </button>
-                            <button className="flex-1 h-12 rounded-xl text-black text-[11px] font-black tracking-widest uppercase hover:scale-[1.02] transition-all"
+                            <button
+                                onClick={async () => {
+                                    if (selectedAlert) {
+                                        const success = await verifyAlert(selectedAlert.id);
+                                        if (success) {
+                                            // Optimistic Update
+                                            const updatedAlert = { ...selectedAlert, isTrusted: true, verification_count: (selectedAlert.verification_count || 0) + 1 };
+                                            setSelectedAlert(updatedAlert);
+                                            setAlerts(prev => prev.map(a => a.id === selectedAlert.id ? updatedAlert : a));
+                                            alert('ALERT INTEGRITY VERIFIED ON DATABASE.');
+                                        } else {
+                                            alert('Verification Failed. Check console.');
+                                        }
+                                    }
+                                }}
+                                className="flex-1 h-12 rounded-xl text-black text-[11px] font-black tracking-widest uppercase hover:scale-[1.02] transition-all"
                                 style={{ backgroundColor: currentTheme.primary, boxShadow: `0 0 20px ${currentTheme.secondary}` }}>
                                 Verify Integrity
                             </button>

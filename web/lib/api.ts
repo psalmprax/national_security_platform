@@ -237,6 +237,22 @@ export async function dispatchAsset(assetId: string): Promise<boolean> {
     }
 }
 
+export async function verifyAlert(alertId: string): Promise<boolean> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/alerts/${alertId}/verify`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to verify alert:', error);
+        return false;
+    }
+}
+
 export async function fetchAssets(): Promise<Asset[]> {
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1/assets`, {

@@ -28,6 +28,22 @@ Address remaining cyber security loopholes across frontend, backend, networking,
 
 #### [MODIFY] [AuthContext.tsx](file:///home/psalmprax/national_security_platform/web/lib/AuthContext.tsx)
 - **CSRF Token Handling**: Update the API client to extract the CSRF token from the cookie or a custom header and include it in all mutating requests.
+    
+### [Component: Manual Alert Verification (New)]
+
+#### [MODIFY] [repository.go](file:///home/psalmprax/national_security_platform/backend/core-api/internal/db/repository.go)
+- **Implement `VerifyAlert`**: Add a function to atomically increment the `verification_count` of an alert. `UPDATE alerts SET verification_count = verification_count + 1 WHERE id = $1`.
+
+#### [MODIFY] [main.go](file:///home/psalmprax/national_security_platform/backend/core-api/cmd/server/main.go)
+- **Implement `handleVerifyAlert`**: Add a POST handler for `/api/v1/alerts/{id}/verify`.
+- **Register Route**: Add the route to the secured API group.
+
+#### [MODIFY] [api.ts](file:///home/psalmprax/national_security_platform/web/lib/api.ts)
+- **Update Client**: Add `verifyAlert(alertId: string)` function.
+
+#### [MODIFY] [CyberDashboard.tsx](file:///home/psalmprax/national_security_platform/web/components/dashboards/CyberDashboard.tsx)
+- **UI Interaction**: Wire the "VERIFY INTEGRITY" button to call `verifyAlert`.
+- **State Update**: Optimistically update the UI to show "VERIFIED" without needing a reload.
 
 ## Verification Plan
 

@@ -583,3 +583,23 @@ func GetVillageLocation(ctx context.Context, villageID uuid.UUID) (float64, floa
 	}
 	return lat, lon, nil
 }
+
+// VerifyAlert increments the verification count of an alert
+func VerifyAlert(ctx context.Context, alertID uuid.UUID) error {
+	query := `
+		UPDATE alerts 
+		SET verification_count = verification_count + 1, updated_at = current_timestamp()
+		WHERE id = $1
+	`
+	result, err := Pool.Exec(ctx, query, alertID)
+	if err != nil {
+		return fmt.Errorf("failed to verify alert: %w", err)
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("alert not found")
+	}
+
+	return nil
+}

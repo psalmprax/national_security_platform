@@ -103,3 +103,17 @@ Following a deep-dive security audit, the platform has been hardened to meet pro
 - [x] **Core API**: Successfully starts with TLS 1.3 enabled.
 - [x] **Security Sentinel**: Now confirms `PASSED (0 issues)` with SSL verification bypassed for internal checks.
 - [x] **AuthZ Checks**: Attempting to access restricted endpoints without valid credentials correctly returns 401/403.
+
+## Manual Alert Verification Feature
+
+Added functionality for operators to manually verify the integrity of an alert, incrementing its trust score in the database.
+
+### Implementation Details
+- **Backend**: Added `POST /api/v1/alerts/{id}/verify` endpoint.
+- **Frontend**: Added "Verify Integrity" button to the Alert Detail modal.
+- **Schema**: Added `updated_at` column to `alerts` table to support the verification update query.
+
+### Verification Results
+- [x] **API Test**: Successfully called the verification endpoint using a Python script in the `intelligence-service` container (simulating internal service-to-service or client call).
+- [x] **Database Update**: Verified that `verification_count` incremented from `0` to `1` for the test alert.
+- [x] **Error Resolution**: Diagnosed and fixed a 500 Internal Server Error caused by a missing `updated_at` column in the database schema.

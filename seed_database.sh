@@ -14,6 +14,7 @@ FILES=(
     "platform/schema/008_security_sentinel_schema.sql" # Security Scans
     "platform/schema/009_spatial_tuning.sql"           # Spatial indices
     "platform/schema/012_location_source.sql"          # Alerts location source
+    "platform/schema/016_add_updated_at.sql"           # Add updated_at column to alerts
     "platform/schema/004_rbac_roles.sql"               # RBAC test users (deletes from agency_personnel)
     "platform/schema/002_test_data.sql"                # Traditional rulers
     "platform/schema/010_test_agencies.sql"            # Real agency data
@@ -21,6 +22,8 @@ FILES=(
     "platform/schema/006_auth_and_status.sql"          # Users auth fields (MUST RUN AFTER USER CREATION)
     "platform/schema/005_simulation_data.sql"          # Scenario-specific alerts
     "platform/schema/013_real_seeding_data.sql"        # REAL Nigerian location data
+    "platform/schema/014_national_coverage.sql"        # National Coverage (37 States + FCT)
+    "platform/schema/015_procedural_fill.sql"          # Procedural Villages for Load Testing
 )
 
 for file in "${FILES[@]}"; do

@@ -155,6 +155,7 @@ func main() {
 			handleSubmitAlert(w, r, alertService, intelClient)
 		})
 		r.Post("/api/v1/assets/{id}/dispatch", agency.DispatchAssetHandler)
+		r.Post("/api/v1/alerts/{id}/verify", handleVerifyAlert)
 
 		// Onboarding (authenticated/verified)
 		r.Post("/api/v1/auth/onboard", handleOnboard)
@@ -598,4 +599,21 @@ func respondJSON(w http.ResponseWriter, status int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(payload)
+}
+
+func handleVerifyAlert(w http.ResponseWriter, r *http.Request) {
+	alertIDStr := chi.URLParam(r, "id")
+	alertID, err := uuid.Parse(alertIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid alert ID format"})
+		return
+	}
+
+	if err := db.VerifyAlert(r.Context(), alertID); err != nil {
+		log.Printf("Verify alert error: %v", err)
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to verify alert"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Alert integrity verified"})
 }
