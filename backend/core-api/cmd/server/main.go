@@ -140,6 +140,7 @@ func main() {
 	r.Post("/api/v1/auth/login", handleLogin)
 	r.Post("/api/v1/auth/dashboard-login", handleDashboardLogin)
 	r.Post("/api/v1/auth/request-access", handleRequestAccess)
+	r.Post("/api/v1/auth/logout", handleLogout)
 
 	// Server-Sent Events Pattern
 	r.Get("/api/v1/events/stream", sse.Stream.HandleEvents)
@@ -297,6 +298,22 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	})
 
 	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Login successful", Token: token})
+}
+
+func handleLogout(w http.ResponseWriter, r *http.Request) {
+	// Clear HttpOnly Cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true, // Should match the login cookie secure attribute (dynamic based on env ideally, but true is safer)
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Logged out successfully"})
 }
 
 func handleDashboardLogin(w http.ResponseWriter, r *http.Request) {

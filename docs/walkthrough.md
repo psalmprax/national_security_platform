@@ -141,3 +141,10 @@ The final production build of the `web-dashboard` service encountered a compilat
   - Modified `CyberDashboard.tsx`: Applied `.replace(/_/g, ' ')` to `alert.type` in the Notification panel, Alert List card, and Data Table.
   - Modified `MapboxMap.tsx`: Applied `.replace(/_/g, ' ')` to `selectedAlert.type` in the Map HUD.
 - **Verification**: Rebuilt `web-dashboard` container successfully. format is applied on the client side.
+
+### Secure Logout Implementation
+- **Goal**: Ensure the logout button properly clears the HttpOnly `auth_token` cookie, preventing session reuse.
+- **Changes**:
+  - **Backend (`core-api`)**: Added `handleLogout` endpoint at `POST /api/v1/auth/logout` that sets the `auth_token` cookie `MaxAge` to -1.
+  - **Frontend (`web-dashboard`)**: Updated `AuthContext.tsx` to call the backend logout endpoint before clearing client state and redirecting.
+- **Verification**: Rebuilt `core-api` and `web-dashboard` containers. Logout now triggers a server-side cookie clearance.

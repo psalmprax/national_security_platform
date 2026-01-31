@@ -63,13 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/');
     };
 
-    const logout = () => {
-        // To clear an HttpOnly cookie, we ideally need a backend logout endpoint.
-        // For now, we'll clear the client-side state and overwrite the cookie if possible, 
-        // though HttpOnly cookies can only be fully cleared by the server.
-        document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        setUser(null);
-        router.push('/login');
+    const logout = async () => {
+        try {
+            await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+                method: 'POST',
+            });
+        } catch (error) {
+            console.error('Logout API call failed:', error);
+        } finally {
+            // Always clear client state even if API fails
+            setUser(null);
+            router.push('/login');
+        }
     };
 
     const checkAuth = async () => {
