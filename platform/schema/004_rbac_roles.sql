@@ -1,6 +1,8 @@
 -- Insert users with specific roles for Dashboard RBAC testing
 -- Insert users with specific roles for Dashboard RBAC testing
 DELETE FROM corroborations;
+DELETE FROM media_attachments;
+DELETE FROM alerts;
 DELETE FROM alerts;
 DELETE FROM devices;
 DELETE FROM audit_logs;
