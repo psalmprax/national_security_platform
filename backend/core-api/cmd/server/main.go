@@ -280,7 +280,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := security.GenerateToken(user.ID, user.Role)
+	token, err := security.GenerateToken(user.ID, user.Role, user.ClearanceLevel)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Token generation failed"})
 		return
@@ -342,7 +342,7 @@ func handleDashboardLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := security.GenerateToken(user.ID, user.Role)
+	token, err := security.GenerateToken(user.ID, user.Role, user.ClearanceLevel)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Token generation failed"})
 		return
@@ -397,7 +397,12 @@ func handleRequestAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetAlerts(w http.ResponseWriter, r *http.Request) {
-	alerts, err := db.GetRecentAlerts(r.Context(), 50)
+	userClearance, _ := r.Context().Value(middleware.UserClearanceKey).(string)
+	// Default to UNCLASSIFIED if missing (should be caught by middleware though)
+	if userClearance == "" {
+		userClearance = "UNCLASSIFIED"
+	}
+	alerts, err := db.GetRecentAlerts(r.Context(), 50, userClearance)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve alerts"})
 		return
@@ -537,7 +542,11 @@ func handleGetAlertTriangulation(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetSectorReport(w http.ResponseWriter, r *http.Request) {
-	alerts, err := db.GetRecentAlerts(r.Context(), 100)
+	userClearance, _ := r.Context().Value(middleware.UserClearanceKey).(string)
+	if userClearance == "" {
+		userClearance = "UNCLASSIFIED"
+	}
+	alerts, err := db.GetRecentAlerts(r.Context(), 100, userClearance)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to gather alert data"})
 		return

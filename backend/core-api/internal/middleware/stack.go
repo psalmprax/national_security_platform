@@ -29,15 +29,15 @@ func SecurityStack(r *chi.Mux) {
 	// 1. CSRF Protection
 	r.Use(CSRFMiddleware)
 
-	// 2. Rate Limiting (IP-based)
-	limiter := NewRateLimiter(5, 10) // 5 req/s, burst 10
-	r.Use(limiter.Handler)
-
-	// 2. Basic Middleware
+	// 2. Basic Middleware (Must run first for correct IP resolution)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	// 3. Rate Limiting (IP-based) - Now sees the Real IP
+	limiter := NewRateLimiter(5, 10) // 5 req/s, burst 10
+	r.Use(limiter.Handler)
 
 	// 3. CORS Configuration (Dynamic)
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")

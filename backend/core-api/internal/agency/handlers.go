@@ -114,8 +114,45 @@ func CreateAssetHandler(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, Response{Success: true, Message: "Asset created successfully", Data: asset})
 }
 
-// ListAssetsHandler retrieves all assets
+// ListAssetsHandler retrieves assets based on user role (Agency-Specific vs Global)
 func ListAssetsHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. Check User Role
+	userRole, ok := r.Context().Value(middleware.UserRoleKey).(string)
+	if !ok {
+		// Should be caught by AuthMiddleware, but for safety:
+		respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "Unauthorized"})
+		return
+	}
+
+	// 2. Filter for Agency Officers
+	if userRole == "AGENCY_OFFICER" {
+		userIDStr, ok := r.Context().Value(middleware.UserIDKey).(string)
+		if !ok {
+			respondJSON(w, http.StatusUnauthorized, Response{Success: false, Message: "User ID not found in context"})
+			return
+		}
+		userID, _ := uuid.Parse(userIDStr)
+
+		// Get User's Agency
+		agencyInfo, err := db.GetUserAgencyInfo(r.Context(), userID)
+		if err != nil {
+			log.Printf("Failed to get agency for user %s: %v", userID, err)
+			respondJSON(w, http.StatusForbidden, Response{Success: false, Message: "You are not assigned to any agency"})
+			return
+		}
+
+		// Get Agency Assets
+		assets, err := db.GetAssetsByAgency(r.Context(), agencyInfo.ID)
+		if err != nil {
+			log.Printf("Failed to retrieve agency assets: %v", err)
+			respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve agency assets"})
+			return
+		}
+		respondJSON(w, http.StatusOK, assets)
+		return
+	}
+
+	// 3. Admin/Strategic View (Global)
 	assets, err := db.GetAllAssets(r.Context())
 	if err != nil {
 		log.Printf("Failed to retrieve assets: %v", err)

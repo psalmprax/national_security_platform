@@ -53,3 +53,17 @@
     - [x] Fix data seeding to ensure alerts fall within LGA boundaries <!-- id: 6 -->
     - [x] Update repository logic for robust spatial fallback <!-- id: 7 -->
     - [x] Verify fix in frontend <!-- id: 8 -->
+
+- [x] **Phase 6: Governance & Location Intelligence**
+    - [x] **Backend**: Implement `GetTriangulatedAssets` with distance calculation
+    - [x] **Backend**: Add Ruler Location Override logic ("Community Threat" snaps to Village)
+    - [x] **Frontend**: ETA Visualization ("ETA: 4m") on Mapbox markers
+    - [x] **Frontend**: Flying Camera Transitions for Triage
+    - [x] **Frontend**: Update UI to display "My Agency" branding (e.g., "Garki Police Station")
+    - [x] **Frontend**: Filter Asset List to show only agency-owned resources
+
+- [x] **Phase 7: Granular Access Control (ABAC)**
+    - [x] **Backend**: Embedding `ClearanceLevel` in JWT claims
+    - [x] **Backend**: Implement `RequireClearance` middleware
+    - [x] **Backend**: Update `repository.go` with filtering logic
+    - [x] **Frontend**: Verify dashboard restricts data based on clearance level

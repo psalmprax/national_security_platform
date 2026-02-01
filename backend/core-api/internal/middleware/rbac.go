@@ -11,9 +11,18 @@ import (
 type contextKey string
 
 const (
-	UserIDKey   contextKey = "userID"
-	UserRoleKey contextKey = "userRole"
+	UserIDKey        contextKey = "userID"
+	UserRoleKey      contextKey = "userRole"
+	UserClearanceKey contextKey = "userClearance"
 )
+
+var clearanceLevels = map[string]int{
+	"UNCLASSIFIED": 1,
+	"RESTRICTED":   2,
+	"CONFIDENTIAL": 3,
+	"SECRET":       4,
+	"TOP_SECRET":   5,
+}
 
 // AuthMiddleware is chi-compatible middleware for JWT verification
 func AuthMiddleware(next http.Handler) http.Handler {
@@ -50,6 +59,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
 		ctx = context.WithValue(ctx, UserRoleKey, claims.Role)
+		ctx = context.WithValue(ctx, UserClearanceKey, claims.ClearanceLevel)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -88,6 +98,28 @@ func RequireAnyRole(roles ...string) func(http.Handler) http.Handler {
 
 			if !found {
 				http.Error(w, "Forbidden: insufficient permissions", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// RequireClearance enforces a minimum clearance level.
+func RequireClearance(minimumLevel string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userClearance, ok := r.Context().Value(UserClearanceKey).(string)
+			if !ok {
+				http.Error(w, "Forbidden: clearance not found", http.StatusForbidden)
+				return
+			}
+
+			userLevel := clearanceLevels[userClearance]
+			requiredLevel := clearanceLevels[minimumLevel]
+
+			if userLevel < requiredLevel {
+				http.Error(w, "Forbidden: insufficient clearance", http.StatusForbidden)
 				return
 			}
 			next.ServeHTTP(w, r)

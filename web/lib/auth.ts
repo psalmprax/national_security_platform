@@ -1,6 +1,7 @@
 export interface Session {
     user: string;
     role: string;
+    clearance: string;
     exp: number;
 }
 
@@ -44,6 +45,7 @@ export async function verifySession(token: string): Promise<Session | null> {
         return {
             user: (payload.user_id as string) || 'unknown',
             role: (payload.role as string) || 'GUEST',
+            clearance: (payload.clearance_level as string) || 'UNCLASSIFIED',
             exp: payload.exp || 0
         };
     } catch (e) {

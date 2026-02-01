@@ -16,12 +16,13 @@ var (
 )
 
 type Claims struct {
-	UserID string `json:"user_id"`
-	Role   string `json:"role"`
+	UserID         string `json:"user_id"`
+	Role           string `json:"role"`
+	ClearanceLevel string `json:"clearance_level"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID uuid.UUID, role string) (string, error) {
+func GenerateToken(userID uuid.UUID, role string, clearanceLevel string) (string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Fatalf("FATAL ERROR: JWT_SECRET environment variable is not set. Refusing to start in insecure state.")
@@ -29,8 +30,9 @@ func GenerateToken(userID uuid.UUID, role string) (string, error) {
 	}
 
 	claims := Claims{
-		UserID: userID.String(),
-		Role:   role,
+		UserID:         userID.String(),
+		Role:           role,
+		ClearanceLevel: clearanceLevel,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

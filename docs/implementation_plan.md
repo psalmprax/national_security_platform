@@ -1,44 +1,41 @@
-# Security Sentinel SAST Integration Plan
+# Granular Access Control (ABAC) Implementation Plan
 
-## Goal
-Enhance the `security-sentinel` service to perform **Static Application Security Testing (SAST)** alongside its existing DAST capabilities. This will allow it to detect insecure coding patterns, hardcoded secrets, and configuration flaws.
+This plan details the implementation of Attribute-Based Access Control (ABAC) to introduce data-centric security layers beyond simple Role-Based Access Control (RBAC).
+
+## Goal Description
+The objective is to enforce "Need-to-Know" principles by restricting access to sensitive data based on a user's `ClearanceLevel`. This prevents authorized role-holders from seeing data they are not cleared for (e.g., a standard Cyber Analyst seeing Top Secret intelligence).
 
 ## User Review Required
 > [!IMPORTANT]
-> **Performance Impact**: Scanning source code is resource-intensive. The scanner will run periodically (e.g., every hour) rather than continuously to avoid CPU spikes.
-> **Volume Mounts**: We will mount the entire `backend/` directory into the sentinel container as Read-Only (`:ro`) to allow scanning.
+> This change will affect all API endpoints protected by `AuthMiddleware`. Existing valid tokens will need to be re-issued (user re-login) to contain the new `ClearanceLevel` claim.
 
 ## Proposed Changes
 
-### Infrastructure (`docker-compose.yml`)
-#### [MODIFY] `security-sentinel` service
-- Add volume mounts for source code:
-    - `./backend/core-api:/usr/src/scan/core-api:ro`
-    - `./backend/intelligence-service:/usr/src/scan/intelligence-service:ro`
-    - `./backend/security-sentinel:/usr/src/scan/self:ro`
+### Backend (Go Core API)
 
-### Build (`backend/security-sentinel/Dockerfile`)
-#### [MODIFY] Dockerfile
-- Install `gosec` (Go Security Checker) via curl/sh script.
-- Ensure `pip` installs `bandit` (Python Security Checker).
+#### [MODIFY] [internal/security/jwt.go](file:///home/psalmprax/national_security_platform/backend/core-api/internal/security/jwt.go)
+- **Update Token Generation**: Include `ClearanceLevel` in the JWT payload.
+- **Update Verification**: Extract `ClearanceLevel` during verification.
 
-### Logic (`backend/security-sentinel/`)
-#### [MODIFY] `requirements.txt`
-- Add `bandit`
+#### [MODIFY] [internal/middleware/rbac.go](file:///home/psalmprax/national_security_platform/backend/core-api/internal/middleware/rbac.go)
+- **Update AuthMiddleware**: Extract `ClearanceLevel` from token claims and place it into the request context.
+- **New Middleware**: `RequireClearance(level string)`.
+    - Enforce hierarchy: `TOP_SECRET` > `SECRET` > `CONFIDENTIAL` > `RESTRICTED` > `UNCLASSIFIED`.
 
-#### [MODIFY] `main.py`
-- Import `subprocess` (securely).
-- Implement `run_static_analysis()` function:
-    - Run `bandit -r /usr/src/scan/intelligence-service -f json`
-    - Run `gosec -fmt=json -r /usr/src/scan/core-api`
-- Parse results and standardize them into the `findings` list.
-- Persist combined SAST/DAST results to `security_scans` table.
+#### [MODIFY] [internal/db/repository.go](file:///home/psalmprax/national_security_platform/backend/core-api/internal/db/repository.go)
+- **Update Queries**:
+    - Modify sensitive data retrieval (e.g., `GetRecentAlerts`, `GetUserByID`) to respect the user's clearance level.
+    - Example: Filter PII or specific alert types if user clearance is too low.
+
+### Frontend (Next.js)
+
+#### [MODIFY] [web/lib/auth.ts](file:///home/psalmprax/national_security_platform/web/lib/auth.ts)
+- Update `Session` interface to include `clearance`.
+- Update `verifySession` to parse the new claim.
 
 ## Verification Plan
-### Automated Tests
-- Run `docker-compose up --build security-sentinel`
-- Verify logs show "Starting SAST Scan..."
-- specific vulnerability triggers (like the one I will verify exists or mock) should appear in the logs.
-
-### Manual Verification
-- Check `docker logs` for `[SAST] Found potential hardcoded password` or similar.
+1.  **Token Validation**: Log in as a high-clearance user and decode the JWT to verify the `ClearanceLevel` claim exists.
+2.  **Middleware Test**: create a test endpoint requiring `TOP_SECRET` and try accessing it with a `CONFIDENTIAL` user.
+3.  **Data Visibility**:
+    - Verify a `CONFIDENTIAL` user sees standard data.
+    - Verify a `TOP_SECRET` user sees sensitive PII or restricted alerts.

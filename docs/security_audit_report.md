@@ -45,3 +45,26 @@ The National Security Platform has a strong foundational security posture with r
 1.  **Enable mTLS**: Generate certs and configure `intelligence-service` to use them.
 2.  **Harden CSP**: Remove `'unsafe-inline'` where possible.
 3.  **Secrets Management**: Move secrets from `docker-compose.yml` env vars to Docker Secrets or a Vault in production.
+
+## 7. Comprehensive Vulnerability Check (V2) - Feb 1, 2026
+**Auditor**: Antigravity (Requested by User)
+
+### 7.1 Static Code Analysis
+- **Hardcoded Secrets**: **PASS**. Grep scan of `web/` and `backend/` revealed no high-entropy strings resembling API keys or passwords committed to source.
+- **Weak Cryptography**: **PASS**. No instances of `md5`, `sha1`, or insecure usage of `math/rand` found in security-critical paths.
+- **Password Hashing**: **PASS**. Confirmed use of `golang.org/x/crypto/bcrypt` (DefaultCost) in `backend/core-api/cmd/server/main.go` for user registration and login.
+- **Serialization**: **PASS**. No blind `json.Unmarshal` into struct-less interfaces found.
+
+### 7.2 Logic & Middleware Analysis
+- **Rate Limiting (DoS)**: **FIXED [CRITICAL]**.
+    - **Finding**: The `RateLimiter` middleware was applied *before* the `RealIP` middleware.
+    - **Resolution**: Reordered `middleware/stack.go` to apply `RealIP` first. The system now correctly throttles based on the client's true IP address.
+- **Cross-Origin Resource Sharing (CORS)**: **PASS**. `AllowedOrigins` is strict (configurable via env) and does not allow wildcard `*` with credentials.
+- **Content Security Policy (CSP)**: **WARN [MEDIUM]**.
+    - **Finding**: Policy allows `'unsafe-inline'` for scripts and styles.
+    - **Impact**: Reduced protection against XSS if an injection vector is discovered.
+    - **Remediation**: Implement Nonce-based CSP for Next.js.
+- **Internal Encryption**: **PASS**. `backend/core-api/internal/security/crypto.go` correctly uses `AES-GCM` for data encryption and `Ed25519` for digital signatures.
+
+### 7.3 Infrastructure Analysis
+- **Frontend Dependencies**: **PASS**. `package.json` uses modern versions of `react` (18.2) and `next` (14.1). No known vulnerability patterns found in source.

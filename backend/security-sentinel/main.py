@@ -106,6 +106,18 @@ def perform_scan():
                         "message": f"Missing security header: {header}",
                         "remediation": "Add header to middleware/stack.go"
                     })
+                
+                # Strict CSP Validation
+                if header == "Content-Security-Policy" and header in response.headers:
+                    csp_value = response.headers[header]
+                    if "'unsafe-inline'" in csp_value or "'unsafe-eval'" in csp_value:
+                        findings.append({
+                            "type": "WEAK_POLICY",
+                            "severity": "MEDIUM",
+                            "path": ep['path'],
+                            "message": f"CSP contains unsafe directives: {csp_value}",
+                            "remediation": "Remove 'unsafe-inline' and 'unsafe-eval' from CSP."
+                        })
 
             # SQL Injection Probing (GET params)
             for payload in SQLI_PAYLOADS:
@@ -124,23 +136,28 @@ def perform_scan():
             logger.warning(f"Failed to scan {full_url}: {e}")
 
     # 2. Rate Limiting Verification
-    logger.info("🧪 Testing Rate Limiting...")
+    logger.info("🧪 Testing Rate Limiting (DoS Protection)...")
     rate_limit_hits = 0
-    for _ in range(15):
+    # Increased probe count to 50 to guarantee limit (5/s) is hit
+    for i in range(50):
         try:
             res = requests.get(f"{TARGET_URL}/health", timeout=1, verify=False)
             if res.status_code == 429:
                 rate_limit_hits += 1
+                if rate_limit_hits >= 5: # Confirm it's consistently blocking
+                    break
         except: pass
     
     if rate_limit_hits == 0:
         findings.append({
             "type": "DOS_VULNERABILITY",
-            "severity": "HIGH",
+            "severity": "CRITICAL",
             "path": "/health",
-            "message": "Rate limiting appears inactive. Brute force or DoS possible.",
-            "remediation": "Configure nginx limit_req or internal rate limiting middleware."
+            "message": "Rate limiting inactive! Sent 50 reqs, 0 blocked.",
+            "remediation": "Check middleware order: RealIP must run before RateLimiter."
         })
+    else:
+        logger.info(f"   ✅ Rate Limiter active. Blocked {rate_limit_hits} requests.")
 
     # 3. Infrastructure Audits
     infra_checks = [

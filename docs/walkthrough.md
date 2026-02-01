@@ -174,4 +174,56 @@ Alerts in the dashboard were displaying "GRID: [COORDS]" instead of their resolv
 
 ## UI Polish: Telemetry Scrollbar
 
-Updated the "Raw Telemetry Stream" container in the **Tactical Analysis Locked** modal to use the custom `scrollbar-cyber` style (matching the Intelligence Triage sidebar) instead of being hidden (`scrollbar-hide`). This improves usability for inspecting long JSON payloads while maintaining the cyber-aesthetic.
+Updated the "Raw Telemetry Stream" container in the **Tactical Analysis Locked** modal to use the custom `scrollbar-cyber` style (matching the Intelligence Triage sidebar) instead of being hidden (`scrollbar-hide`). This improves usability for inspection of long JSON payloads while maintaining the cyber-aesthetic.
+
+## Governance & Location Intelligence
+We have enhanced the National Security Platform with deep spatial intelligence and protocols to ensure mission-critical alert accuracy.
+
+### 1. Spatial Triage Engine
+- **Automatic Resolution**: Every alert now automatically resolves its **LGA** and **State** names via PostGIS spatial joins.
+- **Improved UX**: Analysts see administrative names immediately, reducing cognitive load during high-intensity triage.
+
+### 2. Traditional Ruler Protocol (Governance Override)
+- **Problem**: Monarchs often report threats while outside their domain, but the alert must reflect the *village* being threatened, not the Monarch's temporary GPS location.
+- **Solution**: The system now detects `TRADITIONAL_RULER` roles reporting "Community Threats" and automatically **snaps their location to their registered Village**.
+- **Auditability**: Alerts are tagged with `location_source` (GPS vs GOVERNANCE_OVERRIDE) for analytical integrity.
+
+### 3. Interactive Dashboard UX
+- **Alert-to-Map Navigation**: List items in the **Alert Triage** view are now clickable. Selecting an alert triggers a smooth Mapbox camera transition (Fly-To) and sets tactical focus on the incident.
+- **Tactical Grid Fallback**: Replaced "Unknown Sector" with formatted **GRID references** (e.g., `GRID: 9.12, 8.43`) to maintain a high-precision military aesthetic.
+
+## Agency Portal V2 (Multi-Station Support)
+Enhanced the Agency Command Portal to support multi-station use with context isolation.
+
+### Backend Changes
+- **Context Isolation**: Implemented `GetAssetsByAgency` query and updated `ListAssetsHandler` to filter assets based on the logged-in officer's agency.
+- **Role-Based Filtering**:
+  - `AGENCY_OFFICER`: Restricted to own agency's assets.
+  - `ADMIN`: Full visibility of all national assets.
+- **Repository Enhancements**: Added `GetUserAgencyInfo` to dynamically retrieve agency details.
+
+### Frontend Enhancements
+- **Integrated Map View**: Added a toggle to switch between "List View" and "Map View" in the Agency Portal.
+- **Agency Branding**: Portal header now dynamically displays the agency's name (e.g., "Garki Police Station") instead of a generic title.
+- **Component Reuse**: Refactored `MapboxMap` to accept an external `resources` prop, allowing agency-specific data injection without redundant API calls.
+
+## Granular Access Control (ABAC)
+Introduced a data-centric security layer to enforce "Need-to-Know" principles beyond standard roles.
+
+### Security Hierarchy
+Implemented a strict 5-level clearance system:
+1.  **UNCLASSIFIED**: Public data.
+2.  **RESTRICTED**: Internal operations.
+3.  **CONFIDENTIAL**: Private personal data (PII).
+4.  **SECRET**: Intelligence sources.
+5.  **TOP_SECRET**: State-level threats.
+
+### Implementation Details
+- **Token Security**: JWTs now carry an immutable `ClearanceLevel` claim.
+- **Middleware Enforcement**: New `RequireClearance(level)` interceptor blocks requests before they reach handlers.
+- **Data Filtering**: Database queries automatically redact sensitive fields (e.g., Victim Names, Informant IDs) for users with insufficient clearance, even if they have the correct Role.
+
+### Verification
+- [x] Backend compilation passed.
+- [x] Middleware logic implemented.
+- [x] Repository filtering applied to Alert feeds.

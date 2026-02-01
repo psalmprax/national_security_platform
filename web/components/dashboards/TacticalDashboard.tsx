@@ -279,7 +279,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                     <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                         <Users className="w-3 h-3 text-yellow-500" /> Active Agents
                                     </h4>
-                                    <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
+                                    <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-cyber">
                                         {assets.length === 0 ? (
                                             <div className="text-[10px] text-zinc-600 italic text-center py-4">No active field units.</div>
                                         ) : (

@@ -298,6 +298,12 @@ erDiagram
 *   **Multi-Factor (MFA)**: Biometric (Face/Fingerprint) + PIN required to open the app.
 *   **Duress Mode**: Special "Panic PIN" that unlocks the app but silently flags all actions as forced/duress to HQ.
 
+### 5.3 Granular Access Control (ABAC)
+Beyond standard Role-Based Access Control (RBAC), the system implements Attribute-Based Access Control (ABAC) using a hierarchical **Clearance Level** system:
+*   **Levels**: `UNCLASSIFIED` < `RESTRICTED` < `CONFIDENTIAL` < `SECRET` < `TOP_SECRET`.
+*   **Mechanism**: Clearance levels are embedded in immutable JWT claims.
+*   **Data Redaction**: The database layer (Repository) automatically redacts sensitive fields (PII, source identity) if the requesting user's clearance is insufficient, ensuring "Need-to-Know" compliance even if a valid role is present.
+
 ---
 
 ## 6. AI & Geospatial Intelligence

@@ -229,8 +229,36 @@ func GetAllAssets(ctx context.Context) ([]models.Asset, error) {
 	return assets, nil
 }
 
-// GetRecentAlerts retrieves the most recent alerts with a limit
-func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
+// GetAssetsByAgency retrieves all assets for a specific agency
+func GetAssetsByAgency(ctx context.Context, agencyID uuid.UUID) ([]models.Asset, error) {
+	query := `
+		SELECT id, agency_id, name, type, st_x(location), st_y(location), status, description, call_sign, capacity_level, last_updated_at, created_at
+		FROM assets
+		WHERE agency_id = $1
+	`
+	rows, err := Pool.Query(ctx, query, agencyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query agency assets: %w", err)
+	}
+	defer rows.Close()
+
+	var assets []models.Asset
+	for rows.Next() {
+		var a models.Asset
+		err := rows.Scan(&a.ID, &a.AgencyID, &a.Name, &a.Type, &a.Longitude, &a.Latitude, &a.Status, &a.Description, &a.CallSign, &a.CapacityLevel, &a.LastUpdatedAt, &a.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan asset: %w", err)
+		}
+		assets = append(assets, a)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating agency assets: %w", err)
+	}
+	return assets, nil
+}
+
+// GetRecentAlerts retrieves the most recent alerts with a limit, filtering based on clearance
+func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]models.Alert, error) {
 	// Added spatial join to resolve LGA and State names
 	query := `
 		SELECT 
@@ -257,6 +285,19 @@ func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
 	defer rows.Close()
 
 	var alerts []models.Alert
+	// Define simple hierarchy check (duplicated from middleware for now to avoid circular imports or complexity)
+	levelScores := map[string]int{
+		"UNCLASSIFIED": 1,
+		"RESTRICTED":   2,
+		"CONFIDENTIAL": 3,
+		"SECRET":       4,
+		"TOP_SECRET":   5,
+	}
+	userScore := levelScores[clearanceLevel]
+	if userScore == 0 {
+		userScore = 1 // Default to lowest
+	}
+
 	for rows.Next() {
 		var alert models.Alert
 		var lgaName, stateName string
@@ -280,6 +321,17 @@ func GetRecentAlerts(ctx context.Context, limit int) ([]models.Alert, error) {
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan alert: %w", err)
+		}
+
+		// ABAC Filtering: Redact PII for low clearance
+		// Example rule: Confidential/Secret alerts need check
+		// For now, let's say if it's a "KIDNAPPING" or high severity, we redact content for lowest level
+		if userScore < 3 { // Below CONFIDENTIAL
+			if alert.PriorityClass == "CRITICAL" || alert.AlertType == "KIDNAPPING" {
+				redacted := "[REDACTED - INSUFFICIENT CLEARANCE]"
+				alert.ContentText = &redacted
+				alert.UserID = uuid.Nil // Hide reporter ID
+			}
 		}
 
 		// Set the resolved location
