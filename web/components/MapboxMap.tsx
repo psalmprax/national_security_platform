@@ -106,6 +106,69 @@ export default function MapboxMap({
         }
     }, [showSatellite, isCyber, isMapSupported]);
 
+    // Handle Alert Markers
+    useEffect(() => {
+        if (!isMapSupported || !mapRef.current) return;
+
+        // Remove markers for alerts that no longer exist
+        const currentIds = new Set(alerts.map(a => a.id));
+        Object.keys(markersRef.current).forEach(id => {
+            if (!currentIds.has(id)) {
+                markersRef.current[id].remove();
+                delete markersRef.current[id];
+            }
+        });
+
+        // Add or update markers
+        alerts.forEach(alert => {
+            const lng = Number(alert.longitude);
+            const lat = Number(alert.latitude);
+
+            if (!isValidCoordinate(lng, lat)) return;
+
+            // Determine base color: High severity is always red, others follow primaryColor
+            const color = alert.severity > 0.8 ? '#EF4444' : primaryColor;
+
+            if (markersRef.current[alert.id]) {
+                const marker = markersRef.current[alert.id];
+                marker.setLngLat([lng, lat]);
+                // Update marker element color if it changed
+                const el = marker.getElement();
+                const innerCircle = el.querySelector('div > div:last-child') as HTMLDivElement;
+                const pulseCircle = el.querySelector('div > div:first-child') as HTMLDivElement;
+                if (innerCircle) {
+                    innerCircle.style.background = color;
+                    innerCircle.style.boxShadow = `0 0 10px ${color}`;
+                }
+                if (pulseCircle) {
+                    pulseCircle.style.borderColor = color;
+                }
+            } else {
+                const el = document.createElement('div');
+                el.className = 'custom-marker';
+
+                el.innerHTML = `
+                    <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+                        <div style="position: absolute; width: 30px; height: 30px; border: 2px solid ${color}; border-radius: 50%; opacity: 0.4; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                        <div style="width: 12px; height: 12px; background: ${color}; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px ${color};"></div>
+                    </div>
+                `;
+
+                el.addEventListener('click', () => {
+                    onSelect?.(alert);
+                });
+
+                if (mapRef.current) {
+                    const marker = new mapboxgl.Marker(el)
+                        .setLngLat([lng, lat])
+                        .addTo(mapRef.current);
+
+                    markersRef.current[alert.id] = marker;
+                }
+            }
+        });
+    }, [alerts, isCyber, onSelect, isMapSupported, primaryColor]);
+
     // Handle Resource Markers
     useEffect(() => {
         if (!isMapSupported || !mapRef.current) return;
