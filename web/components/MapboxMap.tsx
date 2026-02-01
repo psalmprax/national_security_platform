@@ -45,9 +45,66 @@ export default function MapboxMap({
     const hasAttemptedInit = useRef(false);
     const isCyber = mode === 'cyber';
 
-    // ... (Map Init useEffect: Skipping for brevity in replacement, but ensuring we don't clobber it)
+    // Map Initialization
+    useEffect(() => {
+        if (!mapContainerRef.current || hasAttemptedInit.current) return;
+        hasAttemptedInit.current = true;
 
-    // ...
+        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        if (!token) {
+            console.error("Mapbox token missing");
+            setTokenError(true);
+            return;
+        }
+
+        mapboxgl.accessToken = token;
+
+        try {
+            const map = new mapboxgl.Map({
+                container: mapContainerRef.current,
+                style: showSatellite ? 'mapbox://styles/mapbox/satellite-v9' : (isCyber ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/outdoors-v12'),
+                center: [8.6753, 9.0820], // Nigeria center
+                zoom: 5.5,
+                pitch: isCyber ? 45 : 0,
+                antialias: true
+            });
+
+            map.on('load', () => {
+                mapRef.current = map;
+                setIsMapSupported(true);
+                setTokenError(false);
+            });
+
+            map.on('error', (e) => {
+                if (e.error && ((e.error as any).status === 401 || e.error.message?.includes('Unauthorized'))) {
+                    setTokenError(true);
+                }
+            });
+
+        } catch (err) {
+            console.error("Mapbox init error:", err);
+            setIsMapSupported(false);
+        }
+
+        return () => {
+            mapRef.current?.remove();
+        };
+    }, []);
+
+    // Handle Style and Pitch Changes
+    useEffect(() => {
+        if (!isMapSupported || !mapRef.current) return;
+        const newStyle = showSatellite ? 'mapbox://styles/mapbox/satellite-v9' : (isCyber ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/outdoors-v12');
+        try {
+            const currentStyle = mapRef.current.getStyle();
+            if (currentStyle && currentStyle.sprite !== newStyle) {
+                mapRef.current.setStyle(newStyle);
+            }
+            mapRef.current.setPitch(isCyber ? 45 : 0);
+        } catch (error) {
+            // Silently handle style update errors
+        }
+    }, [showSatellite, isCyber, isMapSupported]);
 
     // Handle Resource Markers
     useEffect(() => {
