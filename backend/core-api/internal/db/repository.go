@@ -152,21 +152,27 @@ func CreateAuditLog(ctx context.Context, entityID uuid.UUID, action string, acto
 func CreateUserRequest(ctx context.Context, user *models.User) error {
 	query := `
 		INSERT INTO users (
-			id, phone_number, full_name, role, status, password_hash, trust_score, clearance_level
+			id, phone_number, email, full_name, nin, role, monarch_grade, domain_territory, status, password_hash, trust_score, clearance_level, state_id, lga_id
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 		)
 	`
 
 	_, err := Pool.Exec(ctx, query,
 		user.ID,
 		user.PhoneNumber,
+		user.Email,
 		user.FullName,
+		user.NIN,
 		user.Role,
+		user.MonarchGrade,
+		user.DomainTerritory,
 		user.Status,
 		user.PasswordHash,
 		user.TrustScore,
 		user.ClearanceLevel,
+		user.StateID,
+		user.LGAID,
 	)
 
 	if err != nil {
@@ -600,7 +606,22 @@ func UpdateAssetStatus(ctx context.Context, assetID uuid.UUID, newStatus string)
 	return nil
 }
 
-// GetUserAgencyInfo retrieves the agency associated with a user
+// AddAgencyPersonnel links a user to an agency
+func AddAgencyPersonnel(ctx context.Context, userID, agencyID uuid.UUID, rank, role, badgeNumber string) error {
+	query := `
+		INSERT INTO agency_personnel (user_id, agency_id, rank, role, badge_number)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (user_id, agency_id) DO UPDATE SET
+			rank = EXCLUDED.rank,
+			role = EXCLUDED.role,
+			badge_number = EXCLUDED.badge_number
+	`
+	_, err := Pool.Exec(ctx, query, userID, agencyID, rank, role, badgeNumber)
+	if err != nil {
+		return fmt.Errorf("failed to add agency personnel: %w", err)
+	}
+	return nil
+}
 func GetUserAgencyInfo(ctx context.Context, userID uuid.UUID) (*models.Agency, error) {
 	query := `
 		SELECT a.id, a.name, a.acronym, a.type, a.jurisdiction_scope, a.hq_address, a.contact_phone, a.created_at
@@ -654,5 +675,71 @@ func VerifyAlert(ctx context.Context, alertID uuid.UUID) error {
 		return fmt.Errorf("alert not found")
 	}
 
+	return nil
+}
+
+// CreateMission inserts a new mission record
+func CreateMission(ctx context.Context, mission *models.Mission) error {
+	query := `
+		INSERT INTO missions (
+			id, alert_id, asset_id, commander_id, status, priority, eta_minutes, dispatch_time
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`
+	_, err := Pool.Exec(ctx, query,
+		mission.ID, mission.AlertID, mission.AssetID, mission.CommanderID,
+		mission.Status, mission.Priority, mission.ETAMinutes, mission.DispatchTime,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create mission: %w", err)
+	}
+	return nil
+}
+
+// GetActiveMissions retrieves all missions that are not completed or aborted
+func GetActiveMissions(ctx context.Context) ([]models.Mission, error) {
+	query := `
+		SELECT id, alert_id, asset_id, commander_id, status, priority, eta_minutes, dispatch_time, arrival_time, completion_time, created_at, updated_at
+		FROM missions
+		WHERE status NOT IN ('COMPLETED', 'ABORTED')
+		ORDER BY created_at DESC
+	`
+	rows, err := Pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query active missions: %w", err)
+	}
+	defer rows.Close()
+
+	var missions []models.Mission
+	for rows.Next() {
+		var m models.Mission
+		err := rows.Scan(
+			&m.ID, &m.AlertID, &m.AssetID, &m.CommanderID, &m.Status, &m.Priority,
+			&m.ETAMinutes, &m.DispatchTime, &m.ArrivalTime, &m.CompletionTime,
+			&m.CreatedAt, &m.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan mission: %w", err)
+		}
+		missions = append(missions, m)
+	}
+	return missions, nil
+}
+
+// UpdateMissionStatus updates the status of a mission and its related timestamps
+func UpdateMissionStatus(ctx context.Context, missionID uuid.UUID, status string) error {
+	var query string
+	switch status {
+	case "ON_SITE":
+		query = "UPDATE missions SET status = $1, arrival_time = current_timestamp(), updated_at = current_timestamp() WHERE id = $2"
+	case "COMPLETED", "ABORTED":
+		query = "UPDATE missions SET status = $1, completion_time = current_timestamp(), updated_at = current_timestamp() WHERE id = $2"
+	default:
+		query = "UPDATE missions SET status = $1, updated_at = current_timestamp() WHERE id = $2"
+	}
+
+	_, err := Pool.Exec(ctx, query, status, missionID)
+	if err != nil {
+		return fmt.Errorf("failed to update mission status: %w", err)
+	}
 	return nil
 }

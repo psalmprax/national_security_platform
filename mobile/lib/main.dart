@@ -6,6 +6,7 @@ import 'services/persistence_service.dart';
 import 'services/api_service.dart';
 import 'services/sync_service.dart';
 import 'services/auth_service.dart';
+import 'services/settings_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +18,9 @@ void main() async {
   final authService = AuthService(apiService);
   await authService.checkAuthStatus();
 
+  final settingsService = SettingsService();
+  await settingsService.init();
+
   final syncService = SyncService(persistenceService, apiService, authService);
   syncService.startAutoSync();
 
@@ -27,6 +31,7 @@ void main() async {
         Provider<PersistenceService>.value(value: persistenceService),
         Provider<ApiService>.value(value: apiService),
         Provider<SyncService>.value(value: syncService),
+        ChangeNotifierProvider<SettingsService>.value(value: settingsService),
       ],
       child: const CommunityAlertApp(),
     ),

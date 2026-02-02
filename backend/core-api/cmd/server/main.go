@@ -63,10 +63,19 @@ type LoginRequest struct {
 }
 
 type RequestAccessRequest struct {
-	PhoneNumber string `json:"phone_number"`
-	FullName    string `json:"full_name"`
-	Password    string `json:"password"`
-	Role        string `json:"role"`
+	PhoneNumber     string `json:"phone_number"`
+	FullName        string `json:"full_name"`
+	Email           string `json:"email"`
+	Password        string `json:"password"`
+	Role            string `json:"role"`
+	NIN             string `json:"nin"`
+	StateID         string `json:"state_id"`
+	LGAID           string `json:"lga_id"`
+	AgencyID        string `json:"agency_id,omitempty"`
+	Rank            string `json:"rank,omitempty"`
+	BadgeNumber     string `json:"badge_number,omitempty"`
+	MonarchGrade    string `json:"monarch_grade,omitempty"`
+	DomainTerritory string `json:"domain_territory,omitempty"`
 }
 
 func main() {
@@ -155,8 +164,14 @@ func main() {
 		r.Post("/api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
 			handleSubmitAlert(w, r, alertService, intelClient)
 		})
+		// Agency & Asset Management
 		r.Post("/api/v1/assets/{id}/dispatch", agency.DispatchAssetHandler)
 		r.Post("/api/v1/alerts/{id}/verify", handleVerifyAlert)
+
+		// Missions
+		r.Post("/api/v1/missions", handleCreateMission)
+		r.Get("/api/v1/missions/active", handleGetActiveMissions)
+		r.Patch("/api/v1/missions/{id}/status", handleUpdateMissionStatus)
 
 		// Onboarding (authenticated/verified)
 		r.Post("/api/v1/auth/onboard", handleOnboard)
@@ -377,20 +392,37 @@ func handleRequestAccess(w http.ResponseWriter, r *http.Request) {
 
 	pwStr := string(hashedPassword)
 	fullName := req.FullName
+	stateID, _ := uuid.Parse(req.StateID)
+	lgaID, _ := uuid.Parse(req.LGAID)
+
 	user := &models.User{
-		ID:             uuid.New(),
-		PhoneNumber:    req.PhoneNumber,
-		FullName:       &fullName,
-		Role:           req.Role,
-		Status:         "PENDING",
-		PasswordHash:   &pwStr,
-		TrustScore:     0.1,
-		ClearanceLevel: "UNCLASSIFIED",
+		ID:              uuid.New(),
+		PhoneNumber:     req.PhoneNumber,
+		Email:           &req.Email,
+		FullName:        &fullName,
+		NIN:             &req.NIN,
+		Role:            req.Role,
+		MonarchGrade:    &req.MonarchGrade,
+		DomainTerritory: &req.DomainTerritory,
+		Status:          "PENDING",
+		PasswordHash:    &pwStr,
+		TrustScore:      0.1,
+		ClearanceLevel:  "UNCLASSIFIED",
+		StateID:         &stateID,
+		LGAID:           &lgaID,
 	}
 
 	if err := db.CreateUserRequest(r.Context(), user); err != nil {
-		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to submit request"})
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to submit request: " + err.Error()})
 		return
+	}
+
+	// Handle Agency Link if provided
+	if req.AgencyID != "" {
+		agencyID, _ := uuid.Parse(req.AgencyID)
+		if err := db.AddAgencyPersonnel(r.Context(), user.ID, agencyID, req.Rank, "OPERATOR", req.BadgeNumber); err != nil {
+			log.Printf("Warning: failed to link user to agency during registration: %v", err)
+		}
 	}
 
 	respondJSON(w, http.StatusCreated, Response{Success: true, Message: "Registration request submitted. Awaiting approval."})
@@ -642,4 +674,75 @@ func handleVerifyAlert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Alert integrity verified"})
+}
+
+func handleCreateMission(w http.ResponseWriter, r *http.Request) {
+	var req models.CreateMissionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	commanderIDStr, _ := r.Context().Value(middleware.UserIDKey).(string)
+	commanderID, _ := uuid.Parse(commanderIDStr)
+	alertID, _ := uuid.Parse(req.AlertID)
+	assetID, _ := uuid.Parse(req.AssetID)
+
+	// In a real scenario, we would calculate ETA here
+	eta := 15
+	mission := &models.Mission{
+		ID:           uuid.New(),
+		AlertID:      alertID,
+		AssetID:      assetID,
+		CommanderID:  commanderID,
+		Status:       "ASSIGNED",
+		Priority:     req.Priority,
+		ETAMinutes:   &eta,
+		DispatchTime: time.Now(),
+	}
+
+	if err := db.CreateMission(r.Context(), mission); err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to create mission"})
+		return
+	}
+
+	// Also update asset status to DISPATCHED
+	if err := db.UpdateAssetStatus(r.Context(), assetID, "DISPATCHED"); err != nil {
+		log.Printf("Warning: failed to update asset status: %v", err)
+	}
+
+	respondJSON(w, http.StatusCreated, mission)
+}
+
+func handleGetActiveMissions(w http.ResponseWriter, r *http.Request) {
+	missions, err := db.GetActiveMissions(r.Context())
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve missions"})
+		return
+	}
+	respondJSON(w, http.StatusOK, missions)
+}
+
+func handleUpdateMissionStatus(w http.ResponseWriter, r *http.Request) {
+	missionIDStr := chi.URLParam(r, "id")
+	missionID, err := uuid.Parse(missionIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid mission ID"})
+		return
+	}
+
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	if err := db.UpdateMissionStatus(r.Context(), missionID, req.Status); err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to update mission"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Mission status updated"})
 }

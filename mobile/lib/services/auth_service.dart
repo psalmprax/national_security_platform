@@ -51,8 +51,36 @@ class AuthService extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> register(String fullName, String phoneNumber, String password, String role) async {
-    return await _apiService.requestAccess(fullName, phoneNumber, password, role);
+  Future<bool> register({
+    required String fullName,
+    required String email,
+    required String phoneNumber,
+    required String password,
+    required String role,
+    required String nin,
+    required String stateId,
+    required String lgaId,
+    String? agencyId,
+    String? rank,
+    String? badgeNumber,
+    String? monarchGrade,
+    String? domainTerritory,
+  }) async {
+    return await _apiService.requestAccess(
+      fullName: fullName,
+      email: email,
+      phoneNumber: phoneNumber,
+      password: password,
+      role: role,
+      nin: nin,
+      stateId: stateId,
+      lgaId: lgaId,
+      agencyId: agencyId,
+      rank: rank,
+      badgeNumber: badgeNumber,
+      monarchGrade: monarchGrade,
+      domainTerritory: domainTerritory,
+    );
   }
 
   Future<bool> performOnboarding() async {

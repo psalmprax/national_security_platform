@@ -25,6 +25,7 @@ FILES=(
     "platform/schema/014_national_coverage.sql"        # National Coverage (37 States + FCT)
     "platform/schema/015_procedural_fill.sql"          # Procedural Villages for Load Testing
     "platform/schema/017_classified_alerts.sql"        # Classified/Redacted test alerts
+    "platform/schema/018_mission_schema.sql"           # Mission schema
 )
 
 for file in "${FILES[@]}"; do

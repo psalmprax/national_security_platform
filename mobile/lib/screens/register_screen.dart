@@ -11,9 +11,19 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _ninController = TextEditingController();
+  final _rankController = TextEditingController();
+  final _badgeController = TextEditingController();
+  final _domainController = TextEditingController();
+  
   String _selectedRole = 'TACTICAL_COMMAND';
+  String _selectedState = '40670977-950e-4358-b026-1c3fb8f270b0'; // Default: Akwa Ibom
+  String _selectedLGA = '63baaf12-d55c-429b-9529-897e0c28a30f'; // Default: Abak
+  String _selectedMonarchGrade = 'UNGRADED';
+  String? _selectedAgency;
   
   bool _isLoading = false;
   bool _isSuccess = false;
@@ -33,10 +43,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     final success = await context.read<AuthService>().register(
-      _nameController.text,
-      _phoneController.text,
-      _passwordController.text,
-      _selectedRole,
+      fullName: _nameController.text,
+      email: _emailController.text,
+      phoneNumber: _phoneController.text,
+      password: _passwordController.text,
+      role: _selectedRole,
+      nin: _ninController.text,
+      stateId: _selectedState,
+      lgaId: _selectedLGA,
+      agencyId: _selectedAgency,
+      rank: _rankController.text.isNotEmpty ? _rankController.text : null,
+      badgeNumber: _badgeController.text.isNotEmpty ? _badgeController.text : null,
+      monarchGrade: _selectedRole == 'TRADITIONAL_RULER' ? _selectedMonarchGrade : null,
+      domainTerritory: _selectedRole == 'TRADITIONAL_RULER' ? _domainController.text : null,
     );
 
     if (mounted) {
@@ -123,12 +142,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         const SizedBox(height: 24),
         _buildInputField(
+          controller: _emailController,
+          label: 'EMAIL ADDRESS',
+          hint: 'dogara@hq.gov.ng',
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 24),
+        _buildInputField(
           controller: _phoneController,
           label: 'PHONE NUMBER',
           hint: '+234...',
           icon: Icons.phone_android,
+          keyboardType: TextInputType.phone,
         ),
         const SizedBox(height: 24),
+        _buildInputField(
+          controller: _ninController,
+          label: 'NIN (IDENTIFICATION)',
+          hint: '11223344556',
+          icon: Icons.badge_outlined,
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 24),
+        _buildLocationPickers(),
+        const SizedBox(height: 24),
+        _buildRolePicker(),
+        if (_selectedRole == 'TACTICAL_COMMAND' || _selectedRole == 'CYBER_ANALYST') ...[
+          const SizedBox(height: 24),
+          _buildAgencyPicker(),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _buildInputField(
+                  controller: _rankController,
+                  label: 'OFFICIAL RANK',
+                  hint: 'Captain / Sergeant',
+                  icon: Icons.military_tech_outlined,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildInputField(
+                  controller: _badgeController,
+                  label: 'BADGE NUMBER',
+                  hint: 'NPF-9921',
+                  icon: Icons.verified_user_outlined,
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (_selectedRole == 'TRADITIONAL_RULER') ...[
+          const SizedBox(height: 24),
+          _buildPicker(
+            label: 'MONARCH GRADE',
+            value: _selectedMonarchGrade,
+            items: [
+              {'value': '1ST_CLASS', 'label': '1ST CLASS (EMIR/OBA)'},
+              {'value': '2ND_CLASS', 'label': '2ND CLASS'},
+              {'value': '3RD_CLASS', 'label': '3RD CLASS'},
+              {'value': 'UNGRADED', 'label': 'UNGRADED'},
+            ],
+            onChanged: (val) => setState(() => _selectedMonarchGrade = val!),
+          ),
+          const SizedBox(height: 24),
+          _buildInputField(
+            controller: _domainController,
+            label: 'DOMAIN / TERRITORY',
+            hint: 'Kano Emirate',
+            icon: Icons.map_outlined,
+          ),
+        ],
         _buildInputField(
           controller: _passwordController,
           label: 'DESIRED PASSWORD',
@@ -136,10 +222,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           icon: Icons.lock_outline,
           isPassword: true,
         ),
-        const SizedBox(height: 24),
-        _buildRolePicker(),
         if (_error != null) _buildError(),
-        const SizedBox(height: 40),
+        const SizedBox(height: 48),
         _buildSubmitButton(),
       ],
     );
@@ -151,6 +235,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required String hint,
     required IconData icon,
     bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,6 +253,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         TextField(
           controller: controller,
           obscureText: isPassword,
+          keyboardType: keyboardType,
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: const Color(0xFF00FF95), size: 20),
@@ -189,12 +275,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildRolePicker() {
+  Widget _buildLocationPickers() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildPicker(
+            label: 'STATE',
+            value: _selectedState,
+            items: [
+              {'value': '40670977-950e-4358-b026-1c3fb8f270b0', 'label': 'AKWA IBOM'},
+              {'value': '3481d9f8-810e-4057-94fe-5a560b528855', 'label': 'ADAMAWA'},
+            ],
+            onChanged: (val) => setState(() => _selectedState = val!),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildPicker(
+            label: 'LGA',
+            value: _selectedLGA,
+            items: [
+              {'value': '63baaf12-d55c-429b-9529-897e0c28a30f', 'label': 'ABAK'},
+              {'value': 'e5995e3e-670c-4da0-940f-12a2c5c2da69', 'label': 'EKET'},
+            ],
+            onChanged: (val) => setState(() => _selectedLGA = val!),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAgencyPicker() {
+    return _buildPicker(
+      label: 'ATTACHED AGENCY',
+      value: _selectedAgency,
+      items: [
+        {'value': 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'label': 'POLICE (BORNO)'},
+        {'value': 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'label': 'ARMY (7TH DIV)'},
+        {'value': 'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'label': 'DSS HQ'},
+      ],
+      hint: 'SELECT AGENCY',
+      onChanged: (val) => setState(() => _selectedAgency = val),
+    );
+  }
+
+  Widget _buildPicker({
+    required String label,
+    required String? value,
+    required List<Map<String, String>> items,
+    required void Function(String?) onChanged,
+    String? hint,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'FUNCTIONAL ROLE',
+          label,
           style: TextStyle(
             color: Colors.white.withOpacity(0.4),
             fontSize: 10,
@@ -212,24 +348,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: _selectedRole,
+              value: value,
+              hint: hint != null ? Text(hint, style: TextStyle(color: Colors.white.withOpacity(0.1), fontSize: 13)) : null,
               isExpanded: true,
               dropdownColor: const Color(0xFF0A0A0A),
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
               icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF00FF95)),
-              items: _roles.map((role) {
+              items: items.map((item) {
                 return DropdownMenuItem<String>(
-                  value: role['value'],
-                  child: Text(role['label']!),
+                  value: item['value'],
+                  child: Text(item['label']!),
                 );
               }).toList(),
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedRole = val);
-              },
+              onChanged: onChanged,
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildRolePicker() {
+    return _buildPicker(
+      label: 'FUNCTIONAL ROLE',
+      value: _selectedRole,
+      items: _roles,
+      onChanged: (val) {
+        if (val != null) setState(() => _selectedRole = val);
+      },
     );
   }
 

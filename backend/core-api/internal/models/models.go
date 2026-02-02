@@ -29,6 +29,7 @@ type Alert struct {
 type User struct {
 	ID              uuid.UUID  `json:"id"`
 	PhoneNumber     string     `json:"phone_number"`
+	Email           *string    `json:"email,omitempty"`
 	FullName        *string    `json:"full_name,omitempty"`
 	NIN             *string    `json:"nin,omitempty"`
 	Role            string     `json:"role"`
@@ -158,4 +159,26 @@ type SectorReport struct {
 	TrustScoreAvg    float64   `json:"trust_score_avg"`
 	ThreatLevel      string    `json:"threat_level"` // LOW, MEDIUM, HIGH, CRITICAL
 	LastIncidentType string    `json:"last_incident_type"`
+}
+
+type Mission struct {
+	ID             uuid.UUID  `json:"id"`
+	AlertID        uuid.UUID  `json:"alert_id"`
+	AssetID        uuid.UUID  `json:"asset_id"`
+	CommanderID    uuid.UUID  `json:"commander_id"`
+	Status         string     `json:"status"`
+	Priority       string     `json:"priority"`
+	ETAMinutes     *int       `json:"eta_minutes,omitempty"`
+	DispatchTime   time.Time  `json:"dispatch_time"`
+	ArrivalTime    *time.Time `json:"arrival_time,omitempty"`
+	CompletionTime *time.Time `json:"completion_time,omitempty"`
+	Metadata       []byte     `json:"metadata,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+type CreateMissionRequest struct {
+	AlertID  string `json:"alert_id"`
+	AssetID  string `json:"asset_id"`
+	Priority string `json:"priority"`
 }

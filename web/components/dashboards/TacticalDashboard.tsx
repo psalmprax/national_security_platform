@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import MapboxMap from '../MapboxMap';
-import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset, SystemStatus, Asset, fetchAssets } from '../../lib/api';
+import MissionSidebar from '../MissionSidebar';
+import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset, SystemStatus, Asset, fetchAssets, Mission, fetchActiveMissions, createMission } from '../../lib/api';
 import { useAuth, User } from '../../lib/AuthContext';
 
 interface TacticalDashboardProps {
@@ -38,6 +39,9 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     const [radarAngle, setRadarAngle] = useState(0);
     const [triangulatedAssets, setTriangulatedAssets] = useState<TriangulatedAsset[]>([]);
     const [assets, setAssets] = useState<Asset[]>([]);
+    const [activeMissions, setActiveMissions] = useState<Mission[]>([]);
+    const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+    const [showMissions, setShowMissions] = useState(true);
 
     // Security Redaction Helpers
     const isAlertRedacted = (alert: Alert | null): boolean => {
@@ -160,10 +164,22 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     useEffect(() => {
         const loadAssets = async () => {
             const results = await fetchAssets();
-            setAssets(results);
+            setAssets(results || []);
         };
         loadAssets(); // Initial load
         const interval = setInterval(loadAssets, 30000); // Poll every 30s
+        return () => clearInterval(interval);
+    }, []);
+
+    // Fetch Active Missions
+    const loadMissions = async () => {
+        const results = await fetchActiveMissions();
+        setActiveMissions(results || []);
+    };
+
+    useEffect(() => {
+        loadMissions();
+        const interval = setInterval(loadMissions, 10000); // Poll more frequently for missions
         return () => clearInterval(interval);
     }, []);
 
@@ -290,6 +306,13 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
 
                     <div className="mt-auto flex flex-col gap-6 mb-4">
                         <button
+                            onClick={() => setShowMissions(!showMissions)}
+                            className={`w-12 h-12 flex items-center justify-center rounded transition-all relative group ${showMissions ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-white/5 text-zinc-600'}`}
+                        >
+                            <Navigation className="w-6 h-6" />
+                            <div className="absolute left-full ml-4 px-3 py-1 bg-black text-[10px] font-bold uppercase rounded opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap pointer-events-none">Mission Control</div>
+                        </button>
+                        <button
                             onClick={() => console.log('Panic Signal Triggered')}
                             className="w-12 h-12 flex items-center justify-center rounded bg-red-600 text-white animate-pulse relative group cursor-pointer"
                         >
@@ -298,6 +321,15 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                         </button>
                     </div>
                 </aside>
+
+                {showMissions && (
+                    <MissionSidebar
+                        missions={activeMissions}
+                        onSelect={setSelectedMission}
+                        selectedId={selectedMission?.id}
+                        onRefresh={loadMissions}
+                    />
+                )}
 
                 {/* Main Content */}
                 <main className="flex-1 relative flex">
@@ -452,12 +484,14 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                                                 <button
                                                                     onClick={async (e) => {
                                                                         e.stopPropagation();
-                                                                        const success = await dispatchAsset(ta.asset.id);
-                                                                        if (success) {
+                                                                        // Use the new createMission API which handles mission record + asset status
+                                                                        const mission = await createMission(selectedAlert.id, ta.asset.id, selectedAlert.severity > 0.8 ? 'HIGH' : 'MEDIUM');
+                                                                        if (mission) {
+                                                                            loadMissions(); // Refresh active missions list
                                                                             setTriangulatedAssets(prev => prev.map(p =>
                                                                                 p.asset.id === ta.asset.id ? { ...p, asset: { ...p.asset, status: 'DISPATCHED' } } : p
                                                                             ));
-                                                                            alert(`UNIT [${ta.asset.name}] DISPATCHED.`);
+                                                                            alert(`UNIT [${ta.asset.name}] DISPATCHED. MISSION_ID: ${mission.id.slice(0, 8)}`);
                                                                         }
                                                                     }}
                                                                     className="text-black bg-yellow-500 px-2 py-0.5 text-[8px] font-black uppercase hover:bg-yellow-400 transition-colors"

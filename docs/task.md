@@ -1,77 +1,43 @@
-- [x] Detect missing tables in CockroachDB
-- [x] **Documentation**: Update `walkthrough.md`, `task.md`, and `architecture_design.md` with final verification results
-- [x] **Sync**: Push all changes (including new schema and docs) to GitHub `main` branch
-- [x] Resolve Seeding Freeze (disk threshold fix)
-- [x] Fix `web-dashboard` build error (import `verifyAlert`, fix `setAlerts` -> `setLiveAlerts`)
-- [x] Format alert type names to remove underscores (e.g. `CIVIL_UNREST` -> `CIVIL UNREST`)
-- [x] Implement secure logout functionality (Backend endpoint + Frontend integration)
-- [x] Verify Dashboard Login flow (POST /dashboard-login -> Cookie -> GET /me)
-- [x] Fix Logout Redirect (Prevent default "Tactical" view on logout)
-- [x] Debug 500 Error on /api/v1/assets (Missing DB tables restored)
-- [x] Successfully re-seed the database (9 users, 4 alerts, 4 agencies)
-- [x] Verify Dashboard Login and Roles (200 OK)
-- [x] Enrich Security Sentinel Service
-    - [x] Implement SQL Injection Probing
-    - [x] Implement Rate Limit Verification
-    - [x] Implement Infrastructure Security Checks (NATS/Redis/MinIO)
-    - [x] Implement Frontend Header/CSP Validation
-    - [x] Update Scan Persistence with Severity/Remediation
-- [x] Verify Enriched Scans in Triage Sidebar
-- [ ] Implement Multi-Layer Rate Limiting
-    - [ ] Configure `limit_req_zone` in Nginx
-    - [ ] Apply `limit_req` to API and Dashboard routes
-    - [ ] Harden Nginx Security Headers (CSP, HSTS)
-    - [ ] Implement Go-level Throttling for Login
-- [x] Verify Remediation via Security Sentinel Scan
-- [x] Generate Real Seeding Data for Extended Schema
-    - [x] Create `013_real_seeding_data.sql` with Nigerian Geo-Hierarchy
-    - [x] Populate Devices, Media, and Corroborations
-    - [x] Integrate into `seed_database.sh`
-- [/] Address Cyber Security Loopholes (Comprehensive Audit)
-    - [x] Implement CSRF Protection (Double-Submit Cookie)
-    - [x] Prevent IDOR in Alert/Asset Handlers
-    - [x] transition to Dynamic CORS (Environment Variables)
-    - [x] Remove Default Secret Fallbacks (JWT_SECRET)
-    - [x] Secure Internal Networking (Gateway -> API TLS)
-    - [x] **Frontend Security Review** (XSS, CSP, Storage, Dependencies)
-    - [x] **Backend Security Review** (SQLi, AuthZ/AuthN, Input Validation, Logs)
-    - [x] **Network & Infrastructure** (TLS, Headers, Docker user permissions, Secrets)
-    - [x] **Encryption** (Data at Rest, Key Management)
-    - [x] **Fix**: Mobile Client Build (Missing nginx.conf)
-- [x] Enrich Security Sentinel with SAST
-    - [x] **Infrastructure**: Mount source code volumes in docker-compose
-    - [x] **Dependencies**: Install `bandit` (Python) and `gosec` (Go) in Dockerfile
-    - [x] **Implementation**: Add `run_sast_scans()` to Sentinel logic
-    - [x] **Persistence**: Store SAST findings in database
-- [x] Implement Manual Alert Verification
-- [x] Implement Manual Alert Verification
-    - [x] Backend: Add VerifyAlert DB function & Handler
-    - [x] Frontend: Connect Verify Button to API
-- [x] **Debugging & Verification**
-    - [x] Investigate why `lga_name` is missing in alerts <!-- id: 4 -->
-    - [x] Inspect backend alert fetching logic (`GetRecentAlerts`) <!-- id: 5 -->
-    - [x] Fix data seeding to ensure alerts fall within LGA boundaries <!-- id: 6 -->
-    - [x] Update repository logic for robust spatial fallback <!-- id: 7 -->
-    - [x] Verify fix in frontend <!-- id: 8 -->
+# Tactical Dashboard Null Safety
 
-- [x] **Phase 6: Governance & Location Intelligence**
-    - [x] **Backend**: Implement `GetTriangulatedAssets` with distance calculation
-    - [x] **Backend**: Add Ruler Location Override logic ("Community Threat" snaps to Village)
-    - [x] **Frontend**: ETA Visualization ("ETA: 4m") on Mapbox markers
-    - [x] **Frontend**: Flying Camera Transitions for Triage
-    - [x] **Frontend**: Update UI to display "My Agency" branding (e.g., "Garki Police Station")
-    - [x] **Frontend**: Filter Asset List to show only agency-owned resources
-
-- [x] **Phase 7: Granular Access Control (ABAC)**
-    - [x] **Backend**: Embedding `ClearanceLevel` in JWT claims
-    - [x] **Backend**: Implement `RequireClearance` middleware
-    - [x] **Backend**: Update `repository.go` with filtering logic
-    - [x] **Frontend**: Verify dashboard restricts data based on clearance level
-
-- [x] **Phase 8: Dashboard Robustness & Build Stability**
-    - [x] **Frontend**: Implement null safety checks in `TacticalDashboard.tsx`, `StrategicDashboard.tsx`, and `CyberDashboard.tsx`
-    - [x] **Frontend**: Fix redundant `Lock` component definition to resolve build error
-    - [x] **Frontend**: Improve `TriageSidebar` location parsing robustness
-    - [x] **Database**: Resolve missing `security_scans` table via `./seed_database.sh`
-    - [x] **Verification**: Confirm `security-sentinel` persistence success
-    - [x] **Sync**: Push latest documentation and fixes to GitHub
+- [x] Implement null safety checks in `TacticalDashboard.tsx`
+    - [x] Add defensive checks for `alerts` array
+    - [x] Add defensive checks for `assets` array
+    - [x] Fix missing `Lock` icon import
+- [x] Implement Mission Dispatch Tracking
+    - [x] Create `missions` database table
+    - [x] Implement Mission model and repository in Core API
+    - [x] Add Mission API handlers and routes
+    - [x] Develop `MissionSidebar` component
+    - [x] Integrate mission tracking into `TacticalDashboard.tsx`
+- [x] Implement null safety checks in `StrategicDashboard.tsx`
+    - [x] Add defensive checks for `alerts` and `distribution` arrays
+    - [x] Fix displaced System Status block
+- [x] Implement null safety checks in `CyberDashboard.tsx`
+    - [x] Add defensive checks for `alerts`, `notifications`, and `securityScans`
+- [x] Implement null safety checks in `TriageSidebar.tsx`
+    - [x] Add defensive checks for `alerts` array and `location` string
+- [x] Verify all changes and ensure no regressions
+- [x] Resolve Database Schema Issues
+    - [x] Identify missing `security_scans` table in CockroachDB
+    - [x] Apply database migrations/seeding via `./seed_database.sh`
+    - [x] Verify `security-sentinel` persistence success
+- [x] Security Hardening: CSP Regulation
+    - [x] Resolve WEAK_POLICY findings in Core API
+    - [x] Remove `'unsafe-inline'` from CSP headers in `stack.go`
+    - [x] Verify security scan pass in database
+- [x] Mobile Service: ADS Settings Integration
+    - [x] Design and implement `SettingsScreen.dart`
+    - [x] Create `SettingsService` for preference management
+    - [x] Implement Acoustic Detection Settings (ADS) UI & logic
+    - [x] Implement Advanced Duress Settings UI (Panic PIN)
+    - [x] Implement Ad Management & Personalization section
+    - [x] Add navigation from `PanicScreen` to `SettingsScreen`
+    - [x] Ensure persistence of all 4 settings categories
+- [x] Identity Verification Hardening: Full Profile Registration (Phase 2)
+    - [x] Add `Email` field to `users` table and models
+    - [x] Add `Badge Number` for security roles
+    - [x] Add `Monarch Grade` and `Domain` for traditional rulers
+    - [x] Implement dynamic field visibility in `RegisterScreen.dart`
+    - [x] Update `ApiService` and `AuthService` with full payloads
+    - [x] Update test data and documentation

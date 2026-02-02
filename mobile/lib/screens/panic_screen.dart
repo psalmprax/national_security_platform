@@ -6,6 +6,7 @@ import '../models/alert_model.dart';
 import '../services/persistence_service.dart';
 import '../services/sync_service.dart';
 import '../services/auth_service.dart';
+import 'settings_screen.dart';
 
 class PanicScreen extends StatefulWidget {
   const PanicScreen({super.key});
@@ -127,6 +128,14 @@ class _PanicScreenState extends State<PanicScreen> {
                     ),
                   ),
                 ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white24, size: 20),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                ),
+                tooltip: 'Command Settings',
               ),
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white24, size: 20),

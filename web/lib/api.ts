@@ -181,6 +181,21 @@ export interface TriangulatedAsset {
     suitability_score: number;
 }
 
+export interface Mission {
+    id: string;
+    alert_id: string;
+    asset_id: string;
+    commander_id: string;
+    status: 'ASSIGNED' | 'EN_ROUTE' | 'ON_SITE' | 'COMPLETED' | 'ABORTED';
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'IMMEDIATE';
+    eta_minutes?: number;
+    dispatch_time: string;
+    arrival_time?: string;
+    completion_time?: string;
+    created_at: string;
+    updated_at: string;
+}
+
 export async function fetchTriangulatedAssets(alertId: string): Promise<TriangulatedAsset[]> {
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1/alerts/${alertId}/triangulation`, {
@@ -270,6 +285,68 @@ export async function fetchAssets(): Promise<Asset[]> {
     } catch (error) {
         console.error('Failed to fetch assets:', error);
         return [];
+    }
+}
+
+export async function fetchActiveMissions(): Promise<Mission[]> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/missions/active`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            return [];
+        }
+
+        return (await response.json()) || [];
+    } catch (error) {
+        console.error('Failed to fetch active missions:', error);
+        return [];
+    }
+}
+
+export async function createMission(alertId: string, assetId: string, priority: string = 'MEDIUM'): Promise<Mission | null> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/missions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                alert_id: alertId,
+                asset_id: assetId,
+                priority: priority,
+            }),
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to create mission:', error);
+        return null;
+    }
+}
+
+export async function updateMissionStatus(missionId: string, status: string): Promise<boolean> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/missions/${missionId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status }),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to update mission status:', error);
+        return false;
     }
 }
 

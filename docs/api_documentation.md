@@ -31,8 +31,17 @@ All protected routes require a `Bearer` token in the `Authorization` header.
   {
     "phone_number": "+234...",
     "full_name": "John Doe",
+    "email": "john@gov.ng",
     "password": "...",
-    "role": "AGENCY_OFFICER"
+    "role": "AGENCY_OFFICER",
+    "nin": "12345678901",
+    "state_id": "UUID",
+    "lga_id": "UUID",
+    "agency_id": "UUID (Optional)",
+    "rank": "Rank (Optional)",
+    "badge_number": "Badge (Optional)",
+    "monarch_grade": "Grade (Optional - Monarch)",
+    "domain_territory": "Domain (Optional - Monarch)"
   }
   ```
 

@@ -40,7 +40,21 @@ class ApiService {
     }
   }
 
-  Future<bool> requestAccess(String fullName, String phoneNumber, String password, String role) async {
+  Future<bool> requestAccess({
+    required String fullName,
+    required String email,
+    required String phoneNumber,
+    required String password,
+    required String role,
+    required String nin,
+    required String stateId,
+    required String lgaId,
+    String? agencyId,
+    String? rank,
+    String? badgeNumber,
+    String? monarchGrade,
+    String? domainTerritory,
+  }) async {
     try {
       final url = Uri.parse('$_baseUrl/api/v1/auth/request-access');
       final response = await http.post(
@@ -48,9 +62,18 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'full_name': fullName,
+          'email': email,
           'phone_number': phoneNumber,
           'password': password,
           'role': role,
+          'nin': nin,
+          'state_id': stateId,
+          'lga_id': lgaId,
+          'agency_id': agencyId,
+          'rank': rank,
+          'badge_number': badgeNumber,
+          'monarch_grade': monarchGrade,
+          'domain_territory': domainTerritory,
         }),
       );
 
