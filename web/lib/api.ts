@@ -114,7 +114,7 @@ export async function fetchSystemStatus(): Promise<SystemStatus | null> {
             return null;
         }
 
-        return await response.json();
+        return (await response.json()) || null;
     } catch (error) {
         console.error('Failed to fetch system stats:', error);
         return null;
@@ -143,7 +143,7 @@ export async function fetchSecurityScans(page: number = 1, limit: number = 10): 
             return [];
         }
 
-        return await response.json();
+        return (await response.json()) || [];
     } catch (error) {
         console.error('Failed to fetch security scans:', error);
         return [];
@@ -194,7 +194,7 @@ export async function fetchTriangulatedAssets(alertId: string): Promise<Triangul
             return [];
         }
 
-        return await response.json();
+        return (await response.json()) || [];
     } catch (error) {
         console.error('Failed to fetch triangulated assets:', error);
         return [];
@@ -214,7 +214,7 @@ export async function fetchSectorReport(): Promise<SectorReport | null> {
             return null;
         }
 
-        return await response.json();
+        return (await response.json()) || null;
     } catch (error) {
         console.error('Failed to fetch sector report:', error);
         return null;
@@ -266,7 +266,7 @@ export async function fetchAssets(): Promise<Asset[]> {
             return [];
         }
 
-        return await response.json();
+        return (await response.json()) || [];
     } catch (error) {
         console.error('Failed to fetch assets:', error);
         return [];

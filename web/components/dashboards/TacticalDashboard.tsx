@@ -12,7 +12,8 @@ import {
     Wifi,
     Navigation,
     LocateFixed,
-    Users
+    Users,
+    Lock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import MapboxMap from '../MapboxMap';
@@ -37,6 +38,115 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     const [radarAngle, setRadarAngle] = useState(0);
     const [triangulatedAssets, setTriangulatedAssets] = useState<TriangulatedAsset[]>([]);
     const [assets, setAssets] = useState<Asset[]>([]);
+
+    // Security Redaction Helpers
+    const isAlertRedacted = (alert: Alert | null): boolean => {
+        if (!alert) return false;
+
+        return (
+            alert.content.includes('[REDACTED') ||
+            (alert.priority_class === 'CRITICAL' && alert.isEncrypted === true) ||
+            alert.isDuress === true
+        );
+    };
+
+    const getClassificationLevel = (alert: Alert): { level: string; color: string; bgColor: string; borderColor: string } => {
+        // Null safety checks
+        if (!alert) {
+            return {
+                level: 'CLASSIFIED',
+                color: '#eab308',
+                bgColor: 'rgba(234, 179, 8, 0.1)',
+                borderColor: '#eab308'
+            };
+        }
+
+        const content = alert.content || '';
+
+        // Extract classification level from content
+        if (content.includes('[REDACTED - TOP SECRET]')) {
+            return {
+                level: 'TOP SECRET',
+                color: '#ef4444',
+                bgColor: 'rgba(239, 68, 68, 0.1)',
+                borderColor: '#ef4444'
+            };
+        } else if (content.includes('[REDACTED - SECRET]')) {
+            return {
+                level: 'SECRET',
+                color: '#f97316',
+                bgColor: 'rgba(249, 115, 22, 0.1)',
+                borderColor: '#f97316'
+            };
+        } else if (content.includes('[REDACTED - CLASSIFIED]')) {
+            return {
+                level: 'CLASSIFIED',
+                color: '#eab308',
+                bgColor: 'rgba(234, 179, 8, 0.1)',
+                borderColor: '#eab308'
+            };
+        } else if (content.includes('[REDACTED - DURESS')) {
+            return {
+                level: 'DURESS PROTOCOL',
+                color: '#3b82f6',
+                bgColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: '#3b82f6'
+            };
+        } else if (content.includes('[REDACTED - ENCRYPTED]')) {
+            return {
+                level: 'ENCRYPTED',
+                color: '#8b5cf6',
+                bgColor: 'rgba(139, 92, 246, 0.1)',
+                borderColor: '#8b5cf6'
+            };
+        } else if (content.includes('[REDACTED - INSUFFICIENT CLEARANCE]')) {
+            return {
+                level: 'INSUFFICIENT CLEARANCE',
+                color: '#dc2626',
+                bgColor: 'rgba(220, 38, 38, 0.1)',
+                borderColor: '#dc2626'
+            };
+        } else if (content.includes('[REDACTED')) {
+            return {
+                level: 'CLASSIFIED',
+                color: '#eab308',
+                bgColor: 'rgba(234, 179, 8, 0.1)',
+                borderColor: '#eab308'
+            };
+        }
+
+        // Fallback for encrypted/duress flags
+        if (alert.priority_class === 'CRITICAL' && alert.isEncrypted === true) {
+            return {
+                level: 'ENCRYPTED',
+                color: '#8b5cf6',
+                bgColor: 'rgba(139, 92, 246, 0.1)',
+                borderColor: '#8b5cf6'
+            };
+        }
+        if (alert.isDuress === true) {
+            return {
+                level: 'DURESS PROTOCOL',
+                color: '#3b82f6',
+                bgColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: '#3b82f6'
+            };
+        }
+
+        return {
+            level: 'CLASSIFIED',
+            color: '#eab308',
+            bgColor: 'rgba(234, 179, 8, 0.1)',
+            borderColor: '#eab308'
+        };
+    };
+
+    const redactCoordinates = (lat: number, lon: number): string => {
+        // Convert to military grid reference or sector code
+        const latDir = lat >= 0 ? 'N' : 'S';
+        const lonDir = lon >= 0 ? 'E' : 'W';
+        return `GRID: ${Math.floor(Math.abs(lat))}°${latDir} ${Math.floor(Math.abs(lon))}°${lonDir} [SECTOR CLASSIFIED]`;
+    };
 
     // Simulated Radar Sweep
     useEffect(() => {
@@ -70,6 +180,8 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
         }
     }, [selectedAlert]);
 
+    const criticalCount = (alerts || []).filter(a => a.severity > 0.8).length;
+
     return (
         <div className="relative w-full h-full bg-[#121212] text-zinc-100 font-mono overflow-hidden">
             {/* Header / Status Bar - Industrial Rugged */}
@@ -98,8 +210,8 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                         <div className="text-center px-4 border-l border-zinc-800">
                             <div className="text-[10px] text-zinc-500 font-bold uppercase">GridRef</div>
                             <div className="text-xs font-black text-white tabular-nums">
-                                {alerts.length > 0
-                                    ? `14P.${alerts[0].latitude.toFixed(2)}-${alerts[0].longitude.toFixed(2)}`
+                                {(alerts || []).length > 0
+                                    ? `14P.${((alerts || [])[0]).latitude.toFixed(2)}-${((alerts || [])[0]).longitude.toFixed(2)}`
                                     : 'Searching...'}
                             </div>
                         </div>
@@ -256,7 +368,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                         <div className="space-y-1">
                                             <div className="flex justify-between text-[10px] font-bold uppercase text-zinc-500">
                                                 <span>Hostile Activity</span>
-                                                <span className="text-white">CRITICAL (x{alerts.filter(a => a.severity > 0.8).length})</span>
+                                                <span className="text-white">CRITICAL (x{(alerts || []).filter(a => a.severity > 0.8).length})</span>
                                             </div>
                                             <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden">
                                                 <div className="h-full bg-red-600" style={{ width: '65%' }} />
@@ -280,10 +392,10 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                         <Users className="w-3 h-3 text-yellow-500" /> Active Agents
                                     </h4>
                                     <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-cyber">
-                                        {assets.length === 0 ? (
+                                        {(assets || []).length === 0 ? (
                                             <div className="text-[10px] text-zinc-600 italic text-center py-4">No active field units.</div>
                                         ) : (
-                                            assets.map(agent => (
+                                            (assets || []).map(agent => (
                                                 <div key={agent.id} className="flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                                                     <div className="flex justify-between items-center text-[10px]">
                                                         <span className="font-black text-white">{agent.call_sign || agent.name}</span>
@@ -318,8 +430,8 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                             <span className="text-[9px] font-mono text-yellow-500/50 animate-pulse uppercase">Scanning...</span>
                                         </div>
                                         <div className="space-y-4">
-                                            {triangulatedAssets.length > 0 ? (
-                                                triangulatedAssets.map((ta, i) => (
+                                            {(triangulatedAssets || []).length > 0 ? (
+                                                (triangulatedAssets || []).map((ta, i) => (
                                                     <div key={ta.asset.id} className="space-y-1.5">
                                                         <div className="flex justify-between items-center text-[10px]">
                                                             <div className="flex items-center gap-2">
@@ -374,7 +486,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                     </div>
                                     <div>
                                         <p className="text-[10px] font-black text-orange-500 uppercase leading-none mb-1">Incoming Comms</p>
-                                        <p className="text-[9px] text-orange-500/60 font-medium">RE: Incident #{alerts[0]?.id.slice(0, 8) || 'NO-SIGNAL'}</p>
+                                        <p className="text-[9px] text-orange-500/60 font-medium">RE: Incident #{(alerts || [])[0]?.id.slice(0, 8) || 'NO-SIGNAL'}</p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -386,10 +498,10 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                             <div className="max-w-4xl mx-auto">
                                 <div className="flex items-center justify-between mb-8 border-b-2 border-yellow-500 pb-2">
                                     <h2 className="text-2xl font-black uppercase tracking-tighter">Tactical Manifest</h2>
-                                    <span className="text-xs font-bold text-zinc-500 tabular-nums">RECORDS: {alerts.length}</span>
+                                    <span className="text-xs font-bold text-zinc-500 tabular-nums">RECORDS: {(alerts || []).length}</span>
                                 </div>
                                 <div className="grid gap-4">
-                                    {alerts.map((alert) => (
+                                    {(alerts || []).map((alert) => (
                                         <div
                                             key={alert.id}
                                             onClick={() => {
@@ -412,18 +524,59 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                                             <div className="text-[10px] font-bold text-zinc-500 uppercase">LOG_ID: {alert.id.slice(0, 8)}</div>
                                                         </div>
                                                     </div>
-                                                    <p className="text-zinc-400 font-medium text-sm leading-relaxed mb-4">{alert.content}</p>
-                                                    <div className="flex items-center gap-6 pt-4 border-t border-white/5">
-                                                        <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase">
-                                                            <MapIcon className="w-3 h-3" /> {alert.location}
-                                                        </div>
-                                                        <div className="flex items-center gap-2 text-[10px] font-black text-green-500 uppercase">
-                                                            <Lock className="w-3 h-3" /> {alert.isTrusted ? 'Source Verified' : 'Integrity Uncertain'}
-                                                        </div>
-                                                        <button className="ml-auto flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#00FF95] hover:text-white transition-colors">
-                                                            View Details <ChevronRight className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
+                                                    {/* Classification-Aware Content Display */}
+                                                    {isAlertRedacted(alert) ? (() => {
+                                                        const classification = getClassificationLevel(alert);
+                                                        return (
+                                                            <div className="relative bg-red-950/30 border-2 border-red-600/50 p-6 rounded-sm mb-4">
+                                                                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent animate-pulse" />
+                                                                <div className="flex items-center gap-3 mb-3">
+                                                                    <div className="w-10 h-10 bg-red-600/20 rounded-full flex items-center justify-center border border-red-600/50">
+                                                                        <Lock className="w-5 h-5 text-red-500" />
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <h4 className="text-sm font-black uppercase tracking-widest text-red-500">TACTICAL ANALYSIS LOCKED</h4>
+                                                                        <p className="text-[10px] font-bold text-red-400/70 uppercase tracking-wider">Insufficient Security Clearance</p>
+                                                                    </div>
+                                                                    {/* Color-Coded Classification Badge */}
+                                                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded border-2"
+                                                                        style={{
+                                                                            backgroundColor: classification.bgColor,
+                                                                            borderColor: classification.borderColor,
+                                                                            boxShadow: `0 0 15px ${classification.borderColor}40`
+                                                                        }}>
+                                                                        <span className="text-[10px] font-black tracking-wider" style={{ color: classification.color }}>
+                                                                            {classification.level}
+                                                                        </span>
+                                                                        <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: classification.color }} />
+                                                                    </div>
+                                                                </div>
+                                                                <div className="space-y-2 pl-13">
+                                                                    <p className="text-xs font-mono text-red-300/80 leading-relaxed">
+                                                                        This intelligence report has been <span className="font-black text-red-400">REDACTED</span> due to your current clearance level.
+                                                                    </p>
+                                                                    <p className="text-[9px] font-mono text-red-500/40 italic mt-3 pt-3 border-t border-red-600/30">
+                                                                        Contact your commanding officer to request elevated access privileges.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })() : (
+                                                        <>
+                                                            <p className="text-zinc-400 font-medium text-sm leading-relaxed mb-4">{alert.content}</p>
+                                                            <div className="flex items-center gap-6 pt-4 border-t border-white/5">
+                                                                <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase">
+                                                                    <MapIcon className="w-3 h-3" /> {alert.location}
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-[10px] font-black text-green-500 uppercase">
+                                                                    <Lock className="w-3 h-3" /> {alert.isTrusted ? 'Source Verified' : 'Integrity Uncertain'}
+                                                                </div>
+                                                                <button className="ml-auto flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#00FF95] hover:text-white transition-colors">
+                                                                    View Details <ChevronRight className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -436,7 +589,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
             </div>
 
             {/* Global Warning Banner - If Critical Alerts Exist */}
-            {alerts.some(a => a.severity > 0.8) && (
+            {(alerts || []).some(a => a.severity > 0.8) && (
                 <div className="absolute top-14 left-0 right-0 h-1 bg-red-600 z-[100] animate-pulse">
                     <div className="absolute top-1 right-4 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-b-sm uppercase tracking-widest translate-y-[-1px]">
                         Alert: Critical Hostility Detected
@@ -445,9 +598,4 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
             )}
         </div>
     );
-}
-
-// Helper for detail icon
-function Lock({ className }: { className?: string }) {
-    return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>;
 }

@@ -54,14 +54,14 @@ export default function TriageSidebar({
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                     </span>
                     <span className="text-[10px] font-bold text-red-500/80 tracking-widest uppercase">
-                        {alerts.length} Active
+                        {(alerts || []).length} Active
                     </span>
                 </div>
             </div>
 
             {/* ALERT LIST */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-cyber">
-                {alerts.length === 0 ? (
+                {(alerts || []).length === 0 ? (
                     <div className="py-20 text-center flex flex-col items-center gap-4">
                         <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center">
                             <ShieldAlert className="w-6 h-6 text-white/10" />
@@ -69,7 +69,7 @@ export default function TriageSidebar({
                         <p className="text-xs text-white/20 uppercase tracking-widest font-medium">Monitoring secured sectors...</p>
                     </div>
                 ) : (
-                    alerts.map(alert => (
+                    (alerts || []).map(alert => (
                         <div
                             key={alert.id}
                             onClick={() => onSelect?.(alert)}
@@ -101,7 +101,7 @@ export default function TriageSidebar({
                                         )}
                                     </div>
                                     <span className="text-[12px] text-white font-bold tracking-tight uppercase">
-                                        {(alert.lga_name && alert.lga_name !== 'Unknown') ? `${alert.lga_name}, ${alert.state_name}` : `GRID: ${alert.location.split(',').map(c => Number(c).toFixed(2)).join(', ')}`}
+                                        {(alert.lga_name && alert.lga_name !== 'Unknown') ? `${alert.lga_name}, ${alert.state_name}` : `GRID: ${(alert.location || '').split(',').map(c => Number(c).toFixed(2)).join(', ')}`}
                                     </span>
                                     <span className="text-[9px] text-white/40 font-mono tracking-tighter uppercase">
                                         COORDS: {alert.location}

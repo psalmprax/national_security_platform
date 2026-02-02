@@ -51,6 +51,114 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
+    // Security Redaction Helpers
+    const isAlertRedacted = (alert: Alert | null): boolean => {
+        if (!alert) return false;
+
+        return (
+            alert.content.includes('[REDACTED') ||
+            (alert.priority_class === 'CRITICAL' && alert.isEncrypted === true) ||
+            alert.isDuress === true
+        );
+    };
+
+    const getClassificationLevel = (alert: Alert): { level: string; color: string; bgColor: string; borderColor: string } => {
+        // Null safety checks
+        if (!alert) {
+            return {
+                level: 'CLASSIFIED',
+                color: '#eab308',
+                bgColor: 'rgba(234, 179, 8, 0.1)',
+                borderColor: '#eab308'
+            };
+        }
+
+        const content = alert.content || '';
+
+        // Extract classification level from content
+        if (content.includes('[REDACTED - TOP SECRET]')) {
+            return {
+                level: 'TOP SECRET',
+                color: '#ef4444',
+                bgColor: 'rgba(239, 68, 68, 0.1)',
+                borderColor: '#ef4444'
+            };
+        } else if (content.includes('[REDACTED - SECRET]')) {
+            return {
+                level: 'SECRET',
+                color: '#f97316',
+                bgColor: 'rgba(249, 115, 22, 0.1)',
+                borderColor: '#f97316'
+            };
+        } else if (content.includes('[REDACTED - CLASSIFIED]')) {
+            return {
+                level: 'CLASSIFIED',
+                color: '#eab308',
+                bgColor: 'rgba(234, 179, 8, 0.1)',
+                borderColor: '#eab308'
+            };
+        } else if (content.includes('[REDACTED - DURESS')) {
+            return {
+                level: 'DURESS PROTOCOL',
+                color: '#3b82f6',
+                bgColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: '#3b82f6'
+            };
+        } else if (content.includes('[REDACTED - ENCRYPTED]')) {
+            return {
+                level: 'ENCRYPTED',
+                color: '#8b5cf6',
+                bgColor: 'rgba(139, 92, 246, 0.1)',
+                borderColor: '#8b5cf6'
+            };
+        } else if (content.includes('[REDACTED - INSUFFICIENT CLEARANCE]')) {
+            return {
+                level: 'INSUFFICIENT CLEARANCE',
+                color: '#dc2626',
+                bgColor: 'rgba(220, 38, 38, 0.1)',
+                borderColor: '#dc2626'
+            };
+        } else if (content.includes('[REDACTED')) {
+            return {
+                level: 'CLASSIFIED',
+                color: '#eab308',
+                bgColor: 'rgba(234, 179, 8, 0.1)',
+                borderColor: '#eab308'
+            };
+        }
+
+        // Fallback for encrypted/duress flags
+        if (alert.priority_class === 'CRITICAL' && alert.isEncrypted === true) {
+            return {
+                level: 'ENCRYPTED',
+                color: '#8b5cf6',
+                bgColor: 'rgba(139, 92, 246, 0.1)',
+                borderColor: '#8b5cf6'
+            };
+        }
+        if (alert.isDuress === true) {
+            return {
+                level: 'DURESS PROTOCOL',
+                color: '#3b82f6',
+                bgColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: '#3b82f6'
+            };
+        }
+
+        return {
+            level: 'CLASSIFIED',
+            color: '#eab308',
+            bgColor: 'rgba(234, 179, 8, 0.1)',
+            borderColor: '#eab308'
+        };
+    };
+
+    const redactCoordinates = (lat: number, lon: number): string => {
+        const latDir = lat >= 0 ? 'N' : 'S';
+        const lonDir = lon >= 0 ? 'E' : 'W';
+        return `GRID: ${Math.floor(Math.abs(lat))}°${latDir} ${Math.floor(Math.abs(lon))}°${lonDir} [SECTOR CLASSIFIED]`;
+    };
+
     interface Notification {
         message: string;
         timestamp: Date;
@@ -427,12 +535,12 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                 <div className="w-full max-w-6xl mx-auto p-8">
                                     <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Alert Triage {filterMode !== 'all' && <span className="text-[#00FF95] text-sm ml-2">[{filterMode.toUpperCase()}_FILTER]</span>}</h2>
                                     <div className="grid gap-4">
-                                        {filteredAlerts.length === 0 ? (
+                                        {(filteredAlerts || []).length === 0 ? (
                                             <div className="glass-card p-8 text-center border border-white/5">
                                                 <p className="text-white/40 text-sm">No alerts match the current filter</p>
                                             </div>
                                         ) : (
-                                            filteredAlerts.map((alert) => (
+                                            (filteredAlerts || []).map((alert) => (
                                                 <div
                                                     key={alert.id}
                                                     onClick={() => {
@@ -474,7 +582,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                         </div>
                                         <div className="space-y-4">
                                             <div className="bg-white/5 p-4 rounded border border-white/10 font-mono text-sm">
-                                                <p className="text-white/60">Total Alerts Logged: <span className="text-[#00FF95] font-bold">{alerts.length}</span></p>
+                                                <p className="text-white/60">Total Alerts Logged: <span className="text-[#00FF95] font-bold">{(alerts || []).length}</span></p>
                                                 <p className="text-white/60">Trusted Devices: <span className="text-[#00FF95] font-bold">{securityStatus.trustedDevices}</span></p>
                                                 <p className="text-white/60">Security Status: <span className="text-[#00FF95] font-bold">ENCRYPTED</span></p>
                                             </div>
@@ -490,7 +598,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-white/5 font-mono">
-                                                        {alerts.map((alert) => (
+                                                        {(alerts || []).map((alert) => (
                                                             <tr key={alert.id} className="hover:bg-white/5 transition-colors">
                                                                 <td className="px-4 py-2">{new Date(alert.timestamp).toISOString()}</td>
                                                                 <td className="px-4 py-2 text-[#00FF95]">{alert.id.substring(0, 8)}...</td>
@@ -507,7 +615,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                         ))}
                                                     </tbody>
                                                 </table>
-                                                {alerts.length === 0 && (
+                                                {(alerts || []).length === 0 && (
                                                     <div className="p-8 text-center text-white/30 italic">No audit records found.</div>
                                                 )}
                                             </div>
@@ -531,15 +639,15 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                             <div className="space-y-2">
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-white/60">Critical Alerts</span>
-                                                    <span className="text-red-500 font-bold">{alerts.filter(a => a.severity > 0.8).length}</span>
+                                                    <span className="text-red-500 font-bold">{(alerts || []).filter(a => a.severity > 0.8).length}</span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-white/60">Urgent Alerts</span>
-                                                    <span className="text-orange-500 font-bold">{alerts.filter(a => a.severity > 0.6 && a.severity <= 0.8).length}</span>
+                                                    <span className="text-orange-500 font-bold">{(alerts || []).filter(a => a.severity > 0.6 && a.severity <= 0.8).length}</span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-white/60">Medium Priority</span>
-                                                    <span className="text-yellow-500 font-bold">{alerts.filter(a => a.severity <= 0.6).length}</span>
+                                                    <span className="text-yellow-500 font-bold">{(alerts || []).filter(a => a.severity <= 0.6).length}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -636,10 +744,10 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                         <div className="glass-card p-6 border border-white/5 bg-white/[0.01]">
                                             <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4 border-b border-white/5 pb-2">Vulnerability Scan Pulse</h3>
                                             <div className="space-y-4">
-                                                {securityScans.length === 0 ? (
+                                                {(securityScans || []).length === 0 ? (
                                                     <p className="text-white/30 italic text-sm py-4">Awaiting initial telemetry stream...</p>
                                                 ) : (
-                                                    securityScans.slice(0, 5).map((scan: SecurityScan) => (
+                                                    (securityScans || []).slice(0, 5).map((scan: SecurityScan) => (
                                                         <div key={scan.id} className="flex items-center justify-between p-3 rounded bg-black/40 border border-white/5">
                                                             <div>
                                                                 <p className="text-xs text-white/80 font-bold uppercase">{scan.target_service}</p>
@@ -687,13 +795,13 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-white/5 text-white/70">
-                                                    {securityScans.map((scan) => (
+                                                    {(securityScans || []).map((scan) => (
                                                         <tr key={scan.id} className="hover:bg-white/[0.02] transition-colors">
                                                             <td className="px-6 py-3" style={{ color: currentTheme.primary }}>{scan.id.substring(0, 8)}</td>
                                                             <td className="px-6 py-3">{new Date(scan.scan_time).toISOString()}</td>
                                                             <td className="px-6 py-3">
-                                                                {scan.findings && scan.findings.length > 0 ? (
-                                                                    <span className="text-red-400">{scan.findings.length} issue(s) detected</span>
+                                                                {(scan.findings || []).length > 0 ? (
+                                                                    <span className="text-red-400">{(scan.findings || []).length} issue(s) detected</span>
                                                                 ) : (
                                                                     <span style={{ color: currentTheme.primary + '99' }}>Nominal - No issues detected</span>
                                                                 )}
@@ -703,7 +811,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                             </td>
                                                         </tr>
                                                     ))}
-                                                    {securityScans.length === 0 && (
+                                                    {(securityScans || []).length === 0 && (
                                                         <tr>
                                                             <td colSpan={4} className="px-6 py-8 text-center text-white/20 italic">No audit records available in the secure buffer.</td>
                                                         </tr>
@@ -725,7 +833,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                 </button>
                                                 <button
                                                     onClick={() => setCurrentPage(currentPage + 1)}
-                                                    disabled={securityScans.length < itemsPerPage}
+                                                    disabled={(securityScans || []).length < itemsPerPage}
                                                     className="px-4 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
                                                     style={{ '&:hover': { backgroundColor: currentTheme.primary + '1a', borderColor: currentTheme.primary + '4d', color: currentTheme.primary } } as any}
                                                 >
@@ -788,14 +896,33 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         style={{ borderColor: currentTheme.primary + '4d', boxShadow: `0 0 50px ${currentTheme.secondary}` }}
                     >
                         <div className="flex justify-between items-start mb-8">
-                            <div>
+                            <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
                                     <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: currentTheme.primary }} />
                                     <span className="text-[10px] font-black tracking-[0.3em] uppercase" style={{ color: currentTheme.primary }}>Tactical Analysis Locked</span>
                                 </div>
                                 <h2 className="text-2xl font-black text-white uppercase tracking-tight">
-                                    {selectedAlert.type.replace(/_/g, ' ')} // {selectedAlert.id.substring(0, 8).toUpperCase()}
+                                    {selectedAlert?.type?.replace(/_/g, ' ') || 'UNKNOWN'} // {selectedAlert?.id?.substring(0, 8).toUpperCase() || 'N/A'}
                                 </h2>
+
+                                {/* Classification Badge - Only shown for redacted alerts */}
+                                {isAlertRedacted(selectedAlert) && (() => {
+                                    const classification = getClassificationLevel(selectedAlert);
+                                    return (
+                                        <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2"
+                                            style={{
+                                                backgroundColor: classification.bgColor,
+                                                borderColor: classification.borderColor,
+                                                boxShadow: `0 0 20px ${classification.borderColor}40`
+                                            }}>
+                                            <Shield className="w-4 h-4" style={{ color: classification.color }} />
+                                            <span className="text-xs font-black tracking-wider" style={{ color: classification.color }}>
+                                                {classification.level}
+                                            </span>
+                                            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: classification.color }} />
+                                        </div>
+                                    );
+                                })()}
                             </div>
                             <button
                                 onClick={() => setSelectedAlert(null)}
@@ -806,31 +933,35 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-8 mb-8">
-                            <div className="space-y-1">
-                                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Incident Vector</span>
-                                <p className="text-sm font-mono" style={{ color: currentTheme.primary }}>{selectedAlert.location}</p>
+                        {!isAlertRedacted(selectedAlert) && (
+                            <div className="grid grid-cols-2 gap-8 mb-8">
+                                <div className="space-y-1">
+                                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Incident Vector</span>
+                                    <p className="text-sm font-mono" style={{ color: currentTheme.primary }}>{selectedAlert?.location || 'Unknown'}</p>
+                                </div>
+                                <div className="space-y-1 text-right">
+                                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Signal Latency</span>
+                                    <p className="text-sm text-white/80 font-mono">14.2ms</p>
+                                </div>
                             </div>
-                            <div className="space-y-1 text-right">
-                                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Signal Latency</span>
-                                <p className="text-sm text-white/80 font-mono">14.2ms</p>
-                            </div>
-                        </div>
+                        )}
 
-                        <div className="space-y-4 mb-8">
-                            <div className="flex items-center gap-2">
-                                <Cpu className="w-4 h-4" style={{ color: currentTheme.primary }} />
-                                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Raw Telemetry Stream</span>
+                        {!isAlertRedacted(selectedAlert) && (
+                            <div className="space-y-4 mb-8">
+                                <div className="flex items-center gap-2">
+                                    <Cpu className="w-4 h-4" style={{ color: currentTheme.primary }} />
+                                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Raw Telemetry Stream</span>
+                                </div>
+                                <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 font-mono text-[10px] h-32 overflow-auto scrollbar-cyber" style={{ color: currentTheme.primary + 'b3', borderColor: currentTheme.primary + '1a' }}>
+                                    <pre>{JSON.stringify({
+                                        event_id: selectedAlert?.id || 'N/A',
+                                        payload_digest: "sha256:e3b0c442...",
+                                        node_hops: ["GW-LAGOS-01", "CORE-ABUJA-PRIM"],
+                                        signature: "secp256k1:..."
+                                    }, null, 2)}</pre>
+                                </div>
                             </div>
-                            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 font-mono text-[10px] h-32 overflow-auto scrollbar-cyber" style={{ color: currentTheme.primary + 'b3', borderColor: currentTheme.primary + '1a' }}>
-                                <pre>{JSON.stringify({
-                                    event_id: selectedAlert.id,
-                                    payload_digest: "sha256:e3b0c442...",
-                                    node_hops: ["GW-LAGOS-01", "CORE-ABUJA-PRIM"],
-                                    signature: "secp256k1:..."
-                                }, null, 2)}</pre>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Response Team Triangulation (NEW) */}
                         <div className="space-y-4 mb-8">
@@ -843,8 +974,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                             </div>
 
                             <div className="space-y-3">
-                                {triangulatedAssets.length > 0 ? (
-                                    triangulatedAssets.map((ta, i) => (
+                                {(triangulatedAssets || []).length > 0 ? (
+                                    (triangulatedAssets || []).map((ta, i) => (
                                         <div key={ta.asset.id} className="relative group">
                                             <div className="flex items-center justify-between mb-1">
                                                 <div className="flex items-center gap-2">
@@ -905,12 +1036,12 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                             <button
                                 onClick={async () => {
                                     if (selectedAlert) {
-                                        const success = await verifyAlert(selectedAlert.id);
+                                        const success = await verifyAlert(selectedAlert?.id || '');
                                         if (success) {
                                             // Optimistic Update
-                                            const updatedAlert = { ...selectedAlert, isTrusted: true, verification_count: (selectedAlert.verification_count || 0) + 1 };
+                                            const updatedAlert = { ...selectedAlert, isTrusted: true, verification_count: (selectedAlert?.verification_count || 0) + 1 };
                                             setSelectedAlert(updatedAlert);
-                                            setLiveAlerts(prev => prev.map(a => a.id === selectedAlert.id ? updatedAlert : a));
+                                            setLiveAlerts(prev => prev.map(a => a.id === selectedAlert?.id ? updatedAlert : a));
                                             alert('ALERT INTEGRITY VERIFIED ON DATABASE.');
                                         } else {
                                             alert('Verification Failed. Check console.');
@@ -947,13 +1078,13 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                 </button>
                             </div>
                             <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                {notifications.length === 0 ? (
+                                {(notifications || []).length === 0 ? (
                                     <div className="bg-white/5 p-4 rounded border border-white/10">
                                         <p className="text-sm text-white/80">System operational - All services running</p>
                                         <span className="text-xs text-white/40">Now</span>
                                     </div>
                                 ) : (
-                                    notifications.map((notif, idx) => (
+                                    (notifications || []).map((notif, idx) => (
                                         <div key={idx} className="bg-white/5 p-3 rounded border border-white/10 animate-fade-in-up">
                                             <p className="text-sm text-white/90">{notif.message}</p>
                                             <span className="text-xs text-white/40">{notif.timestamp.toLocaleTimeString()}</span>

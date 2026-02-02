@@ -18,9 +18,9 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
     const [showUserMenu, setShowUserMenu] = React.useState(false);
     const [activeView, setActiveView] = React.useState<'overview' | 'profile' | 'registry' | 'analytics'>('overview');
 
-    const criticalCount = alerts.filter(a => a.severity > 0.8).length;
-    const trends = getIncidentTrends(alerts);
-    const distribution = getThreatDistribution(alerts);
+    const criticalCount = (alerts || []).filter(a => a.severity > 0.8).length;
+    const trends = getIncidentTrends(alerts || []);
+    const distribution = getThreatDistribution(alerts || []);
     // Unused variables for now, but keeping for future chart expansion
     // const urgentCount = alerts.filter(a => a.severity > 0.6 && a.severity <= 0.8).length;
     // const routineCount = alerts.filter(a => a.severity <= 0.6).length;
@@ -128,7 +128,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                         <span className="text-xs font-semibold uppercase text-slate-400 mb-2 tracking-wider">Total Incidents</span>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-bold text-slate-900">{alerts.length}</span>
+                            <span className="text-3xl font-bold text-slate-900">{(alerts || []).length}</span>
                             <span className="text-sm font-medium text-green-600">▲ {trends[11]} recent</span>
                         </div>
                     </div>
@@ -150,7 +150,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                         <span className="text-xs font-semibold uppercase text-slate-400 mb-2 tracking-wider">System Integrity</span>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-bold text-slate-900">{alerts.length > 0 ? (100 - (criticalCount / alerts.length * 20)).toFixed(1) : '100'}%</span>
+                            <span className="text-3xl font-bold text-slate-900">{(alerts || []).length > 0 ? (100 - (criticalCount / (alerts || []).length * 20)).toFixed(1) : '100'}%</span>
                             <Shield className="w-4 h-4 text-blue-600 ml-auto" />
                         </div>
                     </div>
@@ -192,10 +192,10 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                                 <h3 className="font-bold text-slate-900 mb-4">Recent Reports</h3>
                                 <div className="divide-y divide-slate-100">
-                                    {alerts.length === 0 ? (
+                                    {(alerts || []).length === 0 ? (
                                         <p className="py-4 text-slate-400 text-sm italic">No recent reports available.</p>
                                     ) : (
-                                        alerts.slice(0, 3).map(alert => (
+                                        (alerts || []).slice(0, 3).map(alert => (
                                             <div key={alert.id} className="py-3 flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`p-2 rounded-lg ${alert.severity > 0.8 ? 'bg-red-50 text-red-600' :
@@ -229,10 +229,10 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                     Threat Composition
                                 </h3>
                                 <div className="space-y-4">
-                                    {distribution.length === 0 ? (
+                                    {(distribution || []).length === 0 ? (
                                         <p className="text-sm text-slate-400 italic">Insufficient data for distribution analysis</p>
                                     ) : (
-                                        distribution.map((item, idx) => (
+                                        (distribution || []).map((item: any, idx: number) => (
                                             <div key={idx} className="space-y-1">
                                                 <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
                                                     <span className="text-slate-600">{item.name.replace(/_/g, ' ')}</span>
@@ -255,7 +255,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Strategic Advisory</div>
                                     <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                                         <p className="text-xs text-blue-900 leading-relaxed font-medium">
-                                            Current telemetry suggests a {criticalCount > 2 ? 'high' : 'contained'} risk level. Recommend increasing surveillance in {alerts[0]?.location || 'all sectors'}.
+                                            Current telemetry suggests a {criticalCount > 2 ? 'high' : 'contained'} risk level. Recommend increasing surveillance in {(alerts || [])[0]?.location || 'all sectors'}.
                                         </p>
                                     </div>
                                 </div>
@@ -264,17 +264,19 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                             <div className="bg-blue-900 p-6 rounded-xl text-white shadow-lg">
                                 <h3 className="font-bold mb-2">System Status</h3>
                                 <p className="text-blue-200 text-sm mb-4">All systems operational. Network grid stability is optimal.</p>
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="opacity-70">Latency</span>
-                                    <span className="font-mono font-bold">18ms</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm mt-2">
-                                    <span className="opacity-70">Uptime</span>
-                                    <span className="font-mono font-bold">99.99%</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm mt-2">
-                                    <span className="opacity-70">Active Nodes</span>
-                                    <span className="font-mono font-bold">{securityStatus.trustedDevices ?? 0}</span>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="opacity-70">Latency</span>
+                                        <span className="font-mono font-bold">18ms</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="opacity-70">Uptime</span>
+                                        <span className="font-mono font-bold">99.99%</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="opacity-70">Active Nodes</span>
+                                        <span className="font-mono font-bold">{securityStatus.trustedDevices ?? 0}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -323,6 +325,8 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                     <h3 className="font-bold text-slate-900 mb-2">Account Security</h3>
                                     <p className="text-sm text-slate-500 mb-6 leading-relaxed">Your account is protected by hardware-bound PKI and multi-factor biometric authentication.</p>
                                     <div className="space-y-3">
+                                        <p className="text-zinc-500 text-xs font-mono mb-2 uppercase tracking-tighter">Total Observations</p>
+                                        <p className="text-4xl font-black text-white tracking-tighter">{(alerts || []).length}</p>
                                         <div className="flex justify-between text-xs font-bold uppercase tracking-tighter">
                                             <span className="text-slate-400">Security Score</span>
                                             <span className="text-blue-600">98/100</span>

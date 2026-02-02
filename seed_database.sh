@@ -24,6 +24,7 @@ FILES=(
     "platform/schema/013_real_seeding_data.sql"        # REAL Nigerian location data
     "platform/schema/014_national_coverage.sql"        # National Coverage (37 States + FCT)
     "platform/schema/015_procedural_fill.sql"          # Procedural Villages for Load Testing
+    "platform/schema/017_classified_alerts.sql"        # Classified/Redacted test alerts
 )
 
 for file in "${FILES[@]}"; do

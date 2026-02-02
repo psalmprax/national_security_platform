@@ -40,7 +40,7 @@ export default function MapboxMap({
     const triangulationLayersRef = useRef<string[]>([]);
     const [isMapSupported, setIsMapSupported] = useState(true);
     // If resources are passed via props, show them by default, otherwise wait for toggle
-    const [showResources, setShowResources] = useState(resources.length > 0);
+    const [showResources, setShowResources] = useState((resources || []).length > 0);
     const [tokenError, setTokenError] = useState(false);
     const hasAttemptedInit = useRef(false);
     const isCyber = mode === 'cyber';
@@ -111,7 +111,7 @@ export default function MapboxMap({
         if (!isMapSupported || !mapRef.current) return;
 
         // Remove markers for alerts that no longer exist
-        const currentIds = new Set(alerts.map(a => a.id));
+        const currentIds = new Set((alerts || []).map(a => a.id));
         Object.keys(markersRef.current).forEach(id => {
             if (!currentIds.has(id)) {
                 markersRef.current[id].remove();
@@ -120,7 +120,7 @@ export default function MapboxMap({
         });
 
         // Add or update markers
-        alerts.forEach(alert => {
+        (alerts || []).forEach(alert => {
             const lng = Number(alert.longitude);
             const lat = Number(alert.latitude);
 
@@ -273,9 +273,9 @@ export default function MapboxMap({
         });
         triangulationLayersRef.current = [];
 
-        if (!triangulatedAssets.length || !selectedAlert) return;
+        if (!(triangulatedAssets || []).length || !selectedAlert) return;
 
-        triangulatedAssets.forEach((ta, i) => {
+        (triangulatedAssets || []).forEach((ta, i) => {
             // 1. Create Line Source
             const lineId = `triangulation-line-${i}`;
             const sourceData: GeoJSON.Feature<GeoJSON.LineString> = {
