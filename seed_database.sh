@@ -26,6 +26,7 @@ FILES=(
     "platform/schema/015_procedural_fill.sql"          # Procedural Villages for Load Testing
     "platform/schema/017_classified_alerts.sql"        # Classified/Redacted test alerts
     "platform/schema/018_mission_schema.sql"           # Mission schema
+    "platform/schema/019_lga_centroids.sql"           # LGA Centroids
 )
 
 for file in "${FILES[@]}"; do
