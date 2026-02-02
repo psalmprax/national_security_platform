@@ -142,90 +142,189 @@ C4Context
 
 ### 2.3 Database Entity Relationship Diagram (ERD)
 
+The platform currently maintains **14 core tables** across operational, geospatial, and security domains:
+
 ```mermaid
 erDiagram
     USERS ||--o{ DEVICES : "binds to"
     USERS ||--o{ ALERTS : "submits"
     USERS ||--o{ AUDIT_LOGS : "performs"
     USERS ||--o{ CORROBORATIONS : "verifies"
+    USERS ||--o{ AGENCY_PERSONNEL : "assigned_to"
     
     ALERTS ||--o{ MEDIA_ATTACHMENTS : "contains"
     ALERTS ||--o{ CORROBORATIONS : "receives"
+    ALERTS ||--o{ MISSIONS : "triggers"
 
     AGENCIES ||--o{ ASSETS : "owns"
     AGENCIES ||--o{ AGENCY_PERSONNEL : "employs"
-    USERS ||--o{ AGENCY_PERSONNEL : "assigned_to"
+    
+    ASSETS ||--o{ MISSIONS : "dispatched_for"
+    
+    USERS ||--o{ MISSIONS : "commands"
     
     STATES ||--o{ LGAS : "contains"
     LGAS ||--o{ VILLAGES : "contains"
+    STATES ||--o{ USERS : "located_in"
+    LGAS ||--o{ USERS : "located_in"
     
     USERS {
         uuid id PK
         string phone_number UK
-        string role "ADMIN | CYBER_ANALYST | TACTICAL_COMMAND | STRATEGIC_PLANNER | AGENCY_OFFICER"
-        string monarch_grade
+        string email
+        string full_name
+        string nin UK "National ID"
+        string role "ADMIN | CYBER_ANALYST | TACTICAL_COMMAND | etc"
+        string monarch_grade "1ST_CLASS | 2ND_CLASS | 3RD_CLASS"
+        string domain_territory
+        uuid state_id FK
+        uuid lga_id FK
         uuid village_id FK
+        string status "PENDING | ACTIVE | SUSPENDED"
+        string password_hash
+        float trust_score
+        string clearance_level "UNCLASSIFIED to TOP_SECRET"
     }
     
     ALERTS {
         uuid id PK
         uuid user_id FK
-        geometry location
-        string alert_type
-        string status
+        geometry location "PostGIS Point"
+        string alert_type "FIREARM_SIGHTING | KIDNAPPING | etc"
+        string status "PENDING | VERIFIED | DISPATCHED"
+        string priority_class "LOW | MEDIUM | HIGH | CRITICAL"
+        int impact_radius_meters
+        string content_text
+        string content_media_url
+        float severity_score "AI-generated"
+        int verification_count
+        string location_source "GPS | MANUAL | CELL_TOWER"
+        timestamp created_at
     }
 
     AGENCIES {
         uuid id PK
         string name
-        string type
-        string jurisdiction_scope
+        string acronym
+        string type "POLICE | MILITARY | DSS | etc"
+        string jurisdiction_scope "NATIONAL | STATE | LGA"
+        string hq_address
+        string contact_phone
     }
 
     ASSETS {
         uuid id PK
         uuid agency_id FK
-        string type
-        geometry location
-        string status
+        string name
+        string type "STATION | CHECKPOINT | PATROL_UNIT"
+        geometry location "PostGIS Point"
+        string status "ACTIVE | DISPATCHED | MAINTENANCE"
+        string call_sign
+        int capacity_level
+        timestamp last_updated_at
     }
 
     AGENCY_PERSONNEL {
-        uuid id PK
-        uuid agency_id FK
         uuid user_id FK
-        string rank
-        string department
+        uuid agency_id FK
+        string rank "Captain | Sergeant | etc"
+        string role "ADMIN | OPERATOR | DISPATCHER"
+        string badge_number
+        bool is_active
     }
     
     DEVICES {
         uuid id PK
         uuid user_id FK
-        string hwid UK
-        string public_key
-        string status
+        string hwid UK "Hardware ID"
+        string public_key "Ed25519"
+        string device_model
+        string os_version
+        string status "ACTIVE | REVOKED"
+        timestamp last_seen_at
     }
     
     MEDIA_ATTACHMENTS {
         uuid id PK
         uuid alert_id FK
         string content_hash_sha256
-        string storage_path
+        string storage_path "MinIO object key"
+        string media_type "IMAGE | VIDEO | AUDIO"
+        int file_size_bytes
     }
     
     CORROBORATIONS {
         uuid id PK
         uuid alert_id FK
-        uuid verifier_id FK
+        uuid verifier_id FK "User who verified"
         float confidence_score
+        string verification_method "VISUAL | PROXIMITY | INTEL"
+        timestamp verified_at
+    }
+    
+    AUDIT_LOGS {
+        uuid id PK
+        uuid entity_id "Resource affected"
+        string action "ASSET_DISPATCH | USER_LOGIN | etc"
+        uuid actor_id FK
+        jsonb changes "Immutable change record"
+        string classification_level
+        timestamp timestamp
+    }
+    
+    MISSIONS {
+        uuid id PK
+        uuid alert_id FK
+        uuid asset_id FK "Dispatched unit"
+        uuid commander_id FK "Tactical lead"
+        string status "EN_ROUTE | ON_SITE | COMPLETED | ABORTED"
+        string priority "ROUTINE | URGENT | EMERGENCY"
+        int eta_minutes
+        timestamp dispatch_time
+        timestamp arrival_time
+        timestamp completion_time
     }
     
     STATES {
         uuid id PK
         string name UK
-        geometry boundary_geom
+        geometry boundary_geom "PostGIS MultiPolygon"
+        string capital
+        float area_sq_km
+    }
+    
+    LGAS {
+        uuid id PK
+        uuid state_id FK
+        string name
+        geometry boundary_geom "PostGIS MultiPolygon"
+        string lga_type "URBAN | RURAL"
+    }
+    
+    VILLAGES {
+        uuid id PK
+        uuid lga_id FK
+        string name
+        geometry location "PostGIS Point"
+        int population_estimate
+    }
+    
+    SECURITY_SCANS {
+        uuid id PK
+        timestamp scan_time
+        string target_service "core-api | intelligence-service"
+        string status "PASS | FAIL"
+        jsonb findings "Vulnerability details"
+        jsonb meta_data "Scanner config"
     }
 ```
+
+**Key Design Decisions:**
+- **Geospatial Integrity**: All location fields use PostGIS geometry types for native spatial queries
+- **Audit Immutability**: `audit_logs` uses JSONB for flexible change tracking without schema migrations
+- **Identity Hardening**: Users now require NIN, email, and geospatial anchoring (state/lga)
+- **Mission Tracking**: The `missions` table enables real-time tactical dispatch and accountability
+- **Trust Scoring**: Dynamic `trust_score` field enables adaptive verification thresholds
 
 
 ---
