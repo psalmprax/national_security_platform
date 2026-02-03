@@ -7,7 +7,8 @@ import { fetchAlerts, fetchSystemStatus, Alert, SystemStatus } from '../lib/api'
 import CyberDashboard from '../components/dashboards/CyberDashboard';
 import TacticalDashboard from '../components/dashboards/TacticalDashboard';
 import StrategicDashboard from '../components/dashboards/StrategicDashboard';
-import { Layout, Users, ShieldAlert, LogOut } from 'lucide-react';
+import AccessManagement from '../components/admin/AccessManagement';
+import { Layout, Users, ShieldAlert, LogOut, Key, Maximize, Minimize } from 'lucide-react';
 import { useAuth, User } from '../lib/AuthContext';
 import Draggable from 'react-draggable';
 
@@ -22,6 +23,7 @@ export default function DashboardPage() {
         isEncrypted: true,
         trustedDevices: 0
     });
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     const router = useRouter();
 
@@ -103,6 +105,15 @@ export default function DashboardPage() {
         }
     }, [user]);
 
+    // Listen for fullscreen changes (e.g. Esc key)
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
     // Show loading state to prevent Render-Then-Redirect
     if (isLoading) {
         return (
@@ -121,33 +132,62 @@ export default function DashboardPage() {
         setShowAgencyPicker(false);
     };
 
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+            setIsFullscreen(true);
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+                setIsFullscreen(false);
+            }
+        }
+    };
+
     return (
         <div className="relative w-full h-screen overflow-hidden">
-            {/* Agency View Switcher - Only for System Admin */}
-            {user?.role === 'ADMIN' && (
-                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[110] group">
+            {/* Unified Command Bar - Only for System Admin or Higher */}
+            <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[110] flex items-center">
+                <div className="flex items-center bg-black/80 border-b border-x border-white/20 rounded-b-xl backdrop-blur-md px-1 py-1 shadow-2xl">
+                    {/* View Picker Toggle */}
+                    {user?.role === 'ADMIN' && (
+                        <button
+                            className="h-7 px-4 hover:bg-white/5 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all group"
+                            onClick={() => setShowAgencyPicker(!showAgencyPicker)}
+                        >
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#00FF95] animate-pulse" />
+                            <span className="text-[9px] font-black text-white/80 uppercase tracking-widest group-hover:text-[#00FF95]">
+                                {agencyView}
+                            </span>
+                        </button>
+                    )}
+
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+
+                    {/* Fullscreen Toggle */}
                     <button
-                        className="h-8 px-6 bg-black/80 border-b border-x border-white/20 hover:border-[#00FF95] rounded-b-lg flex items-center justify-center gap-2 cursor-pointer backdrop-blur-md transition-all hover:bg-black"
-                        onClick={() => setShowAgencyPicker(!showAgencyPicker)}
+                        onClick={toggleFullscreen}
+                        className="h-7 w-8 hover:bg-white/10 rounded-lg flex items-center justify-center text-white/40 hover:text-white transition-all group"
+                        title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                     >
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#00FF95] animate-pulse" />
-                        <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest group-hover:text-[#00FF95]">
-                            {agencyView} VIEW
-                        </span>
-                        <div className="w-0 h-0 border-l-[3px] border-l-transparent border-t-[4px] border-t-white/60 border-r-[3px] border-r-transparent group-hover:border-t-[#00FF95]" />
+                        {isFullscreen ? (
+                            <Minimize className="w-3.5 h-3.5" />
+                        ) : (
+                            <Maximize className="w-3.5 h-3.5" />
+                        )}
+                    </button>
+
+                    {/* Global Logout */}
+                    <button
+                        onClick={logout}
+                        className="h-7 w-8 hover:bg-red-500/20 rounded-lg flex items-center justify-center text-white/40 hover:text-red-400 transition-all group"
+                        title="Secure Logout"
+                    >
+                        <LogOut className="w-3.5 h-3.5" />
                     </button>
                 </div>
-            )}
-
-            {/* Logout Button - Top Right */}
-            <div className="fixed top-4 right-4 z-[110]">
-                <button
-                    onClick={logout}
-                    className="h-10 w-10 bg-black/40 hover:bg-red-500/20 border border-white/10 hover:border-red-500/50 rounded-xl flex items-center justify-center text-white/60 hover:text-red-400 backdrop-blur-md transition-all group"
-                    title="Logout / Terminate Session"
-                >
-                    <LogOut className="w-5 h-5 transition-transform group-hover:scale-110" />
-                </button>
             </div>
 
             {/* View Switcher UI - Controlled by Admin check */}
@@ -181,6 +221,15 @@ export default function DashboardPage() {
                             <span className="text-xs font-bold uppercase">Strategic</span>
                             {!hasAccess(currentUserRole, 'strategic') && <span className="text-[9px] text-red-400">LOCKED</span>}
                         </button>
+                        <button
+                            disabled={!hasAccess(currentUserRole, 'access')}
+                            onClick={() => toggleAgencyView('access')}
+                            className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-all ${!hasAccess(currentUserRole, 'access') ? 'opacity-30 cursor-not-allowed border-transparent text-white/40' : agencyView === 'access' ? 'bg-[#00FF95] text-black border-[#00FF95]' : 'border-transparent hover:bg-white/10 text-white/60 hover:text-white'}`}
+                        >
+                            <Key className="w-6 h-6" />
+                            <span className="text-xs font-bold uppercase">Access</span>
+                            {!hasAccess(currentUserRole, 'access') && <span className="text-[9px] text-red-400">LOCKED</span>}
+                        </button>
                     </div>
 
                     {/* Admin Portal Tool */}
@@ -201,32 +250,35 @@ export default function DashboardPage() {
             {/* Debug Role Switcher - System Admin Only */}
             {user?.role === 'ADMIN' && (
                 <Draggable>
-                <div className="fixed bottom-20 right-4 z-[110] group cursor-move">
-                    <div className="bg-black/80 backdrop-blur border border-white/20 p-2 rounded-lg flex items-center gap-2 hover:bg-black transition-colors">
-                        <ShieldAlert className="w-4 h-4 text-yellow-500" />
-                        <span className="text-xs font-mono text-white/60 uppercase">System Admin Context:</span>
-                        <select
-                            value={currentUserRole}
-                            onChange={(e) => {
-                                const newRole = e.target.value as UserRole;
-                                setCurrentUserRole(newRole);
-                                // Auto-switch if current view is lost
-                                if (!hasAccess(newRole, agencyView)) {
-                                    if (hasAccess(newRole, 'tactical')) setAgencyView('tactical');
-                                    else if (hasAccess(newRole, 'strategic')) setAgencyView('strategic');
-                                    else if (hasAccess(newRole, 'cyber')) setAgencyView('cyber');
-                                }
-                            }}
-                            className="bg-transparent text-yellow-500 text-xs font-bold uppercase outline-none cursor-pointer"
-                        >
-                            <option value="TACTICAL_COMMAND">Tactical</option>
-                            <option value="CYBER_ANALYST">Cyber Analyst</option>
-                            <option value="STRATEGIC_PLANNER">Strategic</option>
-                            <option value="AGENCY_OFFICER">Agency Officer</option>
-                            <option value="ADMIN">Admin</option>
-                        </select>
+                    <div className="fixed bottom-20 right-4 z-[110] group cursor-move">
+                        <div className="bg-black/80 backdrop-blur border border-white/20 p-2 rounded-lg flex items-center gap-2 hover:bg-black transition-colors">
+                            <ShieldAlert className="w-4 h-4 text-yellow-500" />
+                            <span className="text-xs font-mono text-white/60 uppercase">System Admin Context:</span>
+                            <select
+                                value={currentUserRole}
+                                onChange={(e) => {
+                                    const newRole = e.target.value as UserRole;
+                                    setCurrentUserRole(newRole);
+                                    // Auto-switch if current view is lost
+                                    if (!hasAccess(newRole, agencyView)) {
+                                        if (hasAccess(newRole, 'tactical')) setAgencyView('tactical');
+                                        else if (hasAccess(newRole, 'strategic')) setAgencyView('strategic');
+                                        else if (hasAccess(newRole, 'cyber')) setAgencyView('cyber');
+                                        else if (hasAccess(newRole, 'access')) setAgencyView('access');
+                                    }
+                                }}
+                                className="bg-transparent text-yellow-500 text-xs font-bold uppercase outline-none cursor-pointer"
+                            >
+                                <option value="TACTICAL_COMMAND">Tactical</option>
+                                <option value="CYBER_ANALYST">Cyber Analyst</option>
+                                <option value="STRATEGIC_PLANNER">Strategic</option>
+                                <option value="AGENCY_OFFICER">Agency Officer</option>
+                                <option value="SYSTEM_ADMIN">System Admin</option>
+                                <option value="SECURITY_OFFICER">Security Officer</option>
+                                <option value="ADMIN">Super Admin</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
                 </Draggable>
             )}
 
@@ -285,6 +337,9 @@ export default function DashboardPage() {
                                 user={user}
                                 logout={logout}
                             />
+                        )}
+                        {agencyView === 'access' && (
+                            <AccessManagement />
                         )}
                     </>
                 )}

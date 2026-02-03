@@ -29,6 +29,7 @@ export interface Alert {
     isDuress?: boolean;
     isEncrypted?: boolean;
     source_device_id?: string;
+    classification_level?: string;
 }
 
 // Helper to detect Base64 strings (simple heuristic)
@@ -72,7 +73,8 @@ export async function fetchAlerts(): Promise<Alert[]> {
             lga_name: alert.lga_name,
             state_name: alert.state_name,
             location_source: alert.location_source as 'GPS' | 'GOVERNANCE_OVERRIDE',
-            isEncrypted: isBase64(alert.content_text || '') && (alert.content_text || '').length > 30 && !(alert.content_text || '').includes(' ')
+            isEncrypted: isBase64(alert.content_text || '') && (alert.content_text || '').length > 30 && !(alert.content_text || '').includes(' '),
+            classification_level: alert.classification_level
         }));
     } catch (error) {
         console.error('Failed to fetch alerts:', error);
@@ -583,5 +585,45 @@ export async function getMediaAccessURL(key: string, bucket: string = 'national-
     } catch (error) {
         console.error('Failed to get media access URL:', error);
         return null;
+    }
+}
+
+// Admin API
+export async function fetchAllUsers(): Promise<any[]> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/admin/users`);
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch all users:', error);
+        return [];
+    }
+}
+
+export async function updateUserClearance(userId: string, level: string): Promise<boolean> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/clearance`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level })
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to update user clearance:', error);
+        return false;
+    }
+}
+
+export async function updateAlertClassification(alertId: string, level: string): Promise<boolean> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/admin/alerts/${alertId}/classify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level })
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to update alert classification:', error);
+        return false;
     }
 }

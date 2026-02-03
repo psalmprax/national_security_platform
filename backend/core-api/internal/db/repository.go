@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"national_security_platform/backend/core-api/internal/models"
@@ -19,13 +18,17 @@ func CreateAlert(ctx context.Context, alert *models.Alert) error {
 			id, user_id, status, priority_class, 
 			location, impact_radius_meters, alert_type,
 			content_text, content_media_url, verification_count,
-			location_source
+			location_source, classification_level
 		) VALUES (
 			$1, $2, $3, $4,
 			ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8,
-			$9, $10, $11, $12
+			$9, $10, $11, $12, $13
 		)
 	`
+
+	if alert.ClassificationLevel == "" {
+		alert.ClassificationLevel = "UNCLASSIFIED"
+	}
 
 	_, err := Pool.Exec(ctx, query,
 		alert.ID,
@@ -40,6 +43,7 @@ func CreateAlert(ctx context.Context, alert *models.Alert) error {
 		alert.ContentMediaURL,
 		alert.VerificationCount,
 		alert.LocationSource,
+		alert.ClassificationLevel,
 	)
 
 	if err != nil {
@@ -279,7 +283,7 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 			ST_Y(a.location::geometry) as latitude,
 			a.impact_radius_meters, a.alert_type,
 			a.content_text, a.content_media_url, a.severity_score, a.verification_count,
-			a.created_at, a.updated_at,
+			a.created_at, a.updated_at, a.classification_level,
 			-- Hybrid LGA resolution: boundary match OR nearest centroid
 			COALESCE(
 				l_boundary.name,  -- Try boundary containment first
@@ -352,6 +356,7 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 			&alert.VerificationCount,
 			&alert.CreatedAt,
 			&alert.UpdatedAt,
+			&alert.ClassificationLevel,
 			&lgaName,
 			&stateName,
 		)
@@ -359,16 +364,16 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 			return nil, fmt.Errorf("failed to scan alert: %w", err)
 		}
 
-		// ABAC Filtering: Redact PII for low clearance
-		// If content is already redacted, don't overwrite it.
-		if userScore < 3 { // Below CONFIDENTIAL
-			if alert.ContentText == nil || !strings.HasPrefix(*alert.ContentText, "[REDACTED") {
-				if alert.PriorityClass == "CRITICAL" || alert.AlertType == "KIDNAPPING" {
-					redacted := "[REDACTED - INSUFFICIENT CLEARANCE]"
-					alert.ContentText = &redacted
-					alert.UserID = uuid.Nil // Hide reporter ID
-				}
-			}
+		// Dynamic ABAC Filtering: Redact if user clearance is lower than alert classification
+		alertScore := levelScores[alert.ClassificationLevel]
+		if alertScore == 0 {
+			alertScore = 1 // Default to lowest
+		}
+
+		if userScore < alertScore {
+			redacted := "[REDACTED - INSUFFICIENT CLEARANCE]"
+			alert.ContentText = &redacted
+			alert.UserID = uuid.Nil // Hide reporter ID
 		}
 
 		// Set the resolved location
@@ -808,4 +813,63 @@ func UpdateDeviceFCMToken(ctx context.Context, userID uuid.UUID, token string) e
 	`
 	_, err := Pool.Exec(ctx, query, token, userID)
 	return err
+}
+
+// UpdateUserClearance updates a user's clearance level
+func UpdateUserClearance(ctx context.Context, userID uuid.UUID, level string) error {
+	query := `UPDATE users SET clearance_level = $1, updated_at = current_timestamp() WHERE id = $2`
+	_, err := Pool.Exec(ctx, query, level, userID)
+	return err
+}
+
+// UpdateAlertClassification updates an alert's classification level
+func UpdateAlertClassification(ctx context.Context, alertID uuid.UUID, level string) error {
+	query := `UPDATE alerts SET classification_level = $1, updated_at = current_timestamp() WHERE id = $2`
+	_, err := Pool.Exec(ctx, query, level, alertID)
+	return err
+}
+
+// GetAllUsers retrieves all users for administrative management
+func GetAllUsers(ctx context.Context) ([]models.User, error) {
+	query := `
+		SELECT id, phone_number, full_name, nin, role, 
+		       monarch_grade, domain_territory, hierarchy_weight,
+		       trust_score, clearance_level, village_id, lga_id, state_id, status, created_at, updated_at
+		FROM users
+		ORDER BY created_at DESC
+	`
+
+	rows, err := Pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID,
+			&user.PhoneNumber,
+			&user.FullName,
+			&user.NIN,
+			&user.Role,
+			&user.MonarchGrade,
+			&user.DomainTerritory,
+			&user.HierarchyWeight,
+			&user.TrustScore,
+			&user.ClearanceLevel,
+			&user.VillageID,
+			&user.LGAID,
+			&user.StateID,
+			&user.Status,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, user)
+	}
+	return users, nil
 }

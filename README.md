@@ -79,7 +79,9 @@ All pre-seeded accounts use the default password: **`password`**
 
 | Role | Phone Number | View Access |
 | :--- | :--- | :--- |
-| **System Admin** | `+2348000000100` | Full Access (All Views + Agency Portal) |
+| **Super Admin** | `+2348000000100` | Full Emergency Override (All Views) |
+| **System Admin** | `+2348000000105` | **Technical Infrastructure** (Cyber View) |
+| **Security Officer** | `+2348000000106` | **Access Registry** (Clearance/Classification) |
 | **Cyber Analyst** | `+2348000000101` | **Cyber View Only** (Strict Isolation) |
 | **Strategic Planner**| `+2348000000102` | **Strategic View Only** (Strict Isolation) |
 | **Tactical Command** | `+2348000000103` | **Tactical View Only** (Strict Isolation) |

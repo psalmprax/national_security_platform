@@ -395,6 +395,7 @@ To ensure 100% location resolution despite incomplete boundary data, the system 
 *   **Interactive Triage Engine**: High-fidelity coordination between the Alert List and Mapbox View. Selecting an alert triggers a synchronized "Fly-To" camera transition and tactical focus, enabling sub-second situational context for analysts.
 *   **Tactical Data Fallback**: Aesthetic-first design for incomplete telemetry. Replaces "Unknown" placeholders with precision-formatted Grid References to maintain analyst trust and system professionalism.
 *   **Manual Alert Verification**: Integrated integrity verification mechanism allowing operators to manually validate alerts. This updates the alert's integrity score in the database, reinforcing trust in the system's intelligence feed.
+*   **Integrated Command UX**: Consolidated "Global Command Bar" at the top-center, housing Fullscreen mode, the Agency View switcher, and Secure Logout. This unified control layer prevents local dashboard UI overlaps and provides a consistent operational frame.
 
 *   **Operational Resilience & Self-Healing**:
     - **Infrastructure Tuning**: Automatic adjustment of database storage thresholds (e.g., `max_disk_utilization_threshold`) to maintain availability during local disk pressure, crucial for survival in degraded hardware environments.
@@ -434,6 +435,7 @@ Beyond standard Role-Based Access Control (RBAC), the system implements Attribut
 *   **Levels**: `UNCLASSIFIED` < `RESTRICTED` < `CONFIDENTIAL` < `SECRET` < `TOP_SECRET`.
 *   **Mechanism**: Clearance levels are embedded in immutable JWT claims.
 *   **Data Redaction**: The database layer (Repository) automatically redacts sensitive fields (PII, source identity) if the requesting user's clearance is insufficient, ensuring "Need-to-Know" compliance even if a valid role is present.
+*   **Separation of Duties (SoD)**: The `ADMIN` role is decomposed into `SYSTEM_ADMIN` (technical infrastructure) and `SECURITY_OFFICER` (policy and identity). This prevents a single actor from controlling both the system availability and the security audit trail.
 
 ---
 

@@ -43,9 +43,23 @@ export default function TriageSidebar({
 
     const isAlertRedacted = (alert: Alert): boolean => {
         if (!alert) return false;
+
+        // Define clearance hierarchy
+        const levels: Record<string, number> = {
+            'UNCLASSIFIED': 1,
+            'RESTRICTED': 2,
+            'CONFIDENTIAL': 3,
+            'SECRET': 4,
+            'TOP_SECRET': 5
+        };
+
+        const userLevel = levels[user?.clearance_level || 'UNCLASSIFIED'] || 1;
+        const alertLevel = levels[alert.classification_level || 'UNCLASSIFIED'] || 1;
+
         return (
             (alert.content || '').includes('[REDACTED') ||
-            (alert.priority_class === 'CRITICAL' && alert.isEncrypted === true) ||
+            (userLevel < alertLevel) ||
+            (alert.priority_class === 'CRITICAL' && alert.isEncrypted === true && userLevel < 4) || // Secret required for critical encrypted
             alert.isDuress === true
         );
     };

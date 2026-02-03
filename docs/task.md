@@ -79,6 +79,16 @@
     - [x] Fixed Intelligence Triage layout (scrollbar/button visibility)
     - [x] Implemented strict redaction for classified alerts
 
+- [x] **Separation of Duties (SoD)**
+    - [x] Split `ADMIN` into `SYSTEM_ADMIN` and `SECURITY_OFFICER` roles
+    - [x] Defined distinct route groups for system vs. security administration
+    - [x] Implemented role-based write protections in `AccessManagement`
+
+- [x] **Command & Control UI/UX Enhancement**
+    - [x] Consolidated Global Command Bar (Fullscreen, View Switching, Secure Logout)
+    - [x] Fixed React hook ordering for stable dashboard performance
+    - [x] Resolved profile menu UI overlaps through central control placement
+
 ---
 
 ## Pending Tasks

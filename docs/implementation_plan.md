@@ -37,5 +37,27 @@ The objective is to enforce "Need-to-Know" principles by restricting access to s
 1.  **Token Validation**: Log in as a high-clearance user and decode the JWT to verify the `ClearanceLevel` claim exists.
 2.  **Middleware Test**: create a test endpoint requiring `TOP_SECRET` and try accessing it with a `CONFIDENTIAL` user.
 3.  **Data Visibility**:
-    - Verify a `CONFIDENTIAL` user sees standard data.
     - Verify a `TOP_SECRET` user sees sensitive PII or restricted alerts.
+
+---
+
+# Separation of Duties (SoD) & Global Command UI
+
+Implemented a more granular administrative model to prevent centralized privilege abuse and a unified command interface for situational awareness.
+
+## Proposed Changes
+
+### Backend (Go Core API)
+
+#### [MODIFY] [main.go](file:///home/psalmprax/national_security_platform/backend/core-api/cmd/server/main.go)
+- **Split Admin Routes**: Created distinct route groups for `SYSTEM_ADMIN` and `SECURITY_OFFICER`.
+- **RBAC Middleware**: Enforced `SYSTEM_ADMIN` only access for status/logs and `SECURITY_OFFICER` for identity/policy management.
+
+### Frontend (Next.js)
+
+#### [MODIFY] [web/app/page.tsx](file:///home/psalmprax/national_security_platform/web/app/page.tsx)
+- **Consolidated Command Bar**: Moved Agency View, Fullscreen, and Logout to a central top-mounted HUD element.
+- **Hook Refactor**: Moved all `useEffect` calls before conditional returns to satisfy React's Rules of Hooks.
+
+#### [MODIFY] [web/components/admin/AccessManagement.tsx](file:///home/psalmprax/national_security_platform/web/components/admin/AccessManagement.tsx)
+- **Read-Only Enforcements**: Implemented checks to ensure only `SECURITY_OFFICER` can perform write operations on policy, even if the user has a high-level admin role.
