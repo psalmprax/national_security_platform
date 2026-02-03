@@ -88,6 +88,7 @@
     - [x] Consolidated Global Command Bar (Fullscreen, View Switching, Secure Logout)
     - [x] Fixed React hook ordering for stable dashboard performance
     - [x] Resolved profile menu UI overlaps through central control placement
+    - [x] Fixed Dashboard redirect loop in Next.js middleware for new admin roles
 
 ---
 

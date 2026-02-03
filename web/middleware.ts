@@ -45,7 +45,7 @@ export async function middleware(request: NextRequest) {
 
         // Root Dashboard Protection
         if (pathname === '/') {
-            const dashboardRoles = ['ADMIN', 'CYBER_ANALYST', 'STRATEGIC_PLANNER', 'TACTICAL_COMMAND'];
+            const dashboardRoles = ['ADMIN', 'CYBER_ANALYST', 'STRATEGIC_PLANNER', 'TACTICAL_COMMAND', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'];
 
             // Redirect Agency Officers to their portal
             if (session.role === 'AGENCY_OFFICER') {
