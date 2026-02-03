@@ -66,5 +66,10 @@ The National Security Platform has a strong foundational security posture with r
     - **Remediation**: Implement Nonce-based CSP for Next.js.
 - **Internal Encryption**: **PASS**. `backend/core-api/internal/security/crypto.go` correctly uses `AES-GCM` for data encryption and `Ed25519` for digital signatures.
 
-### 7.3 Infrastructure Analysis
 - **Frontend Dependencies**: **PASS**. `package.json` uses modern versions of `react` (18.2) and `next` (14.1). No known vulnerability patterns found in source.
+
+### 7.4 Identity & Access Hardening (Feb 3, 2026)
+- **Separation of Duties (SoD)**: **VERIFIED**.
+    - Successfully decomposed `ADMIN` into `SYSTEM_ADMIN` and `SECURITY_OFFICER`.
+    - Cross-privilege access is restricted at the API layer (Go middleware).
+    - UI-level write protections implemented in `AccessManagement` to ensure only the designated officer can modify sensitive policies.
