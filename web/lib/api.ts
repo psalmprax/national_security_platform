@@ -121,6 +121,54 @@ export async function fetchSystemStatus(): Promise<SystemStatus | null> {
     }
 }
 
+export interface State {
+    id: string;
+    name: string;
+    capital_city?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface LGA {
+    id: string;
+    state_id: string;
+    name: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Village {
+    id: string;
+    lga_id: string;
+    name: string;
+    population_est?: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Corroboration {
+    id: string;
+    alert_id: string;
+    verifier_id: string;
+    confidence_score: number;
+    comments?: string;
+    is_coerced_report: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MediaAttachment {
+    id: string;
+    alert_id: string;
+    storage_path: string;
+    content_hash_sha256: string;
+    mime_type?: string;
+    file_size_bytes?: number;
+    is_encrypted: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface SecurityScan {
     id: string;
     scan_time: string;
@@ -128,6 +176,8 @@ export interface SecurityScan {
     status: string;
     findings: any[];
     meta_data: any;
+    updated_at: string;
+    created_at: string;
 }
 
 export async function fetchSecurityScans(page: number = 1, limit: number = 10): Promise<SecurityScan[]> {
@@ -173,6 +223,8 @@ export interface Asset {
     description?: string;
     call_sign?: string;
     capacity_level: number;
+    updated_at: string;
+    created_at: string;
 }
 
 export interface TriangulatedAsset {
@@ -381,4 +433,155 @@ export function getThreatDistribution(alerts: any[]) {
         name,
         percentage: (value / total) * 100
     }));
+}
+
+// Phase 1 Features: Public Alerts, Safety Scores, Anonymous Tips
+
+export interface PublicAlert {
+    id: string;
+    title: string;
+    message: string;
+    alert_level: string;
+    location: {
+        latitude: number;
+        longitude: number;
+    };
+    radius_meters: number;
+    affected_count: number;
+    created_at: string;
+    expires_at: string;
+}
+
+export async function createPublicAlert(alert: Partial<PublicAlert>): Promise<PublicAlert | null> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/public-alerts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(alert),
+        });
+
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to create public alert:', error);
+        return null;
+    }
+}
+
+export interface SafetyScore {
+    lga_code: string;
+    lga_name: string;
+    state_code: string;
+    state_name: string;
+    incident_count: number;
+    avg_severity: number;
+    recent_incidents: number;
+    resolved_count: number;
+    safety_score: number;
+    trend_pct: number;
+    risk_level: 'very_safe' | 'safe' | 'moderate_risk' | 'high_risk' | 'critical_risk';
+    resolution_rate_pct: number;
+    updated_at: string;
+}
+
+export async function fetchSafetyScores(riskLevel?: string): Promise<SafetyScore[]> {
+    try {
+        const url = new URL(`${API_BASE_URL}/api/v1/analytics/safety-scores`);
+        if (riskLevel) url.searchParams.append('risk_level', riskLevel);
+
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch safety scores:', error);
+        return [];
+    }
+}
+
+export async function fetchSafetyScoresSummary(): Promise<any> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/analytics/safety-scores/summary`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch safety score summary:', error);
+        return null;
+    }
+}
+
+export interface AnonymousTip {
+    id: string;
+    tip_content: string;
+    threat_type: string;
+    location_description?: string;
+    media_urls?: string[];
+    verification_status: 'pending' | 'verified' | 'rejected';
+    created_at: string;
+    updated_at: string;
+}
+
+export async function fetchAnonymousTips(): Promise<AnonymousTip[]> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/tips`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch tips:', error);
+        return [];
+    }
+}
+
+export async function verifyTip(tipId: string, status: 'verified' | 'rejected'): Promise<boolean> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/tips/${tipId}/verify`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status }),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to verify tip:', error);
+        return false;
+    }
+}
+
+export async function getMediaAccessURL(key: string, bucket: string = 'national-security-evidence'): Promise<string | null> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/media/access?key=${encodeURIComponent(key)}&bucket=${encodeURIComponent(bucket)}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.url;
+    } catch (error) {
+        console.error('Failed to get media access URL:', error);
+        return null;
+    }
 }

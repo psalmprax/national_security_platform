@@ -40,6 +40,7 @@ class _PanicScreenState extends State<PanicScreen> {
     }
 
     final auth = context.read<AuthService>();
+    final now = DateTime.now().toIso8601String();
     final alert = AlertModel(
       id: const Uuid().v4(),
       userId: auth.userId ?? '550e8400-e29b-41d4-a716-446655440000', // Fallback for safety
@@ -48,7 +49,8 @@ class _PanicScreenState extends State<PanicScreen> {
       longitude: lng,
       content: 'EMERGENCY REPORT: $alertType detected at $lat, $lng',
       status: 'PENDING',
-      timestamp: DateTime.now().toIso8601String(),
+      timestamp: now,
+      updatedAt: now,
       isDuress: false, // Default for now
     );
 

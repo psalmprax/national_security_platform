@@ -13,12 +13,14 @@ import {
     Navigation,
     LocateFixed,
     Users,
-    Lock
+    Lock,
+    Megaphone
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import MapboxMap from '../MapboxMap';
 import MissionSidebar from '../MissionSidebar';
+import PublicAlertBroadcast from '../modals/PublicAlertBroadcast';
 import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset, SystemStatus, Asset, fetchAssets, Mission, fetchActiveMissions, createMission } from '../../lib/api';
 import { useAuth, User } from '../../lib/AuthContext';
 
@@ -46,6 +48,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     const [isDispatchingResponse, setIsDispatchingResponse] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isEngagingProtocols, setIsEngagingProtocols] = useState(false);
+    const [showBroadcastModal, setShowBroadcastModal] = useState(false);
 
     // Security Redaction Helpers
     const isAlertRedacted = (alert: Alert | null): boolean => {
@@ -406,6 +409,13 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                             <div className="absolute left-full ml-4 px-3 py-1 bg-black text-[10px] font-bold uppercase rounded opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap pointer-events-none">Mission Control</div>
                         </button>
                         <button
+                            onClick={() => setShowBroadcastModal(true)}
+                            className="w-12 h-12 flex items-center justify-center rounded bg-white/5 text-orange-400 border border-orange-400/20 hover:bg-orange-400/10 hover:border-orange-400/40 transition-all relative group cursor-pointer"
+                        >
+                            <Megaphone className="w-5 h-5" />
+                            <div className="absolute left-full ml-4 px-3 py-1 bg-black text-[10px] font-bold uppercase rounded opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap pointer-events-none text-orange-400">Public Broadcaster</div>
+                        </button>
+                        <button
                             onClick={() => console.log('Panic Signal Triggered')}
                             className="w-12 h-12 flex items-center justify-center rounded bg-red-600 text-white animate-pulse relative group cursor-pointer"
                         >
@@ -655,6 +665,13 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                                     </>
                                                 )}
                                             </button>
+                                            <button
+                                                onClick={() => setShowBroadcastModal(true)}
+                                                className="w-full bg-orange-600 hover:bg-orange-500 text-white py-2.5 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Megaphone className="w-3.5 h-3.5" />
+                                                Public Broadcast
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -775,6 +792,13 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                         Alert: Critical Hostility Detected
                     </div>
                 </div>
+            )}
+            {/* Public Alert Broadcast Modal */}
+            {showBroadcastModal && (
+                <PublicAlertBroadcast
+                    onClose={() => setShowBroadcastModal(false)}
+                    initialLocation={selectedAlert ? { lat: selectedAlert.latitude, lng: selectedAlert.longitude } : undefined}
+                />
             )}
         </div>
     );

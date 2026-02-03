@@ -522,3 +522,46 @@ The `security-sentinel` service has been upgraded to a hybrid scanner:
 *   **SAST**: Periodically scans source code (mounted read-only) using `gosec` (Go) and `bandit` (Python) to detect insecure coding patterns and hardcoded secrets.
 *   **Reporting**: Findings are persisted to the database for dashboard visualization.
 
+---
+
+## 13. Phase 1 Advanced Features (Feb 2026)
+
+### 13.1 Public Alert Broadcasting
+The platform now supports proactive alert dissemination to citizens within a targeted geographic radius.
+
+*   **API Surface**:
+    - `POST /api/v1/public-alerts` (Protected: ADMIN/TACTICAL_COMMAND)
+    - `GET /api/v1/public-alerts` (Public)
+*   **Real-Time**: Integrated with NATS JetStream for instant push notification triggering.
+*   **Geo-Targeting**: Spatial queries identify users within a configurable radius of the alert origin.
+
+### 13.2 Safety Leaderboard / LGA Analytics
+Aggregated safety metrics provide strategic oversight of regional performance.
+
+*   **API Surface**:
+    - `GET /api/v1/analytics/safety-scores` (LGA-level metrics)
+    - `GET /api/v1/analytics/safety-scores/summary` (National rollup)
+*   **Dashboard**: Integrated into the Strategic Dashboard's Analytics view.
+
+### 13.3 Anonymous Tips (Crowdsourced Intelligence)
+Enables public submission of unverified threat intelligence without account creation.
+
+*   **API Surface**:
+    - `POST /api/v1/tips/submit` (Public, unauthenticated)
+    - `GET /api/v1/tips` (Protected: ANALYST roles)
+    - `POST /api/v1/tips/{id}/verify` (Protected: ANALYST roles)
+*   **Dashboard**: `AnonymousTipFeed` component in Cyber Dashboard (Secret Tips view).
+
+### 13.4 Multi-Cloud Video Evidence Storage
+Cloud-agnostic object storage for secure evidence management.
+
+*   **Abstraction**: `StorageProvider` interface in `internal/storage/`.
+*   **Implementation**: `S3Provider` supporting MinIO (local), AWS S3, and GCS (via S3 interop).
+*   **Security**:
+    - SHA-256 content hashing for integrity verification.
+    - Pre-signed URLs for time-limited, secure access.
+*   **API Surface**:
+    - `POST /api/v1/media/upload`
+    - `GET /api/v1/media/access`
+
+

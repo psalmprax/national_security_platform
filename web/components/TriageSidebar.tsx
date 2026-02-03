@@ -41,8 +41,17 @@ export default function TriageSidebar({
         }
     };
 
+    const isAlertRedacted = (alert: Alert): boolean => {
+        if (!alert) return false;
+        return (
+            (alert.content || '').includes('[REDACTED') ||
+            (alert.priority_class === 'CRITICAL' && alert.isEncrypted === true) ||
+            alert.isDuress === true
+        );
+    };
+
     return (
-        <aside className="w-96 glass-surface flex flex-col z-30">
+        <aside className="w-full h-full flex flex-col z-30">
             <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                 <div className="flex items-center gap-3">
                     <Activity className="w-5 h-5 transition-colors" style={{ color: themeColor, filter: `drop-shadow(0 0 8px ${themeColor}40)` }} />
@@ -113,9 +122,26 @@ export default function TriageSidebar({
                                 </span>
                             </div>
 
-                            <p className="text-xs text-white/70 mb-5 leading-relaxed font-light">
-                                {alert.content}
-                            </p>
+                            {isAlertRedacted(alert) ? (
+                                <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg mb-4">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <ShieldAlert className="w-3.5 h-3.5 text-red-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-red-500">Tactical Analysis Locked</span>
+                                    </div>
+                                    <p className="text-[9px] text-red-400/60 font-medium uppercase leading-tight italic mb-3">
+                                        Description redacted due to security classification.
+                                    </p>
+                                    <div className="space-y-1 opacity-20 blur-[2px] select-none pointer-events-none">
+                                        <div className="h-2 bg-red-500/20 rounded w-full" />
+                                        <div className="h-2 bg-red-500/20 rounded w-5/6" />
+                                        <div className="h-2 bg-red-500/20 rounded w-4/6" />
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-xs text-white/70 mb-5 leading-relaxed font-medium">
+                                    {alert.content}
+                                </p>
+                            )}
 
                             <div className="flex items-center justify-between pt-4 border-t border-white/5">
                                 <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'api_service.dart';
 import 'biometric_service.dart';
 import 'dart:math';
@@ -28,6 +29,11 @@ class AuthService extends ChangeNotifier {
   AuthService(this._apiService, this._biometricService);
 
   Future<void> checkAuthStatus() async {
+    if (kIsWeb) {
+      _isAuthenticated = false; // Start fresh on web for now as storage might be unreliable
+      notifyListeners();
+      return;
+    }
     _token = await _storage.read(key: 'jwt_token');
     _userId = await _storage.read(key: 'user_id');
     _role = await _storage.read(key: 'user_role');
@@ -47,6 +53,12 @@ class AuthService extends ChangeNotifier {
       _userId = '550e8400-e29b-41d4-a716-446655440000'; 
       _role = 'TRADITIONAL_RULER';
 
+      if (kIsWeb) {
+         _isAuthenticated = true;
+         _duressMode = false;
+         notifyListeners();
+         return true;
+      }
       await _storage.write(key: 'jwt_token', value: _token);
       await _storage.write(key: 'user_id', value: _userId);
       await _storage.write(key: 'user_role', value: _role);
@@ -107,7 +119,7 @@ class AuthService extends ChangeNotifier {
 
   /// Enable biometric authentication
   Future<bool> setupBiometricAuth() async {
-    if (_userId == null) return false;
+    if (kIsWeb || _userId == null) return false;
 
     final credentialHash = await _storage.read(key: 'credential_hash');
     if (credentialHash == null) return false;
@@ -122,6 +134,7 @@ class AuthService extends ChangeNotifier {
 
   /// Disable biometric authentication
   Future<void> disableBiometricAuth() async {
+    if (kIsWeb) return;
     await _biometricService.disableBiometricAuth();
     notifyListeners();
   }
@@ -140,6 +153,7 @@ class AuthService extends ChangeNotifier {
 
   /// Send silent duress alert to backend
   Future<void> _sendDuressAlert() async {
+    if (kIsWeb) return; // Silent alerts might not work or are less relevant on web mock
     try {
       // TODO: Implement actual backend call
       // await _apiService.sendDuressAlert(_userId!);

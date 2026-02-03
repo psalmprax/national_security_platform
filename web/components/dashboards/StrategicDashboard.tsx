@@ -4,6 +4,7 @@ import React from 'react';
 import { PieChart, FileText, Activity, Shield, TrendingUp } from 'lucide-react';
 import { getIncidentTrends, getThreatDistribution, Alert, SystemStatus } from '../../lib/api';
 import { User } from '../../lib/AuthContext';
+import SafetyLeaderboard from '../analytics/SafetyLeaderboard';
 
 interface StrategicDashboardProps {
     alerts: Alert[];
@@ -472,7 +473,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                             </div>
                         </div>
 
-                        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm mt-8">
                             <h3 className="font-bold text-slate-900 mb-6 uppercase tracking-widest text-xs">Intelligence Forecast</h3>
                             <div className="flex items-center gap-8">
                                 <div className="flex-1 space-y-4">
@@ -489,6 +490,10 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                     <span className="text-[8px] font-bold text-slate-400 tracking-tighter uppercase">Confidence</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="mt-8">
+                            <SafetyLeaderboard />
                         </div>
                     </div>
                 )}

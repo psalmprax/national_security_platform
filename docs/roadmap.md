@@ -69,3 +69,62 @@ This roadmap outlines the strategic enhancement of the platform's backend and fr
 **Problem**: Need for weather/infrastructure context.
 **Solution**: Standardized WMS/WMTS endpoints for layer ingestion.
 - **Impact**: Richer context for decision makers.
+
+---
+
+## Phase 4: Game-Changing Features (Implemented - Feb 2026) 🚀
+
+### [4.1] Citizen Engagement (2-Way Communication)
+**Status**: ✅ Database + Backend 80% Complete
+
+1. **Citizen Safety Notifications** - Reverse alerts to public
+   - Geospatial broadcast (radius-based)
+   - Priority-based notifications (emergency/critical/warning/info)
+   - FCM integration for mobile push
+   
+2. **Public Safety Score** - LGA transparency ranking
+   - 0-100 safety score per LGA
+   - Trend analysis vs previous period
+   - Risk level categorization
+   
+3. **Anonymous Tip Line** - Unauth intelligence submission
+   - IP-based rate limiting
+   - Verification workflow
+
+### [4.2] Intelligence Enhancement
+**Status**: ✅ Database 100%, APIs Next
+
+4. **NLP Report Analysis** - Auto-extract structured data
+5. **Alert Correlation** - Pattern detection
+6. **Video Evidence Support** - Multi-modal intelligence
+
+### [4.3] Humanitarian Features
+**Status**: ✅ Database 100%
+
+7. **Missing Persons Database** - National registry
+8. **Emergency SOS Broadcast** - Crowdsourced rescue
+
+### [4.4] Multi-Agency Coordination
+**Status**: ✅ Database 100%
+
+9. **Shared Incident Response** - Joint task management
+10. **Inter-Agency Chat** - Secure coordination
+
+**Phase 4 Progress**: 10/10 DB complete, 4/10 APIs complete
+
+---
+
+## Future Roadmap (V2.0+ Planning)
+
+11-21. **Advanced Features** (3-24 months)
+- Predictive Hotspots (ML)
+- Acoustic Intelligence
+- Financial Crime Integration
+- Cross-Border Tracking
+- Satellite Imagery
+- Drone Integration
+- Video AI Analysis
+- And more...
+
+See [expansion_blueprint.md](./expansion_blueprint.md) for detailed V2.0+ plans.
+
