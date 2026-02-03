@@ -11,9 +11,9 @@ UPDATE alerts SET classification_level = 'CONFIDENTIAL' WHERE priority_class = '
 
 -- Seeding specialized administrative users for Separation of Duties (SoD)
 INSERT INTO users (
-    id, phone_number, full_name, role, hierarchy_weight, trust_score, clearance_level
+    id, phone_number, full_name, role, hierarchy_weight, trust_score, clearance_level, password_hash
 ) VALUES (
-    '00000000-0000-0000-0000-000000000105', '+2348000000105', 'NSP Technical Admin', 'SYSTEM_ADMIN', 95, 1.0, 'SECRET'
+    '00000000-0000-0000-0000-000000000105', '+2348000000105', 'NSP Technical Admin', 'SYSTEM_ADMIN', 95, 1.0, 'SECRET', '$2a$10$LFMT3Xz5w7EdAe1/MmNhpuNCbET5kb58aIx27jfXIpss8XS9DKmqW'
 ), (
-    '00000000-0000-0000-0000-000000000106', '+2348000000106', 'Chief Security Officer', 'SECURITY_OFFICER', 95, 1.0, 'TOP_SECRET'
-) ON CONFLICT (phone_number) DO UPDATE SET role = EXCLUDED.role, clearance_level = EXCLUDED.clearance_level;
+    '00000000-0000-0000-0000-000000000106', '+2348000000106', 'Chief Security Officer', 'SECURITY_OFFICER', 95, 1.0, 'TOP_SECRET', '$2a$10$LFMT3Xz5w7EdAe1/MmNhpuNCbET5kb58aIx27jfXIpss8XS9DKmqW'
+) ON CONFLICT (phone_number) DO UPDATE SET role = EXCLUDED.role, clearance_level = EXCLUDED.clearance_level, password_hash = EXCLUDED.password_hash;
