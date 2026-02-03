@@ -16,6 +16,7 @@ import {
     Lock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'react-toastify';
 import MapboxMap from '../MapboxMap';
 import MissionSidebar from '../MissionSidebar';
 import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset, SystemStatus, Asset, fetchAssets, Mission, fetchActiveMissions, createMission } from '../../lib/api';
@@ -211,10 +212,17 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
             // In production: await dispatchEmergencyResponse(selectedAlert.id);
             console.log('Emergency response dispatched for alert:', selectedAlert.id);
             // Show success feedback
-            alert(`✅ Emergency response team dispatched to ${selectedAlert.lga_name || 'target location'}`);
+            toast.success(`Emergency response team dispatched to ${selectedAlert.lga_name || 'target location'}`, {
+                position: 'top-right',
+                autoClose: 4000,
+                theme: 'dark'
+            });
         } catch (error) {
             console.error('Failed to dispatch response:', error);
-            alert('❌ Failed to dispatch response. Please try again.');
+            toast.error('Failed to dispatch response. Please try again.', {
+                position: 'top-right',
+                theme: 'dark'
+            });
         } finally {
             setIsDispatchingResponse(false);
         }
@@ -228,11 +236,26 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
             await new Promise(resolve => setTimeout(resolve, 2000));
             // In production: await verifyAlertIntegrity(selectedAlert.id);
             const verificationResult = selectedAlert.isTrusted;
+            const trustScore = Math.floor(Math.random() * 30 + 70);
             console.log('Alert integrity verified:', verificationResult);
-            alert(`🔐 Alert verification complete\n\nStatus: ${verificationResult ? '✅ VERIFIED' : '⚠️ UNVERIFIED'}\nTrust Score: ${Math.floor(Math.random() * 30 + 70)}%\nSource: ${verificationResult ? 'Trusted Device' : 'Unknown'}`);
+
+            if (verificationResult) {
+                toast.success(
+                    `Alert Verified: Trust Score ${trustScore}% - Source: Trusted Device`,
+                    { position: 'top-right', autoClose: 5000, theme: 'dark' }
+                );
+            } else {
+                toast.warning(
+                    `Alert Unverified: Trust Score ${trustScore}% - Source: Unknown`,
+                    { position: 'top-right', autoClose: 5000, theme: 'dark' }
+                );
+            }
         } catch (error) {
             console.error('Failed to verify integrity:', error);
-            alert('❌ Verification failed. Please try again.');
+            toast.error('Verification failed. Please try again.', {
+                position: 'top-right',
+                theme: 'dark'
+            });
         } finally {
             setIsVerifying(false);
         }
@@ -245,10 +268,24 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
             await new Promise(resolve => setTimeout(resolve, 1800));
             const criticalAlerts = (alerts || []).filter(a => a.severity > 0.8);
             console.log('Engaging emergency protocols for', criticalAlerts.length, 'critical threats');
-            alert(`⚡ TACTICAL PROTOCOLS ENGAGED\n\n🎯 Critical Threats: ${criticalAlerts.length}\n🚨 Response Level: MAXIMUM\n📡 All units notified\n🛡️ Defensive measures activated`);
+            toast.success(
+                `TACTICAL PROTOCOLS ENGAGED - Critical Threats: ${criticalAlerts.length} - Response Level: MAXIMUM - All units notified`,
+                {
+                    position: 'top-center',
+                    autoClose: 6000,
+                    theme: 'dark',
+                    style: {
+                        background: '#854d0e',
+                        borderLeft: '4px solid #eab308'
+                    }
+                }
+            );
         } catch (error) {
             console.error('Failed to engage protocols:', error);
-            alert('❌ Protocol engagement failed.');
+            toast.error('Protocol engagement failed.', {
+                position: 'top-center',
+                theme: 'dark'
+            });
         } finally {
             setIsEngagingProtocols(false);
         }
