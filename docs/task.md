@@ -90,6 +90,7 @@
     - [x] Resolved profile menu UI overlaps through central control placement
     - [x] Fixed Dashboard redirect loop in Next.js middleware for new admin roles
     - [x] Implemented dynamic default views based on user roles (e.g., Security Officer lands on Access view)
+    - [x] Fixed non-clickable profile icon in Agency Command Portal (National Command Oversight)
 
 ---
 

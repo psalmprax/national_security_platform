@@ -309,6 +309,7 @@ Enhanced the situational awareness layer by unifying all global controls into a 
 - **Stability Fix**: Refactored [page.tsx](file:///home/psalmprax/national_security_platform/web/app/page.tsx) to ensure hook consistency during complex state transitions (Fullscreen API).
 - **Middleware Update**: Patched `middleware.ts` to allow `SYSTEM_ADMIN` and `SECURITY_OFFICER` access to the root dashboard, resolving the redirect loop for authenticated admins.
 - **Dynamic View Landing**: Modified the dashboard logic to automatically land users on their authorized operational view (e.g., `SECURITY_OFFICER` now lands directly on the `Access Management` registry instead of the Cyber map).
+- **Portal Interaction Fix**: Replaced the static profile `div` and separate logout button in the **Agency Command Portal** ([page.tsx](file:///home/psalmprax/national_security_platform/web/app/agency/portal/page.tsx)) with a unified, functional user menu dropdown.
 
 ## Verification Results
 - ✅ **API Authorization**: Verified that a `SYSTEM_ADMIN` is forbidden from accessing the Users/Policies API.
