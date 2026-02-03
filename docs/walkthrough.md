@@ -308,6 +308,7 @@ Enhanced the situational awareness layer by unifying all global controls into a 
 - **Resolved UI Friction**: This consolidation clears the top-right corner of the dashboard, preventing overlaps with local profile menus and notification stacks.
 - **Stability Fix**: Refactored [page.tsx](file:///home/psalmprax/national_security_platform/web/app/page.tsx) to ensure hook consistency during complex state transitions (Fullscreen API).
 - **Middleware Update**: Patched `middleware.ts` to allow `SYSTEM_ADMIN` and `SECURITY_OFFICER` access to the root dashboard, resolving the redirect loop for authenticated admins.
+- **Dynamic View Landing**: Modified the dashboard logic to automatically land users on their authorized operational view (e.g., `SECURITY_OFFICER` now lands directly on the `Access Management` registry instead of the Cyber map).
 
 ## Verification Results
 - ✅ **API Authorization**: Verified that a `SYSTEM_ADMIN` is forbidden from accessing the Users/Policies API.
