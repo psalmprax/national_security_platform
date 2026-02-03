@@ -7,24 +7,25 @@ import (
 )
 
 type Alert struct {
-	ID                 uuid.UUID `json:"id"`
-	UserID             uuid.UUID `json:"user_id"`
-	Status             string    `json:"status"`
-	PriorityClass      string    `json:"priority_class"`
-	Latitude           float64   `json:"latitude"`
-	Longitude          float64   `json:"longitude"`
-	ImpactRadiusMeters int       `json:"impact_radius_meters"`
-	AlertType          string    `json:"alert_type"`
-	ContentText        *string   `json:"content_text,omitempty"`
-	ContentMediaURL    *string   `json:"content_media_url,omitempty"`
-	SeverityScore      *float64  `json:"severity_score,omitempty"`
-	RiskKeywords       []string  `json:"risk_keywords,omitempty"`
-	VerificationCount  int       `json:"verification_count"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
-	LGAName            *string   `json:"lga_name,omitempty"`
-	StateName          *string   `json:"state_name,omitempty"`
-	LocationSource     string    `json:"location_source"`
+	ID                  uuid.UUID `json:"id"`
+	UserID              uuid.UUID `json:"user_id"`
+	Status              string    `json:"status"`
+	PriorityClass       string    `json:"priority_class"`
+	Latitude            float64   `json:"latitude"`
+	Longitude           float64   `json:"longitude"`
+	ImpactRadiusMeters  int       `json:"impact_radius_meters"`
+	AlertType           string    `json:"alert_type"`
+	ContentText         *string   `json:"content_text,omitempty"`
+	ContentMediaURL     *string   `json:"content_media_url,omitempty"`
+	SeverityScore       *float64  `json:"severity_score,omitempty"`
+	RiskKeywords        []string  `json:"risk_keywords,omitempty"`
+	VerificationCount   int       `json:"verification_count"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+	LGAName             *string   `json:"lga_name,omitempty"`
+	StateName           *string   `json:"state_name,omitempty"`
+	LocationSource      string    `json:"location_source"`
+	ClassificationLevel string    `json:"classification_level"`
 }
 
 type User struct {

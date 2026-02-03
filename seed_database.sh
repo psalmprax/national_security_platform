@@ -34,6 +34,7 @@ FILES=(
     "platform/schema/024_add_updated_at_timestamps.sql" # Add updated_at columns and auto-update triggers
     "platform/schema/025_standardize_all_remaining_timestamps.sql" # Standardize all remaining timestamps
     "platform/schema/026_notification_support.sql" # Notification and spatial tracking support
+    "platform/schema/027_dynamic_access_control.sql" # Dynamic Access Control
 )
 
 for file in "${FILES[@]}"; do

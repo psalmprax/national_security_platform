@@ -10,6 +10,7 @@ export interface User {
     phone_number: string;
     full_name: string;
     role: string;
+    clearance_level: string;
     status: string;
     created_at: string;
     updated_at: string;

@@ -197,6 +197,13 @@ Reinforced the onboarding process by requiring National Identification Numbers (
 - **Database Persistence**: Confirmed that successful registration attempts correctly populate the `users` (nin/state/lga) and `agency_personnel` tables.
 - **Schema Validation**: Verified that NIN is stored as a unique string to prevent identity spoofing.
 
+### Dynamic Access Control (ABAC)
+-   **Database**: Added `classification_level` to alerts and reinforced user `clearance_level` via migration `027_dynamic_access_control.sql`.
+-   **ABAC Filtering**: Updated the backend `GetRecentAlerts` repository function to filter data based on the user's `clearance_level`.
+-   **Admin Handlers**: Implemented dedicated handlers for updating user clearance and alert classification.
+-   **Access Registry Dashboard**: Developed a new administrative interface (`AccessManagement.tsx`) for managing personnel clearances and intelligence classification.
+-   **Redaction Logic**: Migrated hardcoded redaction to a dynamic system that compares user clearance levels against alert classification levels.
+
 ## Phase 2: Full Profile Context
 - **Comprehensive Metadata**: Every user role now collects its required authority markers:
     - **Traditional Rulers**: Monarch Grade (1st/2nd/3rd Class) and Domain.
@@ -283,8 +290,27 @@ Addressed usability and visual feedback issues in the Cyber Dashboard's intellig
 - **Advisory Filtering**: The automated "Strategic Advisory" section now masks location references if the source alert is redacted, preventing accidental leaks in executive briefings.
 
 ## Verification
-- ✅ **Cross-Dashboard Consistency**: Verified that redaction logic is uniform across Cyber, Strategic, Triage, and Audit views.
-- ✅ **Code Integrity Check**: Verified `StrategicDashboard.tsx` structure and imports (`ShieldAlert`).
 - ✅ **Repository Sync**: All changes pushed to `stage` branch successfully.
+
+---
+
+# Separation of Duties (SoD) & Global Command UI (Feb 2026)
+
+## Separation of Duties Implementation
+To adhere to the principle of least privilege, I decomposed the monolithic `ADMIN` role into specialized administrative identities.
+- **SYSTEM_ADMIN**: Responsible for platform health, system logs, and infrastructure status.
+- **SECURITY_OFFICER**: Sole authority over user clearances, identity registration, and data classification levels.
+- **Enforcement**: Modified [main.go](file:///home/psalmprax/national_security_platform/backend/core-api/cmd/server/main.go) to create distinct route protection groups for these roles.
+
+## Consolidated Global Command UI
+Enhanced the situational awareness layer by unifying all global controls into a single, top-center Command Bar.
+- **Unified Controls**: Fullscreen, Agency View Picker, and Secure Logout are now grouped together.
+- **Resolved UI Friction**: This consolidation clears the top-right corner of the dashboard, preventing overlaps with local profile menus and notification stacks.
+- **Stability Fix**: Refactored [page.tsx](file:///home/psalmprax/national_security_platform/web/app/page.tsx) to ensure hook consistency during complex state transitions (Fullscreen API).
+
+## Verification Results
+- ✅ **API Authorization**: Verified that a `SYSTEM_ADMIN` is forbidden from accessing the Users/Policies API.
+- ✅ **UI Stability**: Confirmed the dashboard loads without hydration errors or hook violations.
+- ✅ **Operational Flow**: Tested the central Command Bar across all dashboard views (Cyber, Tactical, Strategic).
 
 

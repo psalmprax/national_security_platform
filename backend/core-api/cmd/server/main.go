@@ -214,16 +214,31 @@ func main() {
 		r.Get("/api/v1/media/access", h.HandleGetMediaDownloadURL)
 	})
 
-	// --- ADMIN & SYSTEM ROUTES (Highest Protection) ---
+	// --- SYSTEM ADMIN ROUTES (Infrastructure & Health) ---
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware)
-		r.Use(middleware.RequireRole("ADMIN"))
+		r.Use(middleware.RequireAnyRole("ADMIN", "SYSTEM_ADMIN"))
 
 		r.Get("/api/v1/system/status", handleSystemStatus)
 		r.Get("/api/v1/system/nodes", handleSystemNodes)
 		r.Get("/api/v1/system/security-scans", handleGetSecurityScans)
+	})
 
-		// Agency & Asset Management
+	// --- SECURITY OFFICER ROUTES (Access & Classification) ---
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.RequireAnyRole("ADMIN", "SECURITY_OFFICER"))
+
+		r.Get("/api/v1/admin/users", handleGetAllUsers)
+		r.Post("/api/v1/admin/users/{id}/clearance", handleUpdateUserClearance)
+		r.Post("/api/v1/admin/alerts/{id}/classify", handleUpdateAlertClassification)
+	})
+
+	// --- AGENCY & ASSET MANAGEMENT (Shared Admin/Operations) ---
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.RequireAnyRole("ADMIN", "SYSTEM_ADMIN", "SECURITY_OFFICER", "TACTICAL_COMMAND"))
+
 		r.Post("/api/v1/agencies", agency.RegisterAgencyHandler)
 		r.Get("/api/v1/assets", agency.ListAssetsHandler)
 		r.Post("/api/v1/assets", agency.CreateAssetHandler)
@@ -232,7 +247,7 @@ func main() {
 	// Reporting & Analysis Routes (Restricted)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware)
-		r.Use(middleware.RequireAnyRole("ADMIN", "CYBER_ANALYST", "STRATEGIC_PLANNER", "TACTICAL_COMMAND", "AGENCY_OFFICER"))
+		r.Use(middleware.RequireAnyRole("ADMIN", "SYSTEM_ADMIN", "SECURITY_OFFICER", "CYBER_ANALYST", "STRATEGIC_PLANNER", "TACTICAL_COMMAND", "AGENCY_OFFICER"))
 
 		r.Get("/api/v1/system/reports/sector", handleGetSectorReport)
 		r.Get("/api/v1/alerts/{id}/triangulation", handleGetAlertTriangulation)
@@ -383,6 +398,8 @@ func handleDashboardLogin(w http.ResponseWriter, r *http.Request) {
 
 	allowedRoles := map[string]bool{
 		"ADMIN":             true,
+		"SYSTEM_ADMIN":      true,
+		"SECURITY_OFFICER":  true,
 		"CYBER_ANALYST":     true,
 		"STRATEGIC_PLANNER": true,
 		"TACTICAL_COMMAND":  true,
@@ -816,11 +833,66 @@ func handleUpdateLocation(w http.ResponseWriter, r *http.Request) {
 
 	userIDStr, _ := r.Context().Value(middleware.UserIDKey).(string)
 	userID, _ := uuid.Parse(userIDStr)
-
 	if err := db.UpdateUserLocation(r.Context(), userID, req.Latitude, req.Longitude); err != nil {
 		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to update location"})
 		return
 	}
-
 	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Location updated"})
+}
+
+func handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := db.GetAllUsers(r.Context())
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve users"})
+		return
+	}
+	respondJSON(w, http.StatusOK, users)
+}
+
+func handleUpdateUserClearance(w http.ResponseWriter, r *http.Request) {
+	userIDStr := chi.URLParam(r, "id")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid user ID"})
+		return
+	}
+
+	var req struct {
+		Level string `json:"level"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	if err := db.UpdateUserClearance(r.Context(), userID, req.Level); err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to update clearance"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "User clearance updated"})
+}
+
+func handleUpdateAlertClassification(w http.ResponseWriter, r *http.Request) {
+	alertIDStr := chi.URLParam(r, "id")
+	alertID, err := uuid.Parse(alertIDStr)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid alert ID"})
+		return
+	}
+
+	var req struct {
+		Level string `json:"level"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	if err := db.UpdateAlertClassification(r.Context(), alertID, req.Level); err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to update classification"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Alert classification updated"})
 }
