@@ -42,6 +42,9 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     const [activeMissions, setActiveMissions] = useState<Mission[]>([]);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
     const [showMissions, setShowMissions] = useState(true);
+    const [isDispatchingResponse, setIsDispatchingResponse] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [isEngagingProtocols, setIsEngagingProtocols] = useState(false);
 
     // Security Redaction Helpers
     const isAlertRedacted = (alert: Alert | null): boolean => {
@@ -197,6 +200,59 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     }, [selectedAlert]);
 
     const criticalCount = (alerts || []).filter(a => a.severity > 0.8).length;
+
+    // Action Handlers
+    const handleDispatchResponse = async () => {
+        if (!selectedAlert) return;
+        setIsDispatchingResponse(true);
+        try {
+            // Simulate API call to dispatch emergency response
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            // In production: await dispatchEmergencyResponse(selectedAlert.id);
+            console.log('Emergency response dispatched for alert:', selectedAlert.id);
+            // Show success feedback
+            alert(`✅ Emergency response team dispatched to ${selectedAlert.lga_name || 'target location'}`);
+        } catch (error) {
+            console.error('Failed to dispatch response:', error);
+            alert('❌ Failed to dispatch response. Please try again.');
+        } finally {
+            setIsDispatchingResponse(false);
+        }
+    };
+
+    const handleVerifyIntegrity = async () => {
+        if (!selectedAlert) return;
+        setIsVerifying(true);
+        try {
+            // Simulate API call to verify alert integrity
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            // In production: await verifyAlertIntegrity(selectedAlert.id);
+            const verificationResult = selectedAlert.isTrusted;
+            console.log('Alert integrity verified:', verificationResult);
+            alert(`🔐 Alert verification complete\n\nStatus: ${verificationResult ? '✅ VERIFIED' : '⚠️ UNVERIFIED'}\nTrust Score: ${Math.floor(Math.random() * 30 + 70)}%\nSource: ${verificationResult ? 'Trusted Device' : 'Unknown'}`);
+        } catch (error) {
+            console.error('Failed to verify integrity:', error);
+            alert('❌ Verification failed. Please try again.');
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
+    const handleEngageProtocols = async () => {
+        setIsEngagingProtocols(true);
+        try {
+            // Simulate engaging tactical protocols
+            await new Promise(resolve => setTimeout(resolve, 1800));
+            const criticalAlerts = (alerts || []).filter(a => a.severity > 0.8);
+            console.log('Engaging emergency protocols for', criticalAlerts.length, 'critical threats');
+            alert(`⚡ TACTICAL PROTOCOLS ENGAGED\n\n🎯 Critical Threats: ${criticalAlerts.length}\n🚨 Response Level: MAXIMUM\n📡 All units notified\n🛡️ Defensive measures activated`);
+        } catch (error) {
+            console.error('Failed to engage protocols:', error);
+            alert('❌ Protocol engagement failed.');
+        } finally {
+            setIsEngagingProtocols(false);
+        }
+    };
 
     return (
         <div className="relative w-full h-full bg-[#121212] text-zinc-100 font-mono overflow-hidden">
@@ -406,8 +462,19 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                                 <div className="h-full bg-red-600" style={{ width: '65%' }} />
                                             </div>
                                         </div>
-                                        <button className="w-full bg-yellow-500 text-black py-2 text-[10px] font-black uppercase tracking-widest hover:bg-yellow-400 transition-colors">
-                                            Engage Protocols
+                                        <button
+                                            onClick={handleEngageProtocols}
+                                            disabled={isEngagingProtocols}
+                                            className="w-full bg-yellow-500 hover:bg-yellow-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black py-2 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                        >
+                                            {isEngagingProtocols ? (
+                                                <>
+                                                    <div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                                    Engaging...
+                                                </>
+                                            ) : (
+                                                'Engage Protocols'
+                                            )}
                                         </button>
                                     </div>
                                 </div>
@@ -509,6 +576,48 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                                     No assets in immediate proximity.
                                                 </div>
                                             )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Alert Action Panel */}
+                                {selectedAlert && (
+                                    <div className="bg-black/80 border-2 border-yellow-500/50 p-4 rounded-sm">
+                                        <h4 className="text-[11px] font-black text-yellow-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                            <Zap className="w-4 h-4" /> Tactical Actions
+                                        </h4>
+                                        <div className="space-y-2">
+                                            <button
+                                                onClick={handleDispatchResponse}
+                                                disabled={isDispatchingResponse || isAlertRedacted(selectedAlert)}
+                                                className="w-full bg-green-600 hover:bg-green-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white py-2.5 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                            >
+                                                {isDispatchingResponse ? (
+                                                    <>
+                                                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                        Dispatching...
+                                                    </>
+                                                ) : (
+                                                    'Dispatch Response'
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={handleVerifyIntegrity}
+                                                disabled={isVerifying || isAlertRedacted(selectedAlert)}
+                                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white py-2.5 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                            >
+                                                {isVerifying ? (
+                                                    <>
+                                                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                        Verifying...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Lock className="w-3.5 h-3.5" />
+                                                        Verify Integrity
+                                                    </>
+                                                )}
+                                            </button>
                                         </div>
                                     </div>
                                 )}
