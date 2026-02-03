@@ -14,3 +14,16 @@ Thumbs.db
 # Secrets
 .env
 .env.example
+
+# Web
+node_modules/
+web/node_modules/
+.next/
+web/.next/
+out/
+web/out/
+build/
+web/build/
+dist/
+web/dist/
+.vercel

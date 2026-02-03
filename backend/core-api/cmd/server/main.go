@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"national_security_platform/backend/core-api/handlers"
 	"national_security_platform/backend/core-api/internal/agency"
 	"national_security_platform/backend/core-api/internal/audit"
 	"national_security_platform/backend/core-api/internal/db"
@@ -25,6 +26,7 @@ import (
 	"national_security_platform/backend/core-api/internal/security"
 	"national_security_platform/backend/core-api/internal/service"
 	"national_security_platform/backend/core-api/internal/sse"
+	"national_security_platform/backend/core-api/internal/storage"
 	proto "national_security_platform/backend/core-api/pkg"
 
 	"github.com/go-chi/chi/v5"
@@ -130,7 +132,28 @@ func main() {
 		defer intelClient.Close()
 	}
 
+	// Initialize Storage Provider (MinIO/S3 by default)
+	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	if minioEndpoint == "" {
+		minioEndpoint = "minio:9000"
+	}
+	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
+	if minioAccessKey == "" {
+		minioAccessKey = "minioadmin"
+	}
+	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
+	if minioSecretKey == "" {
+		minioSecretKey = "minioadmin"
+	}
+	minioUseSSL := os.Getenv("MINIO_USE_SSL") == "true"
+
+	storageProvider, err := storage.NewS3Provider(minioEndpoint, minioAccessKey, minioSecretKey, minioUseSSL, "MINIO")
+	if err != nil {
+		log.Printf("⚠️ Warning: Failed to initialize storage provider: %v", err)
+	}
+
 	alertService := &service.AlertService{}
+	h := handlers.NewHandler(db.Pool, log.Default(), storageProvider)
 
 	// Setup Router
 	r := chi.NewRouter()
@@ -151,6 +174,9 @@ func main() {
 	r.Post("/api/v1/auth/request-access", handleRequestAccess)
 	r.Post("/api/v1/auth/logout", handleLogout)
 
+	// Phase 1 Features: Public Endpoints
+	handlers.RegisterAnonymousTipRoutes(r, h) // Anonymous tip submission is public
+
 	// Server-Sent Events Pattern
 	r.Get("/api/v1/events/stream", sse.Stream.HandleEvents)
 
@@ -164,6 +190,11 @@ func main() {
 		r.Post("/api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
 			handleSubmitAlert(w, r, alertService, intelClient)
 		})
+
+		// Phase 1 Features: Protected Endpoints
+		handlers.RegisterPublicAlertRoutes(r, h)
+		handlers.RegisterSafetyScoreRoutes(r, h)
+
 		// Agency & Asset Management
 		r.Post("/api/v1/assets/{id}/dispatch", agency.DispatchAssetHandler)
 		r.Post("/api/v1/alerts/{id}/verify", handleVerifyAlert)
@@ -175,6 +206,12 @@ func main() {
 
 		// Onboarding (authenticated/verified)
 		r.Post("/api/v1/auth/onboard", handleOnboard)
+		r.Post("/api/v1/auth/device-token", handleUpdateDeviceToken)
+		r.Post("/api/v1/auth/location", handleUpdateLocation)
+
+		// Media & Evidence
+		r.Post("/api/v1/media/upload", h.HandleMediaUpload)
+		r.Get("/api/v1/media/access", h.HandleGetMediaDownloadURL)
 	})
 
 	// --- ADMIN & SYSTEM ROUTES (Highest Protection) ---
@@ -745,4 +782,45 @@ func handleUpdateMissionStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Mission status updated"})
+}
+
+func handleUpdateDeviceToken(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	userIDStr, _ := r.Context().Value(middleware.UserIDKey).(string)
+	userID, _ := uuid.Parse(userIDStr)
+
+	if err := db.UpdateDeviceFCMToken(r.Context(), userID, req.Token); err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to update token"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Device token updated"})
+}
+
+func handleUpdateLocation(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	userIDStr, _ := r.Context().Value(middleware.UserIDKey).(string)
+	userID, _ := uuid.Parse(userIDStr)
+
+	if err := db.UpdateUserLocation(r.Context(), userID, req.Latitude, req.Longitude); err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to update location"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Location updated"})
 }

@@ -101,7 +101,7 @@ func CreateAssetHandler(w http.ResponseWriter, r *http.Request) {
 		Description:   &req.Description,
 		CallSign:      &req.CallSign,
 		CapacityLevel: req.CapacityLevel,
-		LastUpdatedAt: time.Now(),
+		UpdatedAt:     time.Now(),
 		CreatedAt:     time.Now(),
 	}
 

@@ -21,6 +21,7 @@ type Alert struct {
 	RiskKeywords       []string  `json:"risk_keywords,omitempty"`
 	VerificationCount  int       `json:"verification_count"`
 	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 	LGAName            *string   `json:"lga_name,omitempty"`
 	StateName          *string   `json:"state_name,omitempty"`
 	LocationSource     string    `json:"location_source"`
@@ -44,6 +45,7 @@ type User struct {
 	Status          string     `json:"status"`
 	PasswordHash    *string    `json:"-"` // Never expose password hash in JSON
 	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 type State struct {
@@ -51,6 +53,7 @@ type State struct {
 	Name      string    `json:"name"`
 	Capital   *string   `json:"capital_city,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type LGA struct {
@@ -58,6 +61,7 @@ type LGA struct {
 	StateID   uuid.UUID `json:"state_id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type Village struct {
@@ -66,6 +70,7 @@ type Village struct {
 	Name          string    `json:"name"`
 	PopulationEst *int      `json:"population_est,omitempty"`
 	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type Device struct {
@@ -75,9 +80,11 @@ type Device struct {
 	PublicKey   string     `json:"public_key"`
 	DeviceModel *string    `json:"device_model,omitempty"`
 	OSVersion   *string    `json:"os_version,omitempty"`
+	FCMToken    *string    `json:"fcm_token,omitempty"`
 	Status      string     `json:"status"`
 	LastSeenAt  *time.Time `json:"last_seen_at,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 type MediaAttachment struct {
@@ -90,6 +97,7 @@ type MediaAttachment struct {
 	IsEncrypted        bool      `json:"is_encrypted"`
 	EncryptionMetadata []byte    `json:"encryption_metadata,omitempty"`
 	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 type Corroboration struct {
@@ -100,6 +108,7 @@ type Corroboration struct {
 	Comments        *string   `json:"comments,omitempty"`
 	IsCoerced       bool      `json:"is_coerced_report"`
 	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type SystemStats struct {
@@ -117,6 +126,7 @@ type Agency struct {
 	HQAddress         *string   `json:"hq_address,omitempty"`
 	ContactPhone      *string   `json:"contact_phone,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 type Asset struct {
@@ -130,8 +140,8 @@ type Asset struct {
 	Description   *string   `json:"description,omitempty"`
 	CallSign      *string   `json:"call_sign,omitempty"`
 	CapacityLevel int       `json:"capacity_level"`
-	LastUpdatedAt time.Time `json:"last_updated_at"`
 	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type SecurityScan struct {
@@ -141,6 +151,8 @@ type SecurityScan struct {
 	Status        string      `json:"status"`
 	Findings      interface{} `json:"findings"`  // JSONB
 	MetaData      interface{} `json:"meta_data"` // JSONB
+	CreatedAt     time.Time   `json:"created_at"`
+	UpdatedAt     time.Time   `json:"updated_at"`
 }
 
 type TriangulatedAsset struct {

@@ -15,10 +15,12 @@ import {
     Lock,
     Eye,
     TrendingUp,
-    X
+    X,
+    ShieldAlert
 } from 'lucide-react';
 import MapboxMap from '../MapboxMap';
 import TriageSidebar from '../TriageSidebar';
+import AnonymousTipFeed from '../cyber/AnonymousTipFeed';
 import { Alert, SecurityScan, fetchSecurityScans, TriangulatedAsset, fetchTriangulatedAssets, dispatchAsset, verifyAlert, API_BASE_URL, SystemStatus } from '../../lib/api';
 import { useAuth, User as UserType } from '../../lib/AuthContext';
 import { motion } from 'framer-motion';
@@ -49,6 +51,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
     const [liveAlerts, setLiveAlerts] = useState<Alert[]>(alerts);
     const [showGrid, setShowGrid] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const [sidebarMode, setSidebarMode] = useState<'triage' | 'tips'>('triage');
     const itemsPerPage = 10;
 
     // Security Redaction Helpers
@@ -452,7 +455,11 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
                             {/* Mode Selector HUB (NEW) - System Admin Only */}
                             {user?.role === 'ADMIN' && (
-                                <div className="flex items-center gap-1 p-1 bg-black/40 backdrop-blur-xl border border-white/5 rounded-full pointer-events-auto">
+                                <motion.div
+                                    drag
+                                    dragMomentum={false}
+                                    className="flex items-center gap-1 p-1 bg-black/40 backdrop-blur-xl border border-white/5 rounded-full pointer-events-auto cursor-grab active:cursor-grabbing shadow-2xl z-50"
+                                >
                                     {(['NOMINAL', 'SURGICAL', 'TACTICAL', 'DARK_OPS'] as const).map((mode) => (
                                         <button
                                             key={mode}
@@ -466,7 +473,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                             {mode}
                                         </button>
                                     ))}
-                                </div>
+                                </motion.div>
                             )}
 
                             <div className="flex items-center gap-4 text-[10px] text-white/30 font-mono">
@@ -556,7 +563,20 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                         </div>
                                                         <span className="text-xs text-white/40 font-mono">{new Date(alert.timestamp).toLocaleString()}</span>
                                                     </div>
-                                                    <p className="text-white/70 mb-3 line-clamp-2">{alert.content}</p>
+                                                    {isAlertRedacted(alert) ? (
+                                                        <div className="bg-red-500/10 border border-red-500/20 p-2 rounded-lg mb-3 inline-flex flex-col gap-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <ShieldAlert className="w-3 h-3 text-red-500" />
+                                                                <span className="text-[9px] font-black uppercase tracking-widest text-red-500 italic">Description Redacted [Clearance Required]</span>
+                                                            </div>
+                                                            <div className="space-y-1 opacity-20 blur-[2px] select-none pointer-events-none">
+                                                                <div className="h-1.5 bg-red-500/20 rounded w-48" />
+                                                                <div className="h-1.5 bg-red-500/20 rounded w-40" />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-white/70 mb-3 line-clamp-2">{alert.content}</p>
+                                                    )}
                                                     <div className="flex items-center gap-4 text-xs text-white/40 font-mono">
                                                         <span className="group-hover:text-white transition-colors">
                                                             📍 {(alert.lga_name && alert.lga_name !== 'Unknown') ? `${alert.lga_name}, ${alert.state_name}` : alert.location}
@@ -598,21 +618,36 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-white/5 font-mono">
-                                                        {(alerts || []).map((alert) => (
-                                                            <tr key={alert.id} className="hover:bg-white/5 transition-colors">
-                                                                <td className="px-4 py-2">{new Date(alert.timestamp).toISOString()}</td>
-                                                                <td className="px-4 py-2 text-[#00FF95]">{alert.id.substring(0, 8)}...</td>
-                                                                <td className="px-4 py-2">{alert.type.replace(/_/g, ' ')}</td>
-                                                                <td className="px-4 py-2">{alert.location}</td>
-                                                                <td className="px-4 py-2">
-                                                                    {alert.isTrusted ? (
-                                                                        <span className="text-[#00FF95] text-xs px-2 py-0.5 rounded bg-[#00FF95]/10 border border-[#00FF95]/20">VERIFIED</span>
-                                                                    ) : (
-                                                                        <span className="text-orange-400 text-xs px-2 py-0.5 rounded bg-orange-400/10 border border-orange-400/20">UNVERIFIED</span>
-                                                                    )}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
+                                                        {(alerts || []).map((alert) => {
+                                                            const redacted = isAlertRedacted(alert);
+                                                            return (
+                                                                <tr key={alert.id} className={`hover:bg-white/5 transition-colors ${redacted ? 'bg-red-500/5' : ''}`}>
+                                                                    <td className="px-4 py-2">{new Date(alert.timestamp).toISOString()}</td>
+                                                                    <td className="px-4 py-2 text-[#00FF95]">{alert.id.substring(0, 8)}...</td>
+                                                                    <td className="px-4 py-2">
+                                                                        {redacted ? (
+                                                                            <span className="text-red-500 font-bold opacity-50">[CLASSIFIED_VECTOR]</span>
+                                                                        ) : (
+                                                                            alert.type.replace(/_/g, ' ')
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-4 py-2">
+                                                                        {redacted ? (
+                                                                            <span className="text-red-500/40 italic text-[10px]">COORDS_MASKED_BY_PROTOCOL</span>
+                                                                        ) : (
+                                                                            alert.location
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-4 py-2">
+                                                                        {alert.isTrusted ? (
+                                                                            <span className="text-[#00FF95] text-xs px-2 py-0.5 rounded bg-[#00FF95]/10 border border-[#00FF95]/20">VERIFIED</span>
+                                                                        ) : (
+                                                                            <span className="text-orange-400 text-xs px-2 py-0.5 rounded bg-orange-400/10 border border-orange-400/20">UNVERIFIED</span>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
                                                     </tbody>
                                                 </table>
                                                 {(alerts || []).length === 0 && (
@@ -874,13 +909,38 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         </div>
                     </main>
 
-                    {/* Intelligence Triage Sidebar - Kept in Cyber View */}
-                    <TriageSidebar
-                        alerts={filteredAlerts}
-                        onSelect={handleAlertSelect}
-                        selectedId={selectedAlert?.id}
-                        themeColor={currentTheme.primary}
-                    />
+                    {/* Intelligence Triage / Tips Sidebar */}
+                    <div className="w-[400px] h-full flex flex-col border-l border-white/5 bg-black/20">
+                        {/* Sidebar Mode Toggle */}
+                        <div className="p-2 flex gap-1 bg-black/40 border-b border-white/5 shrink-0">
+                            <button
+                                onClick={() => setSidebarMode('triage')}
+                                className={`flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all ${sidebarMode === 'triage' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+                            >
+                                Intelligence Triage
+                            </button>
+                            <button
+                                onClick={() => setSidebarMode('tips')}
+                                className={`flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all ${sidebarMode === 'tips' ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'text-white/40 hover:text-white'}`}
+                            >
+                                Secret Tips
+                            </button>
+                        </div>
+
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                            {sidebarMode === 'triage' ? (
+                                <TriageSidebar
+                                    alerts={filteredAlerts}
+                                    onSelect={handleAlertSelect}
+                                    selectedId={selectedAlert?.id}
+                                    themeColor={currentTheme.primary}
+                                />
+                            ) : (
+                                <AnonymousTipFeed />
+                            )}
+                        </div>
+                    </div>
+
                 </div>
             </div>
 

@@ -54,7 +54,7 @@ func GetUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	query := `
 		SELECT id, phone_number, full_name, nin, role, 
 		       monarch_grade, domain_territory, hierarchy_weight,
-		       trust_score, clearance_level, village_id, lga_id, state_id, status, password_hash, created_at
+		       trust_score, clearance_level, village_id, lga_id, state_id, status, password_hash, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -77,6 +77,7 @@ func GetUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 		&user.Status,
 		&user.PasswordHash,
 		&user.CreatedAt,
+		&user.UpdatedAt,
 	)
 
 	if err != nil {
@@ -91,7 +92,7 @@ func GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User
 	query := `
 		SELECT id, phone_number, full_name, nin, role, 
 		       monarch_grade, domain_territory, hierarchy_weight,
-		       trust_score, clearance_level, village_id, lga_id, state_id, status, password_hash, created_at
+		       trust_score, clearance_level, village_id, lga_id, state_id, status, password_hash, created_at, updated_at
 		FROM users
 		WHERE phone_number = $1
 	`
@@ -114,6 +115,7 @@ func GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User
 		&user.Status,
 		&user.PasswordHash,
 		&user.CreatedAt,
+		&user.UpdatedAt,
 	)
 
 	if err != nil {
@@ -199,10 +201,10 @@ func CreateAgency(ctx context.Context, agency models.Agency) error {
 // CreateAsset inserts a new asset
 func CreateAsset(ctx context.Context, asset models.Asset) error {
 	query := `
-		INSERT INTO assets (id, agency_id, name, type, location, status, description, call_sign, capacity_level, last_updated_at, created_at)
+		INSERT INTO assets (id, agency_id, name, type, location, status, description, call_sign, capacity_level, updated_at, created_at)
 		VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8, $9, $10, $11, $12)
 	`
-	_, err := Pool.Exec(ctx, query, asset.ID, asset.AgencyID, asset.Name, asset.Type, asset.Longitude, asset.Latitude, asset.Status, asset.Description, asset.CallSign, asset.CapacityLevel, asset.LastUpdatedAt, asset.CreatedAt)
+	_, err := Pool.Exec(ctx, query, asset.ID, asset.AgencyID, asset.Name, asset.Type, asset.Longitude, asset.Latitude, asset.Status, asset.Description, asset.CallSign, asset.CapacityLevel, asset.UpdatedAt, asset.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create asset: %w", err)
 	}
@@ -212,7 +214,7 @@ func CreateAsset(ctx context.Context, asset models.Asset) error {
 // GetAllAssets retrieves all assets
 func GetAllAssets(ctx context.Context) ([]models.Asset, error) {
 	query := `
-		SELECT id, agency_id, name, type, st_x(location), st_y(location), status, description, call_sign, capacity_level, last_updated_at, created_at
+		SELECT id, agency_id, name, type, st_x(location), st_y(location), status, description, call_sign, capacity_level, updated_at, created_at
 		FROM assets
 	`
 	rows, err := Pool.Query(ctx, query)
@@ -224,7 +226,7 @@ func GetAllAssets(ctx context.Context) ([]models.Asset, error) {
 	var assets []models.Asset
 	for rows.Next() {
 		var a models.Asset
-		err := rows.Scan(&a.ID, &a.AgencyID, &a.Name, &a.Type, &a.Longitude, &a.Latitude, &a.Status, &a.Description, &a.CallSign, &a.CapacityLevel, &a.LastUpdatedAt, &a.CreatedAt)
+		err := rows.Scan(&a.ID, &a.AgencyID, &a.Name, &a.Type, &a.Longitude, &a.Latitude, &a.Status, &a.Description, &a.CallSign, &a.CapacityLevel, &a.UpdatedAt, &a.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan asset: %w", err)
 		}
@@ -239,7 +241,7 @@ func GetAllAssets(ctx context.Context) ([]models.Asset, error) {
 // GetAssetsByAgency retrieves all assets for a specific agency
 func GetAssetsByAgency(ctx context.Context, agencyID uuid.UUID) ([]models.Asset, error) {
 	query := `
-		SELECT id, agency_id, name, type, st_x(location), st_y(location), status, description, call_sign, capacity_level, last_updated_at, created_at
+		SELECT id, agency_id, name, type, st_x(location), st_y(location), status, description, call_sign, capacity_level, updated_at, created_at
 		FROM assets
 		WHERE agency_id = $1
 	`
@@ -252,7 +254,7 @@ func GetAssetsByAgency(ctx context.Context, agencyID uuid.UUID) ([]models.Asset,
 	var assets []models.Asset
 	for rows.Next() {
 		var a models.Asset
-		err := rows.Scan(&a.ID, &a.AgencyID, &a.Name, &a.Type, &a.Longitude, &a.Latitude, &a.Status, &a.Description, &a.CallSign, &a.CapacityLevel, &a.LastUpdatedAt, &a.CreatedAt)
+		err := rows.Scan(&a.ID, &a.AgencyID, &a.Name, &a.Type, &a.Longitude, &a.Latitude, &a.Status, &a.Description, &a.CallSign, &a.CapacityLevel, &a.UpdatedAt, &a.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan asset: %w", err)
 		}
@@ -277,7 +279,7 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 			ST_Y(a.location::geometry) as latitude,
 			a.impact_radius_meters, a.alert_type,
 			a.content_text, a.content_media_url, a.severity_score, a.verification_count,
-			a.created_at,
+			a.created_at, a.updated_at,
 			-- Hybrid LGA resolution: boundary match OR nearest centroid
 			COALESCE(
 				l_boundary.name,  -- Try boundary containment first
@@ -349,6 +351,7 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 			&alert.SeverityScore,
 			&alert.VerificationCount,
 			&alert.CreatedAt,
+			&alert.UpdatedAt,
 			&lgaName,
 			&stateName,
 		)
@@ -411,15 +414,16 @@ func GetSystemStats(ctx context.Context) (*models.SystemStats, error) {
 func RegisterDevice(ctx context.Context, device *models.Device) error {
 	query := `
 		INSERT INTO devices (
-			id, user_id, hwid, public_key, device_model, os_version, status, last_seen_at
+			id, user_id, hwid, public_key, device_model, os_version, fcm_token, status, last_seen_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()
 		)
 		ON CONFLICT (hwid) DO UPDATE SET
 			user_id = EXCLUDED.user_id,
 			public_key = EXCLUDED.public_key,
 			device_model = EXCLUDED.device_model,
 			os_version = EXCLUDED.os_version,
+			fcm_token = EXCLUDED.fcm_token,
 			status = EXCLUDED.status,
 			last_seen_at = EXCLUDED.last_seen_at
 	`
@@ -431,6 +435,7 @@ func RegisterDevice(ctx context.Context, device *models.Device) error {
 		device.PublicKey,
 		device.DeviceModel,
 		device.OSVersion,
+		device.FCMToken,
 		device.Status,
 		device.LastSeenAt,
 	)
@@ -445,7 +450,7 @@ func RegisterDevice(ctx context.Context, device *models.Device) error {
 // GetAllDevices retrieves all registered devices
 func GetAllDevices(ctx context.Context) ([]models.Device, error) {
 	query := `
-		SELECT id, user_id, hwid, public_key, device_model, os_version, status, last_seen_at, created_at
+		SELECT id, user_id, hwid, public_key, device_model, os_version, status, last_seen_at, created_at, updated_at
 		FROM devices
 		ORDER BY created_at DESC
 	`
@@ -469,11 +474,16 @@ func GetAllDevices(ctx context.Context) ([]models.Device, error) {
 			&d.Status,
 			&d.LastSeenAt,
 			&d.CreatedAt,
+			&d.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan device: %w", err)
 		}
 		devices = append(devices, d)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating devices: %w", err)
 	}
 
 	return devices, nil
@@ -482,7 +492,7 @@ func GetAllDevices(ctx context.Context) ([]models.Device, error) {
 // GetDeviceByHWID retrieves a device by its hardware identifier
 func GetDeviceByHWID(ctx context.Context, hwid string) (*models.Device, error) {
 	query := `
-		SELECT id, user_id, hwid, public_key, device_model, os_version, status, last_seen_at, created_at
+		SELECT id, user_id, hwid, public_key, device_model, os_version, status, last_seen_at, created_at, updated_at
 		FROM devices
 		WHERE hwid = $1
 	`
@@ -498,6 +508,7 @@ func GetDeviceByHWID(ctx context.Context, hwid string) (*models.Device, error) {
 		&d.Status,
 		&d.LastSeenAt,
 		&d.CreatedAt,
+		&d.UpdatedAt,
 	)
 
 	if err != nil {
@@ -510,7 +521,7 @@ func GetDeviceByHWID(ctx context.Context, hwid string) (*models.Device, error) {
 // GetRecentSecurityScans retrieves recent security scans
 func GetRecentSecurityScans(ctx context.Context, limit, offset int) ([]models.SecurityScan, error) {
 	query := `
-		SELECT id, scan_time, target_service, status, findings, meta_data
+		SELECT id, scan_time, target_service, status, findings, meta_data, created_at, updated_at
 		FROM security_scans
 		ORDER BY scan_time DESC
 		LIMIT $1 OFFSET $2
@@ -532,6 +543,8 @@ func GetRecentSecurityScans(ctx context.Context, limit, offset int) ([]models.Se
 			&s.Status,
 			&s.Findings,
 			&s.MetaData,
+			&s.CreatedAt,
+			&s.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan security scan: %w", err)
@@ -568,7 +581,7 @@ func GetTriangulatedAssets(ctx context.Context, alertID uuid.UUID) ([]models.Tri
 			SELECT id FROM states, alert_loc WHERE ST_Contains(states.boundary_geom, alert_loc.location) LIMIT 1
 		)
 		SELECT 
-			a.id, a.agency_id, a.name, a.type, st_x(a.location), st_y(a.location), a.status, a.description, a.call_sign, a.capacity_level, a.last_updated_at, a.created_at,
+			a.id, a.agency_id, a.name, a.type, st_x(a.location), st_y(a.location), a.status, a.description, a.call_sign, a.capacity_level, a.updated_at, a.created_at,
 			ST_Distance(a.location::geography, al.location::geography) as distance_meters,
 			((a.capacity_level::float8 * 0.5) + (GREATEST(0.0, (1.0 - ST_Distance(a.location::geography, al.location::geography) / 50000.0)) * 50.0))::float8 as suitability_score
 		FROM assets a
@@ -590,7 +603,7 @@ func GetTriangulatedAssets(ctx context.Context, alertID uuid.UUID) ([]models.Tri
 	for rows.Next() {
 		var ta models.TriangulatedAsset
 		err := rows.Scan(
-			&ta.Asset.ID, &ta.Asset.AgencyID, &ta.Asset.Name, &ta.Asset.Type, &ta.Asset.Longitude, &ta.Asset.Latitude, &ta.Asset.Status, &ta.Asset.Description, &ta.Asset.CallSign, &ta.Asset.CapacityLevel, &ta.Asset.LastUpdatedAt, &ta.Asset.CreatedAt,
+			&ta.Asset.ID, &ta.Asset.AgencyID, &ta.Asset.Name, &ta.Asset.Type, &ta.Asset.Longitude, &ta.Asset.Latitude, &ta.Asset.Status, &ta.Asset.Description, &ta.Asset.CallSign, &ta.Asset.CapacityLevel, &ta.Asset.UpdatedAt, &ta.Asset.CreatedAt,
 			&ta.DistanceMeters,
 			&ta.SuitabilityScore,
 		)
@@ -617,7 +630,7 @@ func GetTriangulatedAssets(ctx context.Context, alertID uuid.UUID) ([]models.Tri
 func UpdateAssetStatus(ctx context.Context, assetID uuid.UUID, newStatus string) error {
 	query := `
 		UPDATE assets 
-		SET status = $1, last_updated_at = current_timestamp()
+		SET status = $1, updated_at = current_timestamp()
 		WHERE id = $2
 	`
 
@@ -652,7 +665,7 @@ func AddAgencyPersonnel(ctx context.Context, userID, agencyID uuid.UUID, rank, r
 }
 func GetUserAgencyInfo(ctx context.Context, userID uuid.UUID) (*models.Agency, error) {
 	query := `
-		SELECT a.id, a.name, a.acronym, a.type, a.jurisdiction_scope, a.hq_address, a.contact_phone, a.created_at
+		SELECT a.id, a.name, a.acronym, a.type, a.jurisdiction_scope, a.hq_address, a.contact_phone, a.created_at, a.updated_at
 		FROM agencies a
 		JOIN agency_personnel ap ON a.id = ap.agency_id
 		WHERE ap.user_id = $1 AND ap.is_active = TRUE
@@ -661,7 +674,7 @@ func GetUserAgencyInfo(ctx context.Context, userID uuid.UUID) (*models.Agency, e
 
 	var a models.Agency
 	err := Pool.QueryRow(ctx, query, userID).Scan(
-		&a.ID, &a.Name, &a.Acronym, &a.Type, &a.JurisdictionScope, &a.HQAddress, &a.ContactPhone, &a.CreatedAt,
+		&a.ID, &a.Name, &a.Acronym, &a.Type, &a.JurisdictionScope, &a.HQAddress, &a.ContactPhone, &a.CreatedAt, &a.UpdatedAt,
 	)
 
 	if err != nil {
@@ -770,4 +783,29 @@ func UpdateMissionStatus(ctx context.Context, missionID uuid.UUID, status string
 		return fmt.Errorf("failed to update mission status: %w", err)
 	}
 	return nil
+}
+
+// UpdateUserLocation updates the last known location of a user
+func UpdateUserLocation(ctx context.Context, userID uuid.UUID, lat, lon float64) error {
+	query := `
+		UPDATE users 
+		SET last_known_location = ST_SetSRID(ST_MakePoint($1, $2), 4326),
+		    updated_at = current_timestamp()
+		WHERE id = $3
+	`
+	_, err := Pool.Exec(ctx, query, lon, lat, userID)
+	return err
+}
+
+// UpdateDeviceFCMToken updates the FCM token for a device
+func UpdateDeviceFCMToken(ctx context.Context, userID uuid.UUID, token string) error {
+	query := `
+		UPDATE devices 
+		SET fcm_token = $1, updated_at = current_timestamp()
+		WHERE user_id = $2
+		ORDER BY last_seen_at DESC
+		LIMIT 1
+	`
+	_, err := Pool.Exec(ctx, query, token, userID)
+	return err
 }

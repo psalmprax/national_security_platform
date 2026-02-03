@@ -122,12 +122,44 @@ If you see "WebGL is not supported" in Chrome, follow these steps to enable hard
 ## 📂 Key Documentation
 - [Full Project Walkthrough](docs/walkthrough.md)
 - [Architecture Design Document](docs/architecture_design.md)
+- [Capability & Performance Roadmap](docs/roadmap.md) ⭐ **NEW: Phase 4 Features Implemented**
 - [API Documentation](docs/api_documentation.md)
 - [Scaling & Deployment Guide](docs/scaling_guide.md)
 - [Mobile Testing Guide](docs/mobile_testing_guide.md)
 - [Mobile App Store Publication Guide](docs/mobile_publication_guide.md)
-- [Feature Expansion Blueprint](docs/expansion_blueprint.md)
+- [Feature Expansion Blueprint](docs/expansion_blueprint.md) ⭐ **NEW: V2.0+ Roadmap**
 - [Implementation Plan](docs/implementation_plan.md)
 - [Active Task Checklist](docs/task.md)
 - [Web Troubleshooting Guide](web/TROUBLESHOOTING.md)
 - [Database Schema](platform/schema/001_initial_schema.sql)
+
+---
+
+## 🚀 Recent Updates (Feb 2026)
+
+### Game-Changing Features Implemented
+
+**10 High-Impact Features** - Database layer 100% complete:
+
+**Citizen Engagement**:
+- 🔔 Citizen Safety Notifications (reverse alerts to public)
+- 📊 Public Safety Score (LGA transparency ranking 0-100)
+- 🕵️ Anonymous Tip Line (unauth intelligence submission)
+
+**Intelligence Enhancement**:
+- 🤖 NLP Report Analysis (auto-extract entities from text)
+- 🔗 Alert Correlation (pattern detection & clustering)
+- 🎥 Video Evidence Support (multi-modal intelligence)
+
+**Humanitarian**:
+- 👥 Missing Persons Database (national registry)
+- 🆘 Emergency SOS Broadcast (crowdsourced rescue)
+
+**Multi-Agency Coordination**:
+- 📋 Shared Incident Response (joint task management)
+- 💬 Inter-Agency Chat (secure real-time coordination)
+
+**Progress**: Database schemas complete for all 10 features. Backend APIs 40% complete.
+
+See [roadmap.md](docs/roadmap.md) for implementation timeline and [expansion_blueprint.md](docs/expansion_blueprint.md) for V2.0+ planning (11 advanced features including ML-powered predictive analytics, acoustic intelligence, financial crime integration, and more).
+

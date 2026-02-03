@@ -31,7 +31,9 @@ class PersistenceService {
               content TEXT,
               status TEXT,
               timestamp TEXT,
-              is_synced INTEGER
+              updated_at TEXT,
+              is_synced INTEGER,
+              is_duress INTEGER
             )
           ''');
         },
@@ -79,6 +81,7 @@ class PersistenceService {
             content: old.content,
             status: old.status,
             timestamp: old.timestamp,
+            updatedAt: old.updatedAt,
             isSynced: true,
             isDuress: old.isDuress
          );

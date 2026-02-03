@@ -37,7 +37,9 @@ class SettingsService with ChangeNotifier {
     _emergencyContacts = _prefs.getStringList('emergency_contacts') ?? [];
 
     // Load sensitive data from secure storage
-    _duressPin = await _secureStorage.read(key: 'duress_pin');
+    if (!kIsWeb) {
+      _duressPin = await _secureStorage.read(key: 'duress_pin');
+    }
     
     notifyListeners();
   }
@@ -57,7 +59,9 @@ class SettingsService with ChangeNotifier {
 
   Future<void> setDuressPin(String pin) async {
     _duressPin = pin;
-    await _secureStorage.write(key: 'duress_pin', value: pin);
+    if (!kIsWeb) {
+      await _secureStorage.write(key: 'duress_pin', value: pin);
+    }
     notifyListeners();
   }
 

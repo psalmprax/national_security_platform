@@ -7,6 +7,7 @@ class AlertModel {
   final String content;
   final String status;
   final String timestamp;
+  final String updatedAt;
   final bool isSynced;
   final bool isDuress;
 
@@ -19,6 +20,7 @@ class AlertModel {
     required this.content,
     required this.status,
     required this.timestamp,
+    required this.updatedAt,
     this.isSynced = false,
     this.isDuress = false,
   });
@@ -33,6 +35,7 @@ class AlertModel {
       'content': content,
       'status': status,
       'timestamp': timestamp,
+      'updated_at': updatedAt,
       'is_synced': isSynced ? 1 : 0,
       'is_duress': isDuress ? 1 : 0,
     };
@@ -48,6 +51,7 @@ class AlertModel {
       content: map['content'],
       status: map['status'],
       timestamp: map['timestamp'],
+      updatedAt: map['updated_at'] ?? map['timestamp'],
       isSynced: map['is_synced'] == 1,
       isDuress: map['is_duress'] == 1,
     );

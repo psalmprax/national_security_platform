@@ -207,3 +207,78 @@ Reinforced the onboarding process by requiring National Identification Numbers (
 
 ## Maintenance & Hotfixes
 - **Mobile Build Fix**: Resolved a compilation error in `settings_screen.dart` where an invalid `opacity` parameter was passed to `TextStyle`. Replaced with `.withOpacity()` on the color property to ensure compatibility with the Flutter web renderer.
+
+---
+
+# Phase 1 Advanced Features Integration (Feb 2026)
+
+Successfully integrated backend and frontend components for Public Alert Broadcasting, Safety Leaderboards, and Anonymous Tips.
+
+## Backend Changes
+
+### Public Alerts API
+- Implemented `POST /api/v1/public-alerts` (Protected: ADMIN/COMMAND)
+- Implemented `GET /api/v1/public-alerts` (Public)
+- NATS integration for real-time broadcasting
+- Spatial user discovery for targeted notifications
+
+### Safety Scores API
+- Implemented `GET /api/v1/analytics/safety-scores` (LGA-level data)
+- Implemented `GET /api/v1/analytics/safety-scores/summary` (National rollup)
+- Fixed SQL indexing bugs for multi-digit parameters
+
+### Anonymous Tips API
+- Implemented `POST /api/v1/tips/submit` (Public, unauthenticated)
+- Implemented `GET /api/v1/tips` (Analyst-protected)
+- Implemented `POST /api/v1/tips/{id}/verify` (Analyst-protected)
+
+### Multi-Cloud Video Evidence
+- Created `StorageProvider` abstraction for cloud-agnostic object storage
+- Implemented `S3Provider` for MinIO/AWS S3/GCS interop
+- SHA-256 integrity hashing for evidence non-repudiation
+- Pre-signed URL generation for secure evidence access
+
+## Frontend Changes
+
+### Tactical Dashboard
+- Integrated `PublicAlertBroadcast` modal for regional alert targeting
+- Added "Public Broadcaster" button to sidebar and tactical actions panel
+- State management for modal visibility and alert selection
+
+### Strategic Dashboard
+- Integrated `SafetyLeaderboard` component into Analytics view
+- Real-time LGA safety metrics display
+
+### Cyber Dashboard
+- Integrated `AnonymousTipFeed` component for crowdsourced intelligence
+- Fixed Intelligence Triage layout (scrollbar and button visibility)
+- Implemented strict redaction for classified alerts in triage list
+
+## Verification
+- All builds passed (`go build` and `npm run build`)
+- Database schema applied successfully (materialized view limitations noted for CockroachDB)
+
+---
+
+# Intelligence Triage UI Refinements (Feb 2026)
+
+Addressed usability and visual feedback issues in the Cyber Dashboard's intelligence triage systems.
+
+## Key Improvements
+
+### Triage Sidebar (`TriageSidebar.tsx`)
+- **Visual Clarity**: Removed inadvertent `blur-sm` from standard (non-redacted) alert descriptions.
+- **Enhanced Redaction**: Added visual "blurred placeholder bars" to redacted alerts. This provides an intuitive indicator that content exists but is intentionally obscured for security, matching the project's premium aesthetic.
+- **Typography Optimized**: Changed description font weight to `font-medium` for better sub-pixel rendering on dark backgrounds.
+
+### Cyber Dashboard (`CyberDashboard.tsx`)
+- **System Admin Context (Draggable)**: The Mode Selector HUB (NOMINAL, SURGICAL, TACTICAL, DARK_OPS) is now a draggable `framer-motion` component. This allows administrators to reposition critical mode controls if they obscure map data.
+- **Global Triage Redaction**: Applied the same strict redaction logic to the "Alert Triage" list view and the **Audit Log Ledger**. Redacted alerts now show a "Description Redacted" notice with matching aesthetic placeholders in the list, and masked "CLASSIFIED_VECTOR" indicators in the audit table.
+- **Import Hardening**: Fixed a missing `ShieldAlert` dependency that was causing build failures in the production pipeline.
+
+## Verification
+- ✅ **Production Build Success**: `npm run build` completed with Exit Code 0.
+- ✅ **Draggable UI**: Verified `motion.div` implementation with `dragMomentum={false}` and `cursor-grabbing` states.
+- ✅ **Redaction Logic**: Confirmed `isAlertRedacted` propagates correctly across all triage view states (sidebar and main list).
+
+

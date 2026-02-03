@@ -1,8 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:local_auth_android/local_auth_android.dart';
-import 'package:local_auth_ios/local_auth_ios.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:convert';
 import 'dart:async';
 
@@ -16,8 +15,9 @@ enum BiometricAuthResult {
 }
 
 class BiometricService {
-  final LocalAuthentication _localAuth = LocalAuthentication();
-  final _storage = const FlutterSecureStorage();
+  // Use getters to avoid early instantiation on web which can cause platform channel crashes
+  LocalAuthentication get _localAuth => LocalAuthentication();
+  FlutterSecureStorage get _storage => const FlutterSecureStorage();
   
   // Duress detection configuration
   static const int _maxFailuresForDuress = 3;
@@ -27,6 +27,7 @@ class BiometricService {
 
   /// Check if the device supports biometric authentication
   Future<bool> canAuthenticateWithBiometrics() async {
+    if (kIsWeb) return false;
     try {
       final bool canAuthenticate = await _localAuth.canCheckBiometrics;
       final bool isDeviceSupported = await _localAuth.isDeviceSupported();
@@ -38,6 +39,7 @@ class BiometricService {
 
   /// Get list of available biometric types on this device
   Future<List<BiometricType>> getAvailableBiometrics() async {
+    if (kIsWeb) return [];
     try {
       return await _localAuth.getAvailableBiometrics();
     } on PlatformException {
@@ -47,6 +49,7 @@ class BiometricService {
 
   /// Check if biometric authentication is enabled for this user
   Future<bool> isBiometricEnabled() async {
+    if (kIsWeb) return false;
     final enabled = await _storage.read(key: 'biometric_enabled');
     return enabled == 'true';
   }
@@ -94,16 +97,6 @@ class BiometricService {
       // Attempt authentication
       final bool authenticated = await _localAuth.authenticate(
         localizedReason: 'Authenticate to access your security alerts',
-        authMessages: const <AuthMessages>[
-          AndroidAuthMessages(
-            signInTitle: 'National Security Platform',
-            biometricHint: 'Verify your identity',
-            cancelButton: 'Use Password',
-          ),
-          IOSAuthMessages(
-           cancelButton: 'Use Password',
-          ),
-        ],
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: true,
@@ -140,6 +133,7 @@ class BiometricService {
 
   /// Disable biometric authentication
   Future<void> disableBiometricAuth() async {
+    if (kIsWeb) return;
     await _storage.delete(key: 'biometric_enabled');
     await _storage.delete(key: 'biometric_user_id');
     await _storage.delete(key: 'biometric_credential_hash');
@@ -148,11 +142,13 @@ class BiometricService {
 
   /// Get stored credential hash (for validation after biometric auth)
   Future<String?> getStoredCredentialHash() async {
+    if (kIsWeb) return null;
     return await _storage.read(key: 'biometric_credential_hash');
   }
 
   /// Get stored user ID
   Future<String?> getStoredUserId() async {
+    if (kIsWeb) return null;
     return await _storage.read(key: 'biometric_user_id');
   }
 
@@ -200,6 +196,7 @@ class BiometricService {
 
   /// Stop biometric authentication (for app backgrounding)
   Future<void> stopAuthentication() async {
+    if (kIsWeb) return;
     try {
       await _localAuth.stopAuthentication();
     } catch (e) {

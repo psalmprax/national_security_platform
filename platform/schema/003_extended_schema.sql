@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS states (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name STRING UNIQUE NOT NULL,
+    code STRING UNIQUE, -- ISO-like code (e.g. NG-LA)
     boundary_geom GEOMETRY(POLYGON, 4326),
     capital_city STRING,
     created_at TIMESTAMP DEFAULT current_timestamp()
@@ -13,8 +14,10 @@ CREATE TABLE IF NOT EXISTS lgas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     state_id UUID REFERENCES states(id),
     name STRING NOT NULL,
+    code STRING, -- Regional code
     boundary_geom GEOMETRY(POLYGON, 4326),
     UNIQUE (state_id, name),
+    UNIQUE (code),
     created_at TIMESTAMP DEFAULT current_timestamp()
 );
 
@@ -69,3 +72,7 @@ CREATE TABLE IF NOT EXISTS corroborations (
 CREATE INDEX IF NOT EXISTS states_geom_idx ON states USING GIST(boundary_geom);
 CREATE INDEX IF NOT EXISTS lgas_geom_idx ON lgas USING GIST(boundary_geom);
 CREATE INDEX IF NOT EXISTS villages_loc_idx ON villages USING GIST(location);
+
+-- Ensure columns exist for regional identification (added in v1.1)
+ALTER TABLE states ADD COLUMN IF NOT EXISTS code STRING UNIQUE;
+ALTER TABLE lgas ADD COLUMN IF NOT EXISTS code STRING UNIQUE;

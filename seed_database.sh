@@ -26,7 +26,14 @@ FILES=(
     "platform/schema/015_procedural_fill.sql"          # Procedural Villages for Load Testing
     "platform/schema/017_classified_alerts.sql"        # Classified/Redacted test alerts
     "platform/schema/018_mission_schema.sql"           # Mission schema
-    "platform/schema/019_lga_centroids.sql"           # LGA Centroids
+    "platform/schema/019_lga_centroids.sql"            # LGA Centroids
+    "platform/schema/020_public_alerts.sql"            # Public Alerts
+    "platform/schema/021_safety_scores.sql"            # Safety Scores
+    "platform/schema/022_anonymous_tips.sql"           # Anonymous Tips
+    "platform/schema/023_advanced_features.sql"        # Advanced Features
+    "platform/schema/024_add_updated_at_timestamps.sql" # Add updated_at columns and auto-update triggers
+    "platform/schema/025_standardize_all_remaining_timestamps.sql" # Standardize all remaining timestamps
+    "platform/schema/026_notification_support.sql" # Notification and spatial tracking support
 )
 
 for file in "${FILES[@]}"; do

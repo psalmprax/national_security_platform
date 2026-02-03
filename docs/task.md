@@ -48,3 +48,43 @@
     - [x] Implement dynamic field visibility in `RegisterScreen.dart`
     - [x] Update `ApiService` and `AuthService` with full payloads
     - [x] Update test data and documentation
+
+---
+
+## Phase 1 Advanced Features (Feb 2026)
+
+- [x] **Public Alert Broadcasting**
+    - [x] Backend API (`POST/GET /api/v1/public-alerts`)
+    - [x] NATS integration for real-time broadcasting
+    - [x] Dashboard UI (`PublicAlertBroadcast` modal)
+    - [x] Tactical Dashboard integration (sidebar + actions panel)
+
+- [x] **Safety Leaderboard**
+    - [x] Backend API (`GET /api/v1/analytics/safety-scores`)
+    - [x] Dashboard UI (`SafetyLeaderboard` component)
+    - [x] Strategic Dashboard integration (Analytics view)
+
+- [x] **Anonymous Tips**
+    - [x] Backend API (`POST /api/v1/tips/submit`, `GET /api/v1/tips`, `POST /api/v1/tips/{id}/verify`)
+    - [x] Dashboard UI (`AnonymousTipFeed` component)
+    - [x] Cyber Dashboard integration (Secret Tips view)
+
+- [x] **Multi-Cloud Video Evidence Storage**
+    - [x] `StorageProvider` interface abstraction
+    - [x] `S3Provider` implementation (MinIO/AWS/GCS)
+    - [x] SHA-256 integrity hashing
+    - [x] Pre-signed URL generation
+
+- [x] **Cyber Dashboard UI Fixes**
+    - [x] Fixed Intelligence Triage layout (scrollbar/button visibility)
+    - [x] Implemented strict redaction for classified alerts
+
+---
+
+## Pending Tasks
+
+- [ ] Test with Firebase Cloud Messaging (FCM tokens)
+- [ ] NLP Entity Extraction UI in Dashboard
+- [ ] Expand village/settlement coverage
+- [ ] Import authoritative LGA boundaries for high-priority regions
+
