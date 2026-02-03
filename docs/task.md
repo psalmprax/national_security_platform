@@ -4,15 +4,22 @@
     - [x] Add defensive checks for `alerts` array
     - [x] Add defensive checks for `assets` array
     - [x] Fix missing `Lock` icon import
-- [x] Implement Mission Dispatch Tracking
-    - [x] Create `missions` database table
-    - [x] Implement Mission model and repository in Core API
-    - [x] Add Mission API handlers and routes
-    - [x] Develop `MissionSidebar` component
-    - [x] Integrate mission tracking into `TacticalDashboard.tsx`
-- [x] Implement null safety checks in `StrategicDashboard.tsx`
-    - [x] Add defensive checks for `alerts` and `distribution` arrays
-    - [x] Fix displaced System Status block
+- [x] Implement "Request Access" registration for Dashboard access control
+- [x] Integrate Mapbox GL into Cyber Dashboard for real-world map rendering
+- [x] Implement authentication/authorization middleware for the Core API
+- [x] Implement SSE (Server-Sent Events) for real-time alert streaming to dashboard
+- [x] Integrate real-time alerts feed in web dashboard via SSE
+- [x] Add React Toastify for notification feedback on the dashboard
+- [x] Implement Mission Dispatch tracking (database schema, API, and UI)
+- [x] Add Mobile Settings Screen with ADS, Duress, and Personalization options
+- [x] Enhance Registration flow with NIN, State/LGA, Agency/Rank fields
+- [x] Implement Classified Alerts with redaction based on clearance levels
+- [x] Fix Classified Alerts display issue (user reference corrections)
+- [x] Implement Geospatial Data Enrichment (LGA centroid coverage: 794/794)
+- [x] Hybrid Spatial Resolution (boundary containment + nearest-neighbor fallback)
+- [ ] Expand village/settlement coverage beyond 1,858 records
+- [ ] Import authoritative LGA boundaries for high-priority regions
+- [ ] Implement progressive boundary import workflow
 - [x] Implement null safety checks in `CyberDashboard.tsx`
     - [x] Add defensive checks for `alerts`, `notifications`, and `securityScans`
 - [x] Implement null safety checks in `TriageSidebar.tsx`

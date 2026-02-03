@@ -6,6 +6,7 @@ import 'services/persistence_service.dart';
 import 'services/api_service.dart';
 import 'services/sync_service.dart';
 import 'services/auth_service.dart';
+import 'services/biometric_service.dart';
 import 'services/settings_service.dart';
 
 void main() async {
@@ -15,7 +16,8 @@ void main() async {
   await persistenceService.init();
 
   final apiService = ApiService();
-  final authService = AuthService(apiService);
+  final biometricService = BiometricService();
+  final authService = AuthService(apiService, biometricService);
   await authService.checkAuthStatus();
 
   final settingsService = SettingsService();
@@ -28,6 +30,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthService>.value(value: authService),
+        Provider<BiometricService>.value(value: biometricService),
         Provider<PersistenceService>.value(value: persistenceService),
         Provider<ApiService>.value(value: apiService),
         Provider<SyncService>.value(value: syncService),

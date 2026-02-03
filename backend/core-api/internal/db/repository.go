@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"national_security_platform/backend/core-api/internal/models"
@@ -265,7 +266,10 @@ func GetAssetsByAgency(ctx context.Context, agencyID uuid.UUID) ([]models.Asset,
 
 // GetRecentAlerts retrieves the most recent alerts with a limit, filtering based on clearance
 func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]models.Alert, error) {
-	// Added spatial join to resolve LGA and State names
+	// Hybrid spatial resolution strategy:
+	// 1. Try boundary-based LGA resolution (ST_Contains)
+	// 2. Fallback to nearest-neighbor using LGA centroids
+	// 3. Always resolve state via boundary or fallback
 	query := `
 		SELECT 
 			a.id, a.user_id, a.status, a.priority_class,
@@ -274,12 +278,35 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 			a.impact_radius_meters, a.alert_type,
 			a.content_text, a.content_media_url, a.severity_score, a.verification_count,
 			a.created_at,
-			COALESCE(l.name, 'Unknown') as lga_name,
-			COALESCE(s.name, s2.name, 'Unknown') as state_name
+			-- Hybrid LGA resolution: boundary match OR nearest centroid
+			COALESCE(
+				l_boundary.name,  -- Try boundary containment first
+				(
+					SELECT l_nearest.name 
+					FROM lgas l_nearest 
+					WHERE l_nearest.centroid IS NOT NULL
+					ORDER BY ST_Distance(l_nearest.centroid, a.location)
+					LIMIT 1
+				),
+				'Unknown'
+			) as lga_name,
+			-- State resolution with fallback
+			COALESCE(
+				s.name,  -- From LGA boundary match
+				s2.name, -- From direct state containment
+				(
+					SELECT s_nearest.name 
+					FROM states s_nearest 
+					WHERE s_nearest.boundary_geom IS NOT NULL
+					ORDER BY ST_Distance(s_nearest.boundary_geom, a.location)
+					LIMIT 1
+				),
+				'Unknown'
+			) as state_name
 		FROM alerts a
-		LEFT JOIN lgas l ON ST_Contains(l.boundary_geom, a.location)
-		LEFT JOIN states s ON s.id = l.state_id -- Optimization: Use relational link if LGA found
-		LEFT JOIN states s2 ON ST_Contains(s2.boundary_geom, a.location) -- Fallback: Direct spatial lookup if LGA lookup fails
+		LEFT JOIN lgas l_boundary ON ST_Contains(l_boundary.boundary_geom, a.location)
+		LEFT JOIN states s ON s.id = l_boundary.state_id
+		LEFT JOIN states s2 ON ST_Contains(s2.boundary_geom, a.location)
 		ORDER BY a.created_at DESC
 		LIMIT $1
 	`
@@ -330,13 +357,14 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 		}
 
 		// ABAC Filtering: Redact PII for low clearance
-		// Example rule: Confidential/Secret alerts need check
-		// For now, let's say if it's a "KIDNAPPING" or high severity, we redact content for lowest level
+		// If content is already redacted, don't overwrite it.
 		if userScore < 3 { // Below CONFIDENTIAL
-			if alert.PriorityClass == "CRITICAL" || alert.AlertType == "KIDNAPPING" {
-				redacted := "[REDACTED - INSUFFICIENT CLEARANCE]"
-				alert.ContentText = &redacted
-				alert.UserID = uuid.Nil // Hide reporter ID
+			if alert.ContentText == nil || !strings.HasPrefix(*alert.ContentText, "[REDACTED") {
+				if alert.PriorityClass == "CRITICAL" || alert.AlertType == "KIDNAPPING" {
+					redacted := "[REDACTED - INSUFFICIENT CLEARANCE]"
+					alert.ContentText = &redacted
+					alert.UserID = uuid.Nil // Hide reporter ID
+				}
 			}
 		}
 
