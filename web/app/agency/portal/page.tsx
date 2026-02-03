@@ -18,6 +18,7 @@ export default function AgencyPortalPage() {
     const [showAgencyPicker, setShowAgencyPicker] = useState(false);
     const [agencyName, setAgencyName] = useState<string>("Agency Command Portal");
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    const [showUserMenu, setShowUserMenu] = useState(false);
 
     // New Asset Form State
     const [newAsset, setNewAsset] = useState({
@@ -133,8 +134,8 @@ export default function AgencyPortalPage() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-white p-6 relative flex flex-col">
-            {/* Agency View Switcher - Only for System Admin */}
-            {user?.role === 'ADMIN' && (
+            {/* Agency View Switcher - Only for System Admin or Higher */}
+            {['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
                 <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] group">
                     <button
                         className="h-8 px-6 bg-slate-900 border-b border-x border-slate-800 hover:border-blue-500 rounded-b-lg flex items-center justify-center gap-2 cursor-pointer backdrop-blur-md transition-all hover:bg-black"
@@ -194,8 +195,8 @@ export default function AgencyPortalPage() {
                         <button
                             onClick={() => setViewMode('list')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold uppercase transition-all ${viewMode === 'list'
-                                    ? 'bg-blue-600 text-white shadow-lg'
-                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
                                 }`}
                         >
                             <List className="w-4 h-4" />
@@ -204,8 +205,8 @@ export default function AgencyPortalPage() {
                         <button
                             onClick={() => setViewMode('map')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold uppercase transition-all ${viewMode === 'map'
-                                    ? 'bg-blue-600 text-white shadow-lg'
-                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5'
                                 }`}
                         >
                             <MapIcon className="w-4 h-4" />
@@ -231,16 +232,45 @@ export default function AgencyPortalPage() {
                                 </p>
                             </div>
                         </div>
-                        <div className="w-10 h-10 bg-slate-900 border border-slate-800 rounded-full flex items-center justify-center text-slate-400">
-                            <User className="w-5 h-5" />
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowUserMenu(!showUserMenu)}
+                                className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all cursor-pointer ${showUserMenu ? 'border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'}`}
+                            >
+                                <User className="w-5 h-5" />
+                            </button>
+
+                            {showUserMenu && (
+                                <div className="absolute top-12 right-0 w-64 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+                                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-800">
+                                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                            <Shield className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-bold text-sm tracking-tight">{user.full_name || 'Anonymous'}</p>
+                                            <p className="text-blue-400 text-[10px] uppercase font-bold tracking-wider">{user.role}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <button
+                                            onClick={() => {
+                                                setShowUserMenu(false);
+                                                // Link to profile view if needed
+                                            }}
+                                            className="w-full text-left text-xs text-slate-400 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-all font-medium"
+                                        >
+                                            Personnel Profile
+                                        </button>
+                                        <button
+                                            onClick={logout}
+                                            className="w-full text-left text-xs text-red-500 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-all font-bold mt-2"
+                                        >
+                                            Terminate Session
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <button
-                            onClick={() => logout()}
-                            className="w-10 h-10 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg flex items-center justify-center transition-all border border-red-500/20"
-                            title="Log Out"
-                        >
-                            <LogOut className="w-5 h-5" />
-                        </button>
                     </div>
                 </div>
             </header>
