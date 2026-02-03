@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { PieChart, FileText, Activity, Shield, TrendingUp } from 'lucide-react';
+import { PieChart, FileText, Activity, Shield, TrendingUp, ShieldAlert } from 'lucide-react';
 import { getIncidentTrends, getThreatDistribution, Alert, SystemStatus } from '../../lib/api';
 import { User } from '../../lib/AuthContext';
 import SafetyLeaderboard from '../analytics/SafetyLeaderboard';
@@ -25,6 +25,14 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
     // Unused variables for now, but keeping for future chart expansion
     // const urgentCount = alerts.filter(a => a.severity > 0.6 && a.severity <= 0.8).length;
     // const routineCount = alerts.filter(a => a.severity <= 0.6).length;
+    const isAlertRedacted = (alert: Alert | null): boolean => {
+        if (!alert) return false;
+        return (
+            (alert.content || '').includes('[REDACTED') ||
+            (alert.priority_class === 'CRITICAL' && alert.isEncrypted === true) ||
+            alert.isDuress === true
+        );
+    };
 
     return (
         <div className="w-full h-full bg-slate-50 text-slate-800 overflow-auto font-sans">
@@ -205,8 +213,16 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                                         <FileText className="w-4 h-4" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-medium text-slate-900">Incident: #{alert.id.substring(0, 8)}</p>
-                                                        <p className="text-xs text-slate-500 uppercase">{alert.type.replace(/_/g, ' ')} • {new Date(alert.timestamp).toLocaleTimeString()}</p>
+                                                        <p className="text-sm font-medium text-slate-900">
+                                                            {isAlertRedacted(alert) ? (
+                                                                <span className="text-red-600 font-bold uppercase tracking-tighter">[CLASSIFIED_INCIDENT]</span>
+                                                            ) : (
+                                                                `Incident: #${alert.id.substring(0, 8)}`
+                                                            )}
+                                                        </p>
+                                                        <p className="text-xs text-slate-500 uppercase">
+                                                            {isAlertRedacted(alert) ? 'SOURCE REDACTED' : alert.type.replace(/_/g, ' ')} • {new Date(alert.timestamp).toLocaleTimeString()}
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 <button
@@ -256,7 +272,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Strategic Advisory</div>
                                     <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                                         <p className="text-xs text-blue-900 leading-relaxed font-medium">
-                                            Current telemetry suggests a {criticalCount > 2 ? 'high' : 'contained'} risk level. Recommend increasing surveillance in {(alerts || [])[0]?.location || 'all sectors'}.
+                                            Current telemetry suggests a {criticalCount > 2 ? 'high' : 'contained'} risk level. Recommend increasing surveillance in {((alerts || [])[0] && isAlertRedacted(alerts[0])) ? 'redacted sectors' : ((alerts || [])[0]?.location || 'all sectors')}.
                                         </p>
                                     </div>
                                 </div>
@@ -530,7 +546,13 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                                 </div>
                                 <div className="space-y-1">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location Vector</span>
-                                    <p className="font-medium text-slate-900">{selectedAlert.location}</p>
+                                    <p className="font-medium text-slate-900">
+                                        {isAlertRedacted(selectedAlert) ? (
+                                            <span className="text-red-600 font-black tracking-tighter uppercase">[SECTOR CLASSIFIED]</span>
+                                        ) : (
+                                            selectedAlert.location
+                                        )}
+                                    </p>
                                 </div>
                                 <div className="space-y-1">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validation Status</span>
@@ -546,9 +568,26 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
 
                             <div className="space-y-2">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Intel Summary</span>
-                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-slate-700 leading-relaxed italic">
-                                    "{selectedAlert.content}"
-                                </div>
+                                {isAlertRedacted(selectedAlert) ? (
+                                    <div className="bg-red-50 rounded-xl p-4 border border-red-100">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-red-600">Tactical Analysis Locked</span>
+                                        </div>
+                                        <p className="text-xs text-red-800 leading-relaxed italic opacity-80">
+                                            Intel content is encrypted at the source or marked as a duress signal.
+                                            Access requires Level 5 Strategic clearance and physical duress bypass.
+                                        </p>
+                                        <div className="mt-3 space-y-1 opacity-10 blur-[1.5px] select-none">
+                                            <div className="h-2 bg-red-600 rounded w-full" />
+                                            <div className="h-2 bg-red-600 rounded w-5/6" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-slate-700 leading-relaxed italic">
+                                        "{selectedAlert.content}"
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-3 pt-4 border-t border-slate-100">

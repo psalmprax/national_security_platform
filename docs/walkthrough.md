@@ -276,9 +276,15 @@ Addressed usability and visual feedback issues in the Cyber Dashboard's intellig
 - **Global Triage Redaction**: Applied the same strict redaction logic to the "Alert Triage" list view and the **Audit Log Ledger**. Redacted alerts now show a "Description Redacted" notice with matching aesthetic placeholders in the list, and masked "CLASSIFIED_VECTOR" indicators in the audit table.
 - **Import Hardening**: Fixed a missing `ShieldAlert` dependency that was causing build failures in the production pipeline.
 
+### Strategic Dashboard (`StrategicDashboard.tsx`)
+- **Executive Redaction**: Extended the `isAlertRedacted` protection to the Strategic view.
+- **Masked Summaries**: "Recent Reports" now show `[CLASSIFIED_INCIDENT]` and "SOURCE REDACTED" for sensitive entries.
+- **Incident Detail Protection**: The report detail modal now includes a "Tactical Analysis Locked" visual with blurred placeholder text and explicit clearance requirement notices.
+- **Advisory Filtering**: The automated "Strategic Advisory" section now masks location references if the source alert is redacted, preventing accidental leaks in executive briefings.
+
 ## Verification
-- ✅ **Production Build Success**: `npm run build` completed with Exit Code 0.
-- ✅ **Draggable UI**: Verified `motion.div` implementation with `dragMomentum={false}` and `cursor-grabbing` states.
-- ✅ **Redaction Logic**: Confirmed `isAlertRedacted` propagates correctly across all triage view states (sidebar and main list).
+- ✅ **Cross-Dashboard Consistency**: Verified that redaction logic is uniform across Cyber, Strategic, Triage, and Audit views.
+- ✅ **Code Integrity Check**: Verified `StrategicDashboard.tsx` structure and imports (`ShieldAlert`).
+- ✅ **Repository Sync**: All changes pushed to `stage` branch successfully.
 
 
