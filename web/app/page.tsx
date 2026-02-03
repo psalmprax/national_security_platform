@@ -54,12 +54,13 @@ export default function DashboardPage() {
         const params = new URLSearchParams(window.location.search);
         const requestedView = params.get('view') as AgencyView;
 
-        if (currentUserRole === 'ADMIN' && requestedView && ['cyber', 'tactical', 'strategic'].includes(requestedView)) {
+        if (currentUserRole === 'ADMIN' && requestedView && ['cyber', 'tactical', 'strategic', 'access'].includes(requestedView)) {
             setAgencyView(requestedView);
         } else if (currentUserRole !== 'ADMIN') {
-            if (currentUserRole === 'CYBER_ANALYST') setAgencyView('cyber');
+            if (currentUserRole === 'CYBER_ANALYST' || currentUserRole === 'SYSTEM_ADMIN') setAgencyView('cyber');
             else if (currentUserRole === 'STRATEGIC_PLANNER') setAgencyView('strategic');
             else if (currentUserRole === 'TACTICAL_COMMAND') setAgencyView('tactical');
+            else if (currentUserRole === 'SECURITY_OFFICER') setAgencyView('access');
         }
     }, [currentUserRole]);
 
@@ -152,7 +153,7 @@ export default function DashboardPage() {
             <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[110] flex items-center">
                 <div className="flex items-center bg-black/80 border-b border-x border-white/20 rounded-b-xl backdrop-blur-md px-1 py-1 shadow-2xl">
                     {/* View Picker Toggle */}
-                    {user?.role === 'ADMIN' && (
+                    {['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
                         <button
                             className="h-7 px-4 hover:bg-white/5 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all group"
                             onClick={() => setShowAgencyPicker(!showAgencyPicker)}
@@ -191,7 +192,7 @@ export default function DashboardPage() {
             </div>
 
             {/* View Switcher UI - Controlled by Admin check */}
-            {showAgencyPicker && user?.role === 'ADMIN' && (
+            {showAgencyPicker && ['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] bg-black/90 border border-white/20 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200">
                     <div className="flex items-center gap-4 text-white">
                         <button
