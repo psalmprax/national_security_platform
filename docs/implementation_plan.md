@@ -1,63 +1,54 @@
-# Granular Access Control (ABAC) Implementation Plan
+# Universal Display Mode Implementation
 
-This plan details the implementation of Attribute-Based Access Control (ABAC) to introduce data-centric security layers beyond simple Role-Based Access Control (RBAC).
-
-## Goal Description
-The objective is to enforce "Need-to-Know" principles by restricting access to sensitive data based on a user's `ClearanceLevel`. This prevents authorized role-holders from seeing data they are not cleared for (e.g., a standard Cyber Analyst seeing Top Secret intelligence).
-
-## User Review Required
-> [!IMPORTANT]
-> This change will affect all API endpoints protected by `AuthMiddleware`. Existing valid tokens will need to be re-issued (user re-login) to contain the new `ClearanceLevel` claim.
+The goal is to provide a consistent visual experience mapping across all dashboards (Cyber, Tactical, Strategic, and Access Management). Themes like Dark, Light, OLED, Contrast, and Terminal will be shared globally and persist across sessions.
 
 ## Proposed Changes
 
-### Backend (Go Core API)
+### Core UI Overlay
+#### [MODIFY] [page.tsx](file:///home/psalmprax/national_security_platform/web/app/page.tsx)
+- Lift `displayMode` state to the root `DashboardPage` component.
+- Implement `localStorage` persistence for the selected theme.
+- Pass `displayMode` and `setDisplayMode` as props to all child dashboards.
+- Apply `data-theme` to the root container in `page.tsx`.
+- **Watermark Visibility**: Set the main dashboard container to `bg-transparent` to allow the global watermark (on `body::before`) to be visible.
 
-#### [MODIFY] [internal/security/jwt.go](file:///home/psalmprax/national_security_platform/backend/core-api/internal/security/jwt.go)
-- **Update Token Generation**: Include `ClearanceLevel` in the JWT payload.
-- **Update Verification**: Extract `ClearanceLevel` during verification.
+### Dashboards
+#### [MODIFY] [CyberDashboard.tsx](file:///home/psalmprax/national_security_platform/web/components/dashboards/CyberDashboard.tsx)
+- Remove local `displayMode` state.
+- Use `displayMode` and `setDisplayMode` from props.
+- **Background Fix**: Change root `div` background from `bg-[#050505]/60` to `bg-transparent` for watermark visibility.
 
-#### [MODIFY] [internal/middleware/rbac.go](file:///home/psalmprax/national_security_platform/backend/core-api/internal/middleware/rbac.go)
-- **Update AuthMiddleware**: Extract `ClearanceLevel` from token claims and place it into the request context.
-- **New Middleware**: `RequireClearance(level string)`.
-    - Enforce hierarchy: `TOP_SECRET` > `SECRET` > `CONFIDENTIAL` > `RESTRICTED` > `UNCLASSIFIED`.
+#### [MODIFY] [StrategicDashboard.tsx](file:///home/psalmprax/national_security_platform/web/components/dashboards/StrategicDashboard.tsx)
+- Remove local `displayMode` state.
+- Use `displayMode` and `setDisplayMode` from props.
+- Ensure the settings menu updates the global state.
+- **Background Fix**: Change root `div` background from `bg-slate-50` to `bg-transparent` for watermark visibility.
 
-#### [MODIFY] [internal/db/repository.go](file:///home/psalmprax/national_security_platform/backend/core-api/internal/db/repository.go)
-- **Update Queries**:
-    - Modify sensitive data retrieval (e.g., `GetRecentAlerts`, `GetUserByID`) to respect the user's clearance level.
-    - Example: Filter PII or specific alert types if user clearance is too low.
+#### [MODIFY] [TacticalDashboard.tsx](file:///home/psalmprax/national_security_platform/web/components/dashboards/TacticalDashboard.tsx)
+- Remove local `displayMode` state.
+- Use `displayMode` and `setDisplayMode` from props.
+- Ensure the settings menu updates the global state.
+- **Background Fix**: Change root `div` background from `bg-[#050505]/60` to `bg-transparent` for watermark visibility.
 
-### Frontend (Next.js)
+#### [MODIFY] [AccessManagement.tsx](file:///home/psalmprax/national_security_platform/web/components/admin/AccessManagement.tsx)
+- Implement `displayMode` prop support.
+- Apply `data-theme` to the container to ensure administrative views match the chosen agency-wide theme.
+- **Add Settings Toggle**: Implement a settings button/menu within the registry view to allow theme switching without leaving the page.
 
-#### [MODIFY] [web/lib/auth.ts](file:///home/psalmprax/national_security_platform/web/lib/auth.ts)
-- Update `Session` interface to include `clearance`.
-- Update `verifySession` to parse the new claim.
+#### [NEW] [Agency Command Portal] [page.tsx](file:///home/psalmprax/national_security_platform/web/app/agency/portal/page.tsx)
+- Implement `displayMode` state with `localStorage` persistence (since it's a separate route).
+- Apply `data-theme` to the root container.
+- Add a settings button and theme switcher modal (consistent with other dashboards).
+
+#### [MODIFY] [Login & Registration] [login/page.tsx](file:///home/psalmprax/national_security_platform/web/app/login/page.tsx) and [request-access/page.tsx](file:///home/psalmprax/national_security_platform/web/app/request-access/page.tsx)
+- Add `localStorage` reader in `useEffect` to fetch `nsp_display_mode`.
+- Apply `data-theme` to the root container to ensure brand consistency during onboarding.
 
 ## Verification Plan
-1.  **Token Validation**: Log in as a high-clearance user and decode the JWT to verify the `ClearanceLevel` claim exists.
-2.  **Middleware Test**: create a test endpoint requiring `TOP_SECRET` and try accessing it with a `CONFIDENTIAL` user.
-3.  **Data Visibility**:
-    - Verify a `TOP_SECRET` user sees sensitive PII or restricted alerts.
-
----
-
-# Separation of Duties (SoD) & Global Command UI
-
-Implemented a more granular administrative model to prevent centralized privilege abuse and a unified command interface for situational awareness.
-
-## Proposed Changes
-
-### Backend (Go Core API)
-
-#### [MODIFY] [main.go](file:///home/psalmprax/national_security_platform/backend/core-api/cmd/server/main.go)
-- **Split Admin Routes**: Created distinct route groups for `SYSTEM_ADMIN` and `SECURITY_OFFICER`.
-- **RBAC Middleware**: Enforced `SYSTEM_ADMIN` only access for status/logs and `SECURITY_OFFICER` for identity/policy management.
-
-### Frontend (Next.js)
-
-#### [MODIFY] [web/app/page.tsx](file:///home/psalmprax/national_security_platform/web/app/page.tsx)
-- **Consolidated Command Bar**: Moved Agency View, Fullscreen, and Logout to a central top-mounted HUD element.
-- **Hook Refactor**: Moved all `useEffect` calls before conditional returns to satisfy React's Rules of Hooks.
-
-#### [MODIFY] [web/components/admin/AccessManagement.tsx](file:///home/psalmprax/national_security_platform/web/components/admin/AccessManagement.tsx)
-- **Read-Only Enforcements**: Implemented checks to ensure only `SECURITY_OFFICER` can perform write operations on policy, even if the user has a high-level admin role.
+### Manual Verification
+- Log in and navigate to the **Cyber Dashboard**.
+- Change theme to **OLED**.
+- Switch to **Strategic Dashboard** via the command view switcher.
+- Verify that **Strategic Dashboard** is also in **OLED** mode.
+- Refresh the page and verify that the theme persists.
+- Navigate to **Access Management** and verify theme consistency.

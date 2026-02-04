@@ -138,4 +138,26 @@ class ApiService {
       return false;
     }
   }
+  Future<Map<String, dynamic>?> verifyNIN(String nin, String token) async {
+    try {
+      final url = Uri.parse('$_baseUrl/api/v1/auth/verify-nin');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'nin': nin}),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      print('❌ NIN Verification failed: ${response.statusCode} - ${response.body}');
+      return null;
+    } catch (e) {
+      print('❌ NIN verification error: $e');
+      return null;
+    }
+  }
 }

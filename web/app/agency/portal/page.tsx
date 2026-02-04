@@ -1,14 +1,31 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save, Loader2, AlertTriangle, User, LogOut, Layout, Map as MapIcon, List } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save, Loader2, AlertTriangle, User, LogOut, Layout, Map as MapIcon, List, Settings } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
 import { UserRole } from '@/lib/auth';
 import { fetchSectorReport, Asset } from '@/lib/api';
 import MapboxMap from '@/components/MapboxMap';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+const getCsrfToken = () => {
+    if (typeof document === 'undefined') return '';
+    const name = 'csrf_token=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) === 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return '';
+};
 
 export default function AgencyPortalPage() {
     const { user, logout, isLoading: isAuthLoading } = useAuth();
@@ -19,6 +36,9 @@ export default function AgencyPortalPage() {
     const [agencyName, setAgencyName] = useState<string>("Agency Command Portal");
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [displayMode, setDisplayMode] = useState<'dark' | 'light' | 'contrast' | 'oled' | 'terminal'>('dark');
+    const [watermarkMode, setWatermarkMode] = useState<'none' | 'seal' | 'coat_of_arms'>('seal');
+    const [showSettings, setShowSettings] = useState(false);
 
     // New Asset Form State
     const [newAsset, setNewAsset] = useState({
@@ -65,7 +85,24 @@ export default function AgencyPortalPage() {
         if (!isAuthLoading && user) {
             loadPortalData();
         }
+
+        // Load theme preference
+        const savedMode = localStorage.getItem('nsp_display_mode') as any;
+        if (savedMode) setDisplayMode(savedMode);
+
+        const savedWatermark = localStorage.getItem('nsp_watermark_mode') as any;
+        if (savedWatermark) setWatermarkMode(savedWatermark);
     }, [user, isAuthLoading]);
+
+    const updateWatermarkMode = (mode: 'none' | 'seal' | 'coat_of_arms') => {
+        setWatermarkMode(mode);
+        localStorage.setItem('nsp_watermark_mode', mode);
+    };
+
+    const updateDisplayMode = (mode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal') => {
+        setDisplayMode(mode);
+        localStorage.setItem('nsp_display_mode', mode);
+    };
 
     if (isAuthLoading) {
         return (
@@ -111,7 +148,8 @@ export default function AgencyPortalPage() {
             const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken()
                 },
                 body: JSON.stringify(newAsset)
             });
@@ -133,50 +171,151 @@ export default function AgencyPortalPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6 relative flex flex-col">
-            {/* Agency View Switcher - Only for System Admin or Higher */}
-            {['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
-                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] group">
+        <div className="min-h-screen bg-transparent text-white p-6 relative flex flex-col" data-theme={displayMode} data-watermark={watermarkMode}>
+            {/* Unified Command Bar - Sycned with Main Dashboard */}
+            <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[110] flex items-center">
+                <div className="flex items-center bg-black/80 border-b border-x border-white/20 rounded-b-xl backdrop-blur-md px-1 py-1 shadow-2xl">
+                    {/* View Picker Toggle */}
+                    {['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
+                        <button
+                            className="h-7 px-4 hover:bg-white/5 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all group"
+                            onClick={() => setShowAgencyPicker(!showAgencyPicker)}
+                        >
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                            <span className="text-[9px] font-black text-white/80 uppercase tracking-widest group-hover:text-blue-400">
+                                PORTAL
+                            </span>
+                        </button>
+                    )}
+
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+
+                    {/* Global Settings */}
                     <button
-                        className="h-8 px-6 bg-slate-900 border-b border-x border-slate-800 hover:border-blue-500 rounded-b-lg flex items-center justify-center gap-2 cursor-pointer backdrop-blur-md transition-all hover:bg-black"
-                        onClick={() => setShowAgencyPicker(!showAgencyPicker)}
+                        onClick={() => setShowSettings(!showSettings)}
+                        className={`h-7 w-8 rounded-lg flex items-center justify-center transition-all group ${showSettings ? 'bg-blue-600/20 text-blue-400' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                        title="Global Environment Settings"
                     >
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                        <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest group-hover:text-blue-400">
-                            Command View
-                        </span>
-                        <div className="w-0 h-0 border-l-[3px] border-l-transparent border-t-[4px] border-t-white/60 border-r-[3px] border-r-transparent group-hover:border-t-blue-400" />
+                        <Settings className="w-3.5 h-3.5" />
                     </button>
 
-                    {showAgencyPicker && (
-                        <div className="absolute top-10 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200 min-w-[320px]">
-                            <div className="flex items-center gap-4 text-white">
-                                <button
-                                    onClick={() => toggleAgencyView('cyber')}
-                                    className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
-                                >
-                                    <Layout className="w-6 h-6" />
-                                    <span className="text-xs font-bold uppercase">Cyber</span>
-                                </button>
-                                <button
-                                    onClick={() => toggleAgencyView('tactical')}
-                                    className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
-                                >
-                                    <Layout className="w-6 h-6" />
-                                    <span className="text-xs font-bold uppercase">Tactical</span>
-                                </button>
-                                <button
-                                    onClick={() => toggleAgencyView('strategic')}
-                                    className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
-                                >
-                                    <Layout className="w-6 h-6" />
-                                    <span className="text-xs font-bold uppercase">Strategic</span>
-                                </button>
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+
+                    {/* Global Logout */}
+                    <button
+                        onClick={logout}
+                        className="h-7 w-8 hover:bg-red-500/20 rounded-lg flex items-center justify-center text-white/40 hover:text-red-400 transition-all group"
+                        title="Secure Logout"
+                    >
+                        <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </div>
+
+            {/* View Switcher Dropdown */}
+            <AnimatePresence>
+                {showAgencyPicker && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, x: '-50%' }}
+                        exit={{ opacity: 0, y: -20, x: '-50%' }}
+                        className="fixed top-12 left-1/2 z-[110] bg-black/90 border border-white/20 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200"
+                    >
+                        <div className="flex items-center gap-4 text-white">
+                            <button
+                                onClick={() => toggleAgencyView('cyber')}
+                                className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                            >
+                                <Layout className="w-6 h-6" />
+                                <span className="text-xs font-bold uppercase">Cyber</span>
+                            </button>
+                            <button
+                                onClick={() => toggleAgencyView('tactical')}
+                                className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                            >
+                                <Layout className="w-6 h-6" />
+                                <span className="text-xs font-bold uppercase">Tactical</span>
+                            </button>
+                            <button
+                                onClick={() => toggleAgencyView('strategic')}
+                                className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                            >
+                                <Layout className="w-6 h-6" />
+                                <span className="text-xs font-bold uppercase">Strategic</span>
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Global Environment Settings Modal */}
+            <AnimatePresence>
+                {showSettings && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, x: '-50%' }}
+                        exit={{ opacity: 0, y: -20, x: '-50%' }}
+                        className="fixed top-14 left-1/2 z-[110] w-[400px] glass-contrast rounded-xl border border-blue-500/30 p-6 shadow-2xl backdrop-blur-xl"
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <Settings className="w-4 h-4 text-blue-400" />
+                                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Environment Config</h3>
+                            </div>
+                            <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white">✕</button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Theme Selection */}
+                            <div>
+                                <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Display Mode</h4>
+                                <div className="grid grid-cols-5 gap-2">
+                                    {[
+                                        { id: 'dark', label: 'Dark', color: '#000000' },
+                                        { id: 'light', label: 'Light', color: '#ffffff' },
+                                        { id: 'contrast', label: 'Contrast', color: '#000000' },
+                                        { id: 'oled', label: 'OLED', color: '#000000' },
+                                        { id: 'terminal', label: 'Term', color: '#0a0a0a' }
+                                    ].map(theme => (
+                                        <button
+                                            key={theme.id}
+                                            onClick={() => updateDisplayMode(theme.id as any)}
+                                            className={`h-10 rounded border flex flex-col items-center justify-center transition-all ${displayMode === theme.id ? 'border-blue-500 bg-blue-600/10 shadow-[0_0_15px_rgba(37,99,235,0.2)]' : 'border-white/10 hover:border-white/20'}`}
+                                        >
+                                            <div className="w-2.5 h-2.5 rounded-full mb-1" style={{ backgroundColor: theme.color, border: '1px solid white' }} />
+                                            <span className="text-[7px] font-black text-white/60 uppercase">{theme.id}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Watermark Selection */}
+                            <div>
+                                <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Background Identity</h4>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { id: 'none', label: 'NONE' },
+                                        { id: 'seal', label: 'COMMISSION SEAL' },
+                                        { id: 'coat_of_arms', label: 'COAT OF ARMS' }
+                                    ].map(wm => (
+                                        <button
+                                            key={wm.id}
+                                            onClick={() => updateWatermarkMode(wm.id as any)}
+                                            className={`py-3 rounded border transition-all ${watermarkMode === wm.id ? 'border-blue-500 bg-blue-600/10 text-blue-400' : 'border-white/10 text-white/40 hover:text-white/60'}`}
+                                        >
+                                            <span className="text-[8px] font-black uppercase tracking-tighter">{wm.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/5">
+                                <p className="text-[7px] text-white/20 uppercase tracking-[0.3em] text-center">National Security Platform // Portal V2.0</p>
                             </div>
                         </div>
-                    )}
-                </div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 border-b border-slate-800 pb-6 gap-6">
                 <div className="flex items-center gap-4">
@@ -190,28 +329,29 @@ export default function AgencyPortalPage() {
                 </div>
 
                 <div className="flex flex-col md:flex-row items-center gap-6 w-full lg:w-auto">
-                    {/* View Mode Toggle */}
-                    <div className="flex items-center bg-slate-900 p-1 rounded-lg border border-slate-800">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold uppercase transition-all ${viewMode === 'list'
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                }`}
-                        >
-                            <List className="w-4 h-4" />
-                            List
-                        </button>
-                        <button
-                            onClick={() => setViewMode('map')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold uppercase transition-all ${viewMode === 'map'
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                }`}
-                        >
-                            <MapIcon className="w-4 h-4" />
-                            Map
-                        </button>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center bg-slate-900 p-1 rounded-lg border border-slate-800">
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold uppercase transition-all ${viewMode === 'list'
+                                    ? 'bg-blue-600 text-white shadow-lg'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                <List className="w-4 h-4" />
+                                List
+                            </button>
+                            <button
+                                onClick={() => setViewMode('map')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold uppercase transition-all ${viewMode === 'map'
+                                    ? 'bg-blue-600 text-white shadow-lg'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                <MapIcon className="w-4 h-4" />
+                                Map
+                            </button>
+                        </div>
                     </div>
 
                     <button
@@ -274,6 +414,7 @@ export default function AgencyPortalPage() {
                     </div>
                 </div>
             </header>
+
 
             <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 relative overflow-hidden">
                 {/* Asset Form Panel - Sliding Overlay on Mobile or Sidebar on Desktop */}

@@ -1,103 +1,173 @@
-# Tactical Dashboard Null Safety
+# Game-Changing Features Implementation
 
-- [x] Implement null safety checks in `TacticalDashboard.tsx`
-    - [x] Add defensive checks for `alerts` array
-    - [x] Add defensive checks for `assets` array
-    - [x] Fix missing `Lock` icon import
-- [x] Implement "Request Access" registration for Dashboard access control
-- [x] Integrate Mapbox GL into Cyber Dashboard for real-world map rendering
-- [x] Implement authentication/authorization middleware for the Core API
-- [x] Implement SSE (Server-Sent Events) for real-time alert streaming to dashboard
-- [x] Integrate real-time alerts feed in web dashboard via SSE
-- [x] Add React Toastify for notification feedback on the dashboard
-- [x] Implement Mission Dispatch tracking (database schema, API, and UI)
-- [x] Add Mobile Settings Screen with ADS, Duress, and Personalization options
-- [x] Enhance Registration flow with NIN, State/LGA, Agency/Rank fields
-- [x] Implement Classified Alerts with redaction based on clearance levels
-- [x] Fix Classified Alerts display issue (user reference corrections)
-- [x] Implement Geospatial Data Enrichment (LGA centroid coverage: 794/794)
-- [x] Hybrid Spatial Resolution (boundary containment + nearest-neighbor fallback)
-- [ ] Expand village/settlement coverage beyond 1,858 records
-- [ ] Import authoritative LGA boundaries for high-priority regions
-- [ ] Implement progressive boundary import workflow
-- [x] Implement null safety checks in `CyberDashboard.tsx`
-    - [x] Add defensive checks for `alerts`, `notifications`, and `securityScans`
-- [x] Implement null safety checks in `TriageSidebar.tsx`
-    - [x] Add defensive checks for `alerts` array and `location` string
-- [x] Verify all changes and ensure no regressions
-- [x] Resolve Database Schema Issues
-    - [x] Identify missing `security_scans` table in CockroachDB
-    - [x] Apply database migrations/seeding via `./seed_database.sh`
-    - [x] Verify `security-sentinel` persistence success
-- [x] Security Hardening: CSP Regulation
-    - [x] Resolve WEAK_POLICY findings in Core API
-    - [x] Remove `'unsafe-inline'` from CSP headers in `stack.go`
-    - [x] Verify security scan pass in database
-- [x] Mobile Service: ADS Settings Integration
-    - [x] Design and implement `SettingsScreen.dart`
-    - [x] Create `SettingsService` for preference management
-    - [x] Implement Acoustic Detection Settings (ADS) UI & logic
-    - [x] Implement Advanced Duress Settings UI (Panic PIN)
-    - [x] Implement Ad Management & Personalization section
-    - [x] Add navigation from `PanicScreen` to `SettingsScreen`
-    - [x] Ensure persistence of all 4 settings categories
-- [x] Identity Verification Hardening: Full Profile Registration (Phase 2)
-    - [x] Add `Email` field to `users` table and models
-    - [x] Add `Badge Number` for security roles
-    - [x] Add `Monarch Grade` and `Domain` for traditional rulers
-    - [x] Implement dynamic field visibility in `RegisterScreen.dart`
-    - [x] Update `ApiService` and `AuthService` with full payloads
-    - [x] Update test data and documentation
+## Phase 1: Quick Wins (Week 1-4)
 
----
+- [x] **Feature 1: Citizen Safety Notifications** (2-3 days) - BACKEND COMPLETE
+    - [x] Database schema (`020_public_alerts.sql`, `026_notification_support.sql`)
+    - [x] Go API handler (`public_alerts.go`)
+    - [x] Flutter service (`public_alert_service.dart`)
+    - [x] Register routes in main.go
+    - [x] Dashboard UI for creating alerts
+    - [ ] Test with Firebase Cloud Messaging (FCM tokens recorded)
 
-## Phase 1 Advanced Features (Feb 2026)
+- [x] **Feature 2: Public Safety Score** (1-2 days) - BACKEND COMPLETE
+    - [x] Database view for LGA safety scores (`021_safety_scores.sql`)
+    - [x] Materialized view with hourly refresh
+    - [x] API endpoints (`safety_scores.go`)
+    - [x] Register routes in main.go
+    - [x] Dashboard map layer with color coding (integrated SafetyLeaderboard)
+    - [x] Sortable table view (integrated SafetyLeaderboard)
 
-- [x] **Public Alert Broadcasting**
-    - [x] Backend API (`POST/GET /api/v1/public-alerts`)
-    - [x] NATS integration for real-time broadcasting
-    - [x] Dashboard UI (`PublicAlertBroadcast` modal)
-    - [x] Tactical Dashboard integration (sidebar + actions panel)
+- [/] **Feature 3: Video Evidence Support** (2-3 days) - 80% COMPLETE
+    - [x] MinIO already supports video storage
+    - [x] Multi-cloud storage abstraction plan ([approved](file:///home/psalmprax/.gemini/antigravity/brain/f4186320-88a0-4db1-991d-207c88c7de2a/multicloud_storage_plan.md))
+    - [x] Storage abstraction layer implementation (Go)
+    - [x] Multi-cloud media upload handler ([SHA-256 verification](file:///home/psalmprax/national_security_platform/backend/core-api/handlers/media.go))
+    - [ ] Mobile app video recording UI
+    - [ ] Dashboard video player component
+    - [ ] Generate video thumbnails
 
-- [x] **Safety Leaderboard**
-    - [x] Backend API (`GET /api/v1/analytics/safety-scores`)
-    - [x] Dashboard UI (`SafetyLeaderboard` component)
-    - [x] Strategic Dashboard integration (Analytics view)
+- [x] **Feature 4: Anonymous Tip Line** (2-3 days) - BACKEND COMPLETE
+    - [x] Database table (`022_anonymous_tips.sql`)
+    - [x] Unauth API endpoint (`anonymous_tips.go`)
+    - [x] IP-based rate limiting (5 tips/hour)
+    - [x] Register routes in main.go
+    - [ ] Admin review queue UI (Dashboard next)
+    - [ ] Approve/reject workflow UI
 
-- [x] **Anonymous Tips**
-    - [x] Backend API (`POST /api/v1/tips/submit`, `GET /api/v1/tips`, `POST /api/v1/tips/{id}/verify`)
-    - [x] Dashboard UI (`AnonymousTipFeed` component)
-    - [x] Cyber Dashboard integration (Secret Tips view)
+## Phase 2: Core Enhancements (Week 5-8)
 
-- [x] **Multi-Cloud Video Evidence Storage**
-    - [x] `StorageProvider` interface abstraction
-    - [x] `S3Provider` implementation (MinIO/AWS/GCS)
-    - [x] SHA-256 integrity hashing
-    - [x] Pre-signed URL generation
+- [ ] **Feature 5: NLP Report Analysis** (3-4 days) - DATABASE COMPLETE
+    - [x] Python service with spaCy integration (`nlp_analyzer.py`)
+    - [x] Entity extraction (people, places, vehicles, weapons)
+    - [x] Urgency classification
+    - [x] Database schema for entities/keywords (`023_advanced_features.sql`)
+    - [ ] Integrate into IntelligenceService workflow
+    - [ ] Dashboard UI to display extracted entities
+    - [x] **Cyber Dashboard UI Fixes**
+        - [x] Fix Intelligence Triage layout (missing scrollbar/button)
+        - [x] Redact sensitive descriptions in triage list
+        - [x] Implement consistent redaction in Audit Log Ledger
 
-- [x] **Cyber Dashboard UI Fixes**
-    - [x] Fixed Intelligence Triage layout (scrollbar/button visibility)
-    - [x] Implemented strict redaction for classified alerts
+- [x] **Feature 6: Alert Correlation** (2-3 days) - DATABASE COMPLETE
+    - [x] incident_clusters table schema
+    - [ ] Correlation engine implementation (Go)
+    - [ ] Dashboard "Related Alerts" panel
+    - [ ] Pattern detection notifications
 
-- [x] **Separation of Duties (SoD)**
-    - [x] Split `ADMIN` into `SYSTEM_ADMIN` and `SECURITY_OFFICER` roles
-    - [x] Defined distinct route groups for system vs. security administration
-    - [x] Implemented role-based write protections in `AccessManagement`
+- [ ] **Feature 7: Emergency SOS Broadcast** (3-4 days) - READY FOR IMPLEMENTATION
+    - [ ] Mobile SOS button (3-second press) in Flutter
+    - [ ] Backend broadcast to nearby users (use existing geospatial queries)
+    - [ ] Prioritize security personnel
+    - [ ] Family notification
+    - [ ] Response accept/decline workflow
 
-- [x] **Command & Control UI/UX Enhancement**
-    - [x] Consolidated Global Command Bar (Fullscreen, View Switching, Secure Logout)
-    - [x] Fixed React hook ordering for stable dashboard performance
-    - [x] Resolved profile menu UI overlaps through central control placement
-    - [x] Fixed Dashboard redirect loop in Next.js middleware for new admin roles
-    - [x] Implemented dynamic default views based on user roles (e.g., Security Officer lands on Access view)
-    - [x] Fixed non-clickable profile icon in Agency Command Portal (National Command Oversight)
+- [x] **Feature 8: Missing Persons Database** (4-5 days) - DATABASE COMPLETE
+    - [x] Database schema for missing_persons
+    - [ ] Family reporting portal API
+    - [ ] Public search registry endpoint
+    - [ ] Mobile/Web UI for submission
+    - [ ] Link to kidnapping alerts (correlation logic)
 
----
+- [x] **Feature 19: Offline Resiliency via SMS** (3-4 days) - COMPLETE
+    - [x] Create [SMS integration plan](file:///home/psalmprax/.gemini/antigravity/brain/f4186320-88a0-4db1-991d-207c88c7de2a/sms_integration_plan.md)
+    - [x] Integrate AfricasTalking provider (Go) - [sms_service.go](file:///home/psalmprax/national_security_platform/backend/core-api/internal/service/sms_service.go)
+    - [x] SMS fallback for `CRITICAL` alerts
+    - [x] SMS OTP for NIN identity verification
 
-## Pending Tasks
+## Phase 3: Collaboration Tools (Week 9-12)
 
-- [ ] Test with Firebase Cloud Messaging (FCM tokens)
-- [ ] NLP Entity Extraction UI in Dashboard
-- [ ] Expand village/settlement coverage
-- [ ] Import authoritative LGA boundaries for high-priority regions
+- [x] **Feature 9: Shared Incident Response** (5-6 days) - DATABASE COMPLETE
+    - [x] Database tables (incident_tasks, incident_updates)
+    - [ ] Task CRUD API handlers
+    - [ ] Task board UI (Kanban-style) in Dashboard
+    - [ ] Multi-agency assignment logic
+    - [ ] Real-time status updates via NATS
+    - [ ] Incident closure reports
 
+- [x] **Feature 10: Inter-Agency Chat** (5-7 days) - DATABASE COMPLETE
+    - [x] Database schema (chat_rooms, chat_messages)
+    - [ ] WebSocket endpoint for chat
+    - [ ] NATS message routing
+    - [ ] Chat UI component in Dashboard
+    - [ ] Message persistence
+    - [ ] File sharing in chat
+
+- [x] **Timestamp Propagation** (1-2 days)
+    - [x] Update Go structs (PublicAlert, AnonymousTip, SafetyScore, Mission)
+    - [x] Update SQL queries to include `updated_at` in SELECT/INSERT/UPDATE
+    - [x] Update Flutter models (Dart) and UI
+    - [x] Update Web Dashboard types (TypeScript) and UI components
+
+## Phase 4: Sovereign Identity & Resilience
+- [x] **Feature 16: Integrate Sovereign Identity (NIMC/NIN)**
+    - [x] Update Backend (Go Core API: NIMC Mock Service, Audit Logs)
+    - [x] Update Mobile App (Flutter: NIN Verification Dialog, AuthService)
+    - [x] Update Web Admin Dashboard (UserRow Badges, UserProfile details)
+- [x] **Feature 17: Resilient Tactical Infrastructure**
+    - [x] Implement Mesh Networking Simulation (Web Dashboard)
+    - [x] Add Satellite Backhaul status indicators
+- [x] **Feature 18: Aesthetic & UX Polish (The "WOW" Factor)**
+    - [x] Apply Cyber-Grid and Scanline aesthetics
+    - [x] Implement Premium Glassmorphism & Neon accents
+    - [x] Fix and verify mobile verification dialog loading state
+
+## Absolute Consistency
+- [x] **Standardize All Remaining Timestamps** - COMPLETE
+    - [x] Create migration for reference and supporting tables (`states`, `lgas`, `villages`, `media`, `corroborations`, `chat`, `audit`, `scans`)
+    - [x] Update Go structs for updated tables
+    - [x] Update Repository scans for updated tables
+    - [x] Update Web Dashboard types for consistency
+
+## Documentation
+
+- [x] **Feature 11: Dynamic Access Control (ABAC)** (3-4 days) - COMPLETE
+    - [x] Create [implementation plan](file:///home/psalmprax/.gemini/antigravity/brain/f4186320-88a0-4db1-991d-207c88c7de2a/access_control_plan.md)
+    - [x] Update database schema (`027_dynamic_access_control.sql`)
+    - [x] Backend handlers for clearance/classification management
+    - [x] Create Access & Identity Registry dashboard component
+    - [x] Migrate `isAlertRedacted` logic to dynamic levels
+    - [x] **Separation of Duties (SoD)**: Split `ADMIN` into `SYSTEM_ADMIN` and `SECURITY_OFFICER`
+    - [x] **UI/UX Enhancement**: Consolidated Global Command Bar (Fullscreen, View Switching, Secure Logout)
+
+- [x] **Feature 12: Universal Display Mode** (1 day) - COMPLETE
+    - [x] Lift `displayMode` state to `page.tsx`
+    - [x] Implement `localStorage` persistence
+    - [x] sync `displayMode` to `CyberDashboard`
+    - [x] sync `displayMode` to `TacticalDashboard`
+    - [x] sync `displayMode` to `StrategicDashboard`
+    - [x] sync `displayMode` to `AccessManagement`
+
+- [x] **Feature 13: Expanded Theme Support** (1 day) - COMPLETE
+    - [x] Update `AccessManagement` with Settings button
+    - [x] Implement theme support in `AgencyPortalPage`
+    - [x] Add theme inheritance to `Login` & `Request Access`
+
+## Summary
+
+**Database Layer**: 10/10 features (100% complete)
+**Backend APIs**: 7/10 features (70% complete)  
+**Mobile Services**: 2/10 features (20% complete)
+**Web UI**: 2/10 features (20% complete - Public Broadcast, Safety Leaderboard)
+
+**Total Files Created**: 23 files
+- 5 SQL schema files
+- 4 Go API handlers
+- 2 Flutter services  
+- 1 Python NLP analyzer
+- 11 features added to expansion_blueprint.md
+
+- [x] **Feature 14: Platform Modernization (Next.js 15)** (1 day) - COMPLETE
+    - [x] Create [implementation plan](file:///home/psalmprax/.gemini/antigravity/brain/f4186320-88a0-4db1-991d-207c88c7de2a/nextjs_upgrade_plan.md)
+    - [x] Update `package.json` dependencies
+    - [x] Resolve Next.js SWC version mismatch (Pinned to 15.5.11)
+    - [x] Update lockfile and verify build
+    - [x] Perform visual regression check
+- [x] **Feature 15: Background Identity Watermarks** (1 day) - COMPLETE
+    - [x] Generate [National Security Seal](/home/psalmprax/national_security_platform/web/public/security_seal.png)
+    - [x] Generate [Nigeria Coat of Arms](/home/psalmprax/national_security_platform/web/public/coat_of_arms.png)
+    - [x] Implement dynamic watermark switching via `data-watermark` in `globals.css`
+    - [x] Add Background Identity selection to Admin Registry UI
+    - [x] **Consolidate Settings UI**: Remove redundant gear icons/modals from all dashboards
+    - [x] Verify watermarks are visible across all dashboards (Cyber, Tactical, Strategic, Access)
+    - [x] Convert dashboard roots to `bg-transparent` for watermark persistence

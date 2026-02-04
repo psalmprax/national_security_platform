@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/settings_service.dart';
+import '../services/auth_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -8,6 +9,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsService>();
+    final auth = context.watch<AuthService>();
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -35,6 +37,10 @@ class SettingsScreen extends StatelessWidget {
           children: [
             _buildSectionHeader(context, 'ACOUSTIC DETECTION (ADS)', Icons.mic_none),
             _buildAcousticSection(context, settings),
+            const SizedBox(height: 32),
+
+            _buildSectionHeader(context, 'SOVEREIGN IDENTITY (NIMC)', Icons.badge_outlined),
+            _buildIdentitySection(context, auth),
             const SizedBox(height: 32),
 
             _buildSectionHeader(context, 'ADVANCED DURESS', Icons.security),
@@ -144,6 +150,134 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildIdentitySection(BuildContext context, AuthService auth) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: auth.ninVerified 
+              ? const Color(0xFF00FF95).withOpacity(0.05)
+              : Colors.redAccent.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: auth.ninVerified 
+                ? const Color(0xFF00FF95).withOpacity(0.1)
+                : Colors.redAccent.withOpacity(0.1),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                auth.ninVerified ? Icons.verified_user : Icons.gpp_maybe_outlined,
+                color: auth.ninVerified ? const Color(0xFF00FF95) : Colors.redAccent,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      auth.ninVerified ? 'IDENTITY VERIFIED' : 'UNVERIFIED IDENTITY',
+                      style: TextStyle(
+                        color: auth.ninVerified ? const Color(0xFF00FF95) : Colors.redAccent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      auth.ninVerified 
+                        ? 'Your NIMC trust level is elevated. Reports carry higher weight.'
+                        : 'Verify your NIN to increase report trust and system permissions.',
+                      style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+              if (!auth.ninVerified)
+                TextButton(
+                  onPressed: () => _showVerificationDialog(context, auth),
+                  child: const Text(
+                    'VERIFY NOW',
+                    style: TextStyle(color: Color(0xFF00FF95), fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showVerificationDialog(BuildContext context, AuthService auth) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool loading = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF0A0A0A),
+            title: const Text('NIMC VERIFICATION', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Enter your 11-digit National Identification Number (NIN). This creates a cryptographically signed link to your device.',
+                  style: TextStyle(color: Colors.white30, fontSize: 11),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  maxLength: 11,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: 'NATIONAL ID (NIN)',
+                    hintStyle: TextStyle(color: Colors.white12),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white12)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF00FF95))),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('CANCEL', style: TextStyle(color: Colors.white24)),
+              ),
+              ElevatedButton(
+                onPressed: loading ? null : () async {
+                  if (controller.text.length == 11) {
+                    setState(() => loading = true);
+                    final success = await auth.verifyNIN(controller.text);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(success ? 'IDENTITY VERIFIED SUCCESSFULY' : 'VERIFICATION FAILED // INVALID NIN'),
+                          backgroundColor: success ? Colors.green : Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FF95), foregroundColor: Colors.black),
+                child: loading 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  : const Text('VERIFY'),
+              ),
+            ],
+          );
+          },
+        );
+      },
     );
   }
 

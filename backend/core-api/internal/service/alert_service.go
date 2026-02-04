@@ -15,7 +15,13 @@ import (
 )
 
 // AlertService handles alert-related business logic
-type AlertService struct{}
+type AlertService struct {
+	sms SMSService
+}
+
+func NewAlertService(sms SMSService) *AlertService {
+	return &AlertService{sms: sms}
+}
 
 // SubmitAlert processes and stores a new alert
 func (s *AlertService) SubmitAlert(ctx context.Context, userID uuid.UUID, alertType string, lat, lon float64, content string) (*models.Alert, error) {
@@ -94,6 +100,17 @@ func (s *AlertService) SubmitAlert(ctx context.Context, userID uuid.UUID, alertT
 	if err != nil {
 		log.Printf("⚠️ Failed to publish alert to NATS: %v", err)
 		// We don't fail the whole request because DB persistence succeeded
+	}
+
+	// Trigger SMS for critical alerts (Resilient Communications Failover)
+	if alert.PriorityClass == "CRITICAL" && s.sms != nil {
+		go func() {
+			smsMsg := fmt.Sprintf("⚠️ CRITICAL SECURITY ALERT: [%s] detected. Source: %s. IMMEDIATE ACTION REQUIRED.",
+				alert.AlertType, alert.LocationSource)
+			if err := s.sms.SendSMS(context.Background(), user.PhoneNumber, smsMsg); err != nil {
+				log.Printf("⚠️ Failed to send critical SMS: %v", err)
+			}
+		}()
 	}
 
 	return alert, nil

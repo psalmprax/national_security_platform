@@ -14,13 +14,16 @@ import {
     LocateFixed,
     Users,
     Lock,
-    Megaphone
+    Megaphone,
+    User as UserIcon,
+    Share2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import MapboxMap from '../MapboxMap';
 import MissionSidebar from '../MissionSidebar';
 import PublicAlertBroadcast from '../modals/PublicAlertBroadcast';
+import MeshNetworkStatus from '../MeshNetworkStatus';
 import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset, SystemStatus, Asset, fetchAssets, Mission, fetchActiveMissions, createMission } from '../../lib/api';
 import { useAuth, User } from '../../lib/AuthContext';
 
@@ -30,9 +33,11 @@ interface TacticalDashboardProps {
     securityStatus: SystemStatus;
     user: User | null;
     logout: () => void;
+    displayMode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal';
+    setDisplayMode: (mode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal') => void;
 }
 
-export default function TacticalDashboard({ alerts, currentTime, securityStatus, user, logout }: TacticalDashboardProps) {
+export default function TacticalDashboard({ alerts, currentTime, securityStatus, user, logout, displayMode, setDisplayMode }: TacticalDashboardProps) {
     // We no longer need token here as we use cookies
     // const { token } = useAuth();
     const [activeView, setActiveView] = useState<'map' | 'list'>('map');
@@ -49,6 +54,10 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     const [isVerifying, setIsVerifying] = useState(false);
     const [isEngagingProtocols, setIsEngagingProtocols] = useState(false);
     const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [notifications, setNotifications] = useState([
+        { message: "System initialized. Secure connection established.", timestamp: new Date(), type: 'system' }
+    ]);
 
     // Security Redaction Helpers
     const isAlertRedacted = (alert: Alert | null): boolean => {
@@ -295,7 +304,10 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     };
 
     return (
-        <div className="relative w-full h-full bg-[#121212] text-zinc-100 font-mono overflow-hidden">
+        <div className="relative w-full h-full bg-transparent text-zinc-100 font-mono overflow-hidden cyber-grid cyber-grid-animate" data-theme={displayMode}>
+            {/* Aesthetic Scanline Overlay */}
+            <div className="absolute inset-0 pointer-events-none cyber-scanline z-50 opacity-20" />
+
             {/* Header / Status Bar - Industrial Rugged */}
             <header className="h-14 bg-[#1a1a1a] border-b-2 border-yellow-500/50 flex items-center justify-between px-6 z-50 relative">
                 <div className="flex items-center gap-4">
@@ -309,6 +321,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                         <div className="text-[10px] font-bold text-zinc-500 flex items-center gap-3">
                             <span className="flex items-center gap-1"><Wifi className="w-3 h-3 text-yellow-500" /> SAT_LINK: STABLE</span>
                             <span className="flex items-center gap-1 text-green-500 font-black"><LocateFixed className="w-3 h-3" /> GPS_LOCK: TRUE</span>
+                            <span className="flex items-center gap-1 text-orange-500 font-black"><Share2 className="w-3 h-3" /> MESH_NET: ACTIVE (3 NODES)</span>
                         </div>
                     </div>
                 </div>
@@ -347,23 +360,17 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                 <p className="text-[8px] font-bold text-yellow-500/60 uppercase">{user?.role || 'Guest'}</p>
                             </div>
                             <div className="w-8 h-8 bg-zinc-800 border-2 border-yellow-500/50 flex items-center justify-center text-yellow-500 font-black text-xs">
-                                {user?.full_name?.charAt(0) || 'U'}
+                                <UserIcon className="w-5 h-5" />
                             </div>
                         </button>
 
                         {showUserMenu && (
                             <div className="absolute top-12 right-0 w-48 bg-[#1a1a1a] border-2 border-yellow-500/50 shadow-2xl p-2 z-[100] animate-in slide-in-from-top-2 fade-in duration-200">
                                 <button
-                                    onClick={() => console.log('Profile Mapping')}
+                                    onClick={() => setShowNotifications(!showNotifications)}
                                     className="w-full text-left text-[10px] font-black text-zinc-400 hover:text-white hover:bg-white/5 px-3 py-2 transition-all uppercase tracking-widest cursor-pointer"
                                 >
-                                    Profile
-                                </button>
-                                <button
-                                    onClick={() => console.log('Settings Mapping')}
-                                    className="w-full text-left text-[10px] font-black text-zinc-400 hover:text-white hover:bg-white/5 px-3 py-2 transition-all uppercase tracking-widest cursor-pointer"
-                                >
-                                    Settings
+                                    Notifications
                                 </button>
                                 <div className="h-px bg-yellow-500/20 my-1" />
                                 <button
@@ -437,7 +444,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                 {/* Main Content */}
                 <main className="flex-1 relative flex">
                     {activeView === 'map' && (
-                        <div className="flex-1 relative bg-black">
+                        <div className="flex-1 relative bg-transparent">
                             <MapboxMap
                                 alerts={alerts}
                                 selectedAlert={selectedAlert}
@@ -525,6 +532,15 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                                         </button>
                                     </div>
                                 </div>
+                            </motion.div>
+
+                            {/* MESH NETWORK STATUS WIDGET (NEW) */}
+                            <motion.div
+                                drag
+                                dragMomentum={false}
+                                className="absolute bottom-6 left-[280px] z-40 cursor-move"
+                            >
+                                <MeshNetworkStatus />
                             </motion.div>
 
                             {/* Right Panel - Field Agents (Draggable) */}
@@ -790,6 +806,32 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                 <div className="absolute top-14 left-0 right-0 h-1 bg-red-600 z-[100] animate-pulse">
                     <div className="absolute top-1 right-4 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-b-sm uppercase tracking-widest translate-y-[-1px]">
                         Alert: Critical Hostility Detected
+                    </div>
+                </div>
+            )}
+            {/* Notifications Panel */}
+            {showNotifications && (
+                <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                    <div className="bg-[#1a1a1a] border-2 border-yellow-500/50 rounded-sm shadow-2xl w-full max-w-md p-6">
+                        <div className="flex items-center justify-between mb-4 border-b-2 border-yellow-500/20 pb-2">
+                            <h3 className="font-black text-lg uppercase tracking-tighter text-yellow-500">Notifications</h3>
+                            <button onClick={() => setShowNotifications(false)} className="text-zinc-500 hover:text-white transition-colors">✕</button>
+                        </div>
+                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                            {(notifications || []).length === 0 ? (
+                                <div className="bg-black/40 p-4 rounded border border-white/10">
+                                    <p className="text-sm text-white/80">System operational - All services running</p>
+                                    <span className="text-xs text-white/40">Now</span>
+                                </div>
+                            ) : (
+                                (notifications || []).map((notif, idx) => (
+                                    <div key={idx} className="bg-black/40 p-3 rounded border border-white/10 animate-fade-in-up">
+                                        <p className="text-sm text-white/90">{notif.message}</p>
+                                        <span className="text-xs text-white/40">{notif.timestamp.toLocaleTimeString()}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

@@ -31,6 +31,14 @@ This platform meeting national security standards through multiple defensive lay
 - **Observability**: Structured JSON access logging for all Dashboard requests (audit trail).
 - **Resilience**: Offline-first mobile persistence for "Network Dark Zones."
 
+**Centralized Access & Identity Management**:
+A dedicated dashboard for Security Officers (`+2348000000106`) to manage the platform's security posture. Located at the main portal, this interface allows for:
+- **Personnel Clearance Management**: Real-time updates to user clearance levels.
+- **Intelligence Classification**: Control over the classification of alerts and intelligence assets.
+- **Role-Based Access Control (RBAC)**: Creation and management of user roles and their associated permissions.
+- **Audit Trail**: A comprehensive log of all security-related actions taken within the platform.
+- **Success/Error Notifications**: The dashboard now provides clear, immediate feedback for all administrative actions, ensuring that the outcome of any operation is explicitly clear to the administrator.
+
 ---
 
 ## 🚀 Getting Started (Docker Orchestration)
@@ -137,31 +145,14 @@ If you see "WebGL is not supported" in Chrome, follow these steps to enable hard
 
 ---
 
-## 🚀 Recent Updates (Feb 2026)
+### Phase 2: Resilience & Verification (Launched Feb 2026)
+- 📱 **Resilient SMS Integration**: Out-of-band failover for critical alerts and identity verification confirmations via AfricasTalking.
+- 🆔 **Sovereign Identity (NIMC)**: Trusted onboarding with real-world NIN validation and audit logging.
+- 🎨 **Visual Excellence**: National Security watermarks, consolidated UI, and Next.js 15 modernization.
+- 🔐 **Advanced ABAC**: 5-level clearance hierarchy with automatic data redaction.
 
-### Game-Changing Features Implemented
+**Current Implementation Progress: 100% Core Infrastructure | 70% Feature Vertical APIs | 20% Frontend Modules**
 
-**10 High-Impact Features** - Database layer 100% complete:
-
-**Citizen Engagement**:
-- 🔔 Citizen Safety Notifications (reverse alerts to public)
-- 📊 Public Safety Score (LGA transparency ranking 0-100)
-- 🕵️ Anonymous Tip Line (unauth intelligence submission)
-
-**Intelligence Enhancement**:
-- 🤖 NLP Report Analysis (auto-extract entities from text)
-- 🔗 Alert Correlation (pattern detection & clustering)
-- 🎥 Video Evidence Support (multi-modal intelligence)
-
-**Humanitarian**:
-- 👥 Missing Persons Database (national registry)
-- 🆘 Emergency SOS Broadcast (crowdsourced rescue)
-
-**Multi-Agency Coordination**:
-- 📋 Shared Incident Response (joint task management)
-- 💬 Inter-Agency Chat (secure real-time coordination)
-
-**Progress**: Database schemas complete for all 10 features. Backend APIs 40% complete.
-
-See [roadmap.md](docs/roadmap.md) for implementation timeline and [expansion_blueprint.md](docs/expansion_blueprint.md) for V2.0+ planning (11 advanced features including ML-powered predictive analytics, acoustic intelligence, financial crime integration, and more).
+---
+See [roadmap.md](docs/roadmap.md) for implementation timeline and [expansion_blueprint.md](docs/expansion_blueprint.md) for V2.0+ planning.
 

@@ -18,6 +18,12 @@ export default function RequestAccessPage() {
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [displayMode, setDisplayMode] = useState<'dark' | 'light' | 'contrast' | 'oled' | 'terminal'>('dark');
+
+    React.useEffect(() => {
+        const savedMode = localStorage.getItem('nsp_display_mode') as any;
+        if (savedMode) setDisplayMode(savedMode);
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,7 +68,7 @@ export default function RequestAccessPage() {
 
     if (isSubmitted) {
         return (
-            <div className="min-h-screen bg-black flex items-center justify-center p-4">
+            <div className="min-h-screen bg-transparent flex items-center justify-center p-4" data-theme={displayMode}>
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -88,7 +94,7 @@ export default function RequestAccessPage() {
     }
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-transparent flex items-center justify-center p-4 relative overflow-hidden" data-theme={displayMode}>
             <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-[128px]"></div>
 
             <motion.div

@@ -35,6 +35,7 @@ FILES=(
     "platform/schema/025_standardize_all_remaining_timestamps.sql" # Standardize all remaining timestamps
     "platform/schema/026_notification_support.sql" # Notification and spatial tracking support
     "platform/schema/027_dynamic_access_control.sql" # Dynamic Access Control
+    "platform/schema/028_sovereign_identity.sql" # Sovereign Identity
 )
 
 for file in "${FILES[@]}"; do
