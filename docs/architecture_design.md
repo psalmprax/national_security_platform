@@ -567,3 +567,36 @@ Cloud-agnostic object storage for secure evidence management.
     - `GET /api/v1/media/access`
 
 
+---
+
+## 14. Phase 2: Resilience, Identity & Visual Excellence (Feb 2026)
+
+### 14.1 Resilient Communications (SMS Gateway)
+To ensure connectivity in data-poor environments, the platform has integrated a dedicated SMS gateway for persistent out-of-band communication.
+
+*   **Architecture**:
+    - **Provider Interface**: A unified `SMSService` interface in Go allows for interchangeable providers (`Mock` for dev, `AfricasTalking` for production).
+    - **Failover Logic**: `CRITICAL` alerts automatically trigger an SMS broadcast to relevant responders if Push notifications (FCM) are unavailable.
+    - **Verification Loop**: NIN verification confirmation is delivered via SMS to ensure device-to-human trust.
+
+### 14.2 Advanced Access Control (ABAC & Clearance)
+Transitioned from simple RBAC to a hierarchical **Attribute-Based Access Control (ABAC)** system.
+
+*   **Logic**:
+    - Clearance levels (`UNCLASSIFIED` → `TOP_SECRET`) are embedded in metadata.
+    - Security officers can dynamically adjust both user clearance and alert classification.
+    - Automatic redaction of sensitive telemetry based on the active clearance level.
+
+### 14.3 Visual Identity & UX Standard
+Standardized the platform's visual identity to reflect national authority and security professionalism.
+
+*   **System Watermarks**:
+    - Implementation of dynamic, fixed-position identity seals (Nigeria Coat of Arms / National Security Seal).
+    - Opacity-tuned (10%) to ensure visibility while maintaining data readability.
+*   **Operational Hud**:
+    - Integrated "Cyber-Grid" and scanline aesthetic markers for the Tactical Dashboard.
+    - Standardized legacy settings into a **Unified Global Command Bar** to prevent UI overlap and improve ergonomics.
+
+### 14.4 Technical Modernization
+*   **Web Stack**: Upgraded to **Next.js 15.5.11** for improved build performance and server component stability.
+*   **Build Integrity**: Implementation of strict Docker isolation (via `.dockerignore`) to prevent local environment leakage into production images.

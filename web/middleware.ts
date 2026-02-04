@@ -10,7 +10,7 @@ function logAccess(
 ) {
     const logEntry = {
         timestamp: new Date().toISOString(),
-        ip: req.headers.get('x-forwarded-for') || req.ip || 'unknown',
+        ip: req.headers.get('x-forwarded-for') || (req as any).ip || 'unknown',
         method: req.method,
         path: req.nextUrl.pathname,
         status: status,

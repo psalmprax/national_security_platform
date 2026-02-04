@@ -8,9 +8,10 @@ import CyberDashboard from '../components/dashboards/CyberDashboard';
 import TacticalDashboard from '../components/dashboards/TacticalDashboard';
 import StrategicDashboard from '../components/dashboards/StrategicDashboard';
 import AccessManagement from '../components/admin/AccessManagement';
-import { Layout, Users, ShieldAlert, LogOut, Key, Maximize, Minimize } from 'lucide-react';
+import { Layout, Users, ShieldAlert, LogOut, Key, Maximize, Minimize, Settings } from 'lucide-react';
 import { useAuth, User } from '../lib/AuthContext';
 import Draggable from 'react-draggable';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function DashboardPage() {
     const { user, logout, isLoading } = useAuth();
@@ -24,6 +25,33 @@ export default function DashboardPage() {
         trustedDevices: 0
     });
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [displayMode, setDisplayMode] = useState<'dark' | 'light' | 'contrast' | 'oled' | 'terminal'>('dark');
+    const [watermarkMode, setWatermarkMode] = useState<'none' | 'seal' | 'coat_of_arms'>('seal');
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const draggableRef = React.useRef(null);
+
+    // Persistence for Display & Watermark
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('nsp_display_mode') as any;
+        if (savedTheme && ['dark', 'light', 'contrast', 'oled', 'terminal'].includes(savedTheme)) {
+            setDisplayMode(savedTheme);
+        }
+
+        const savedWatermark = localStorage.getItem('nsp_watermark_mode') as any;
+        if (savedWatermark && ['none', 'seal', 'coat_of_arms'].includes(savedWatermark)) {
+            setWatermarkMode(savedWatermark);
+        }
+    }, []);
+
+    const updateDisplayMode = (mode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal') => {
+        setDisplayMode(mode);
+        localStorage.setItem('nsp_display_mode', mode);
+    };
+
+    const updateWatermarkMode = (mode: 'none' | 'seal' | 'coat_of_arms') => {
+        setWatermarkMode(mode);
+        localStorage.setItem('nsp_watermark_mode', mode);
+    };
 
     const router = useRouter();
 
@@ -106,6 +134,11 @@ export default function DashboardPage() {
         }
     }, [user]);
 
+    // Apply Watermark to Body
+    useEffect(() => {
+        document.body.setAttribute('data-watermark', watermarkMode);
+    }, [watermarkMode]);
+
     // Listen for fullscreen changes (e.g. Esc key)
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -167,6 +200,17 @@ export default function DashboardPage() {
 
                     <div className="w-px h-4 bg-white/10 mx-1" />
 
+                    {/* Global Settings */}
+                    <button
+                        onClick={() => setShowSettingsModal(!showSettingsModal)}
+                        className={`h-7 w-8 rounded-lg flex items-center justify-center transition-all group ${showSettingsModal ? 'bg-[#00FF95]/20 text-[#00FF95]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                        title="Global Environment Settings"
+                    >
+                        <Settings className="w-3.5 h-3.5" />
+                    </button>
+
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+
                     {/* Fullscreen Toggle */}
                     <button
                         onClick={toggleFullscreen}
@@ -191,9 +235,78 @@ export default function DashboardPage() {
                 </div>
             </div>
 
+            {/* Global Environment Settings Modal */}
+            <AnimatePresence>
+                {showSettingsModal && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, x: '-50%' }}
+                        exit={{ opacity: 0, y: -20, x: '-50%' }}
+                        className="fixed top-14 left-1/2 z-[110] w-[400px] glass-contrast rounded-xl border border-[#00FF95]/30 p-6 shadow-2xl backdrop-blur-xl"
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <Settings className="w-4 h-4 text-[#00FF95]" />
+                                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Registry Environment Config</h3>
+                            </div>
+                            <button onClick={() => setShowSettingsModal(false)} className="text-white/40 hover:text-white">✕</button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Theme Selection */}
+                            <div>
+                                <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Display Mode</h4>
+                                <div className="grid grid-cols-5 gap-2">
+                                    {[
+                                        { id: 'dark', label: 'Dark', color: '#000000' },
+                                        { id: 'light', label: 'Light', color: '#ffffff' },
+                                        { id: 'contrast', label: 'Contrast', color: '#000000' },
+                                        { id: 'oled', label: 'OLED', color: '#000000' },
+                                        { id: 'terminal', label: 'Term', color: '#0a0a0a' }
+                                    ].map(theme => (
+                                        <button
+                                            key={theme.id}
+                                            onClick={() => updateDisplayMode(theme.id as any)}
+                                            className={`h-10 rounded border flex flex-col items-center justify-center transition-all ${displayMode === theme.id ? 'border-[#00FF95] bg-[#00FF95]/10' : 'border-white/10 hover:border-white/20'}`}
+                                        >
+                                            <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: theme.color, border: '1px solid white' }} />
+                                            <span className="text-[7px] font-black text-white/60 uppercase">{theme.id}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Watermark Selection */}
+                            <div>
+                                <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Background Identity</h4>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { id: 'none', label: 'NONE' },
+                                        { id: 'seal', label: 'COMMISSION SEAL' },
+                                        { id: 'coat_of_arms', label: 'COAT OF ARMS' }
+                                    ].map(wm => (
+                                        <button
+                                            key={wm.id}
+                                            onClick={() => updateWatermarkMode(wm.id as any)}
+                                            className={`py-3 rounded border transition-all ${watermarkMode === wm.id ? 'border-[#00FF95] bg-[#00FF95]/10 text-[#00FF95]' : 'border-white/10 text-white/40 hover:text-white/60'}`}
+                                        >
+                                            <span className="text-[8px] font-black uppercase tracking-tighter">{wm.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/5">
+                                <p className="text-[7px] text-white/20 uppercase tracking-[0.3em] text-center">National Security Platform // Environment V2.0</p>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* View Switcher UI - Controlled by Admin check */}
             {showAgencyPicker && ['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] bg-black/90 border border-white/20 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200">
+                <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[110] bg-black/90 border border-white/20 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200">
                     <div className="flex items-center gap-4 text-white">
                         <button
                             disabled={!hasAccess(currentUserRole, 'cyber')}
@@ -250,8 +363,8 @@ export default function DashboardPage() {
 
             {/* Debug Role Switcher - System Admin Only */}
             {user?.role === 'ADMIN' && (
-                <Draggable>
-                    <div className="fixed bottom-20 right-4 z-[110] group cursor-move">
+                <Draggable nodeRef={draggableRef}>
+                    <div ref={draggableRef} className="fixed bottom-20 right-4 z-[110] group cursor-move">
                         <div className="bg-black/80 backdrop-blur border border-white/20 p-2 rounded-lg flex items-center gap-2 hover:bg-black transition-colors">
                             <ShieldAlert className="w-4 h-4 text-yellow-500" />
                             <span className="text-xs font-mono text-white/60 uppercase">System Admin Context:</span>
@@ -286,7 +399,7 @@ export default function DashboardPage() {
             {/* View Container with Access Enforcement */}
             <div className="w-full h-full">
                 {!hasAccess(currentUserRole, agencyView) ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-[#050505] p-8 text-center">
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-transparent p-8 text-center">
                         <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-8 animate-pulse">
                             <ShieldAlert className="w-10 h-10 text-red-500" />
                         </div>
@@ -319,6 +432,8 @@ export default function DashboardPage() {
                                 securityStatus={securityStatus}
                                 user={user}
                                 logout={logout}
+                                displayMode={displayMode}
+                                setDisplayMode={updateDisplayMode}
                             />
                         )}
                         {agencyView === 'tactical' && (
@@ -328,6 +443,8 @@ export default function DashboardPage() {
                                 securityStatus={securityStatus}
                                 user={user}
                                 logout={logout}
+                                displayMode={displayMode}
+                                setDisplayMode={updateDisplayMode}
                             />
                         )}
                         {agencyView === 'strategic' && (
@@ -337,10 +454,17 @@ export default function DashboardPage() {
                                 securityStatus={securityStatus}
                                 user={user}
                                 logout={logout}
+                                displayMode={displayMode}
+                                setDisplayMode={updateDisplayMode}
                             />
                         )}
                         {agencyView === 'access' && (
-                            <AccessManagement />
+                            <AccessManagement
+                                displayMode={displayMode}
+                                setDisplayMode={updateDisplayMode}
+                                watermarkMode={watermarkMode}
+                                setWatermarkMode={updateWatermarkMode}
+                            />
                         )}
                     </>
                 )}

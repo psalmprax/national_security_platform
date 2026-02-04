@@ -18,6 +18,7 @@ class AuthService extends ChangeNotifier {
   bool _isAuthenticated = false;
   bool _isOnboarded = false;
   bool _duressMode = false;
+  bool _ninVerified = false;
 
   String? get token => _token;
   String? get userId => _userId;
@@ -25,6 +26,7 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _isAuthenticated;
   bool get isOnboarded => _isOnboarded;
   bool get duressMode => _duressMode;
+  bool get ninVerified => _ninVerified;
 
   AuthService(this._apiService, this._biometricService);
 
@@ -39,6 +41,7 @@ class AuthService extends ChangeNotifier {
     _role = await _storage.read(key: 'user_role');
     _isOnboarded = await _storage.read(key: 'is_onboarded') == 'true';
     _duressMode = await _storage.read(key: 'duress_mode') == 'true';
+    _ninVerified = await _storage.read(key: 'nin_verified') == 'true';
     
     _isAuthenticated = _token != null;
     notifyListeners();
@@ -213,6 +216,18 @@ class AuthService extends ChangeNotifier {
     return false;
   }
 
+  Future<bool> verifyNIN(String nin) async {
+    if (_token == null) return false;
+    final result = await _apiService.verifyNIN(nin, _token!);
+    if (result != null && result['success'] == true) {
+      _ninVerified = true;
+      await _storage.write(key: 'nin_verified', value: 'true');
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
   Future<void> logout() async {
     await _biometricService.disableBiometricAuth();
     await _storage.deleteAll();
@@ -222,6 +237,7 @@ class AuthService extends ChangeNotifier {
     _isAuthenticated = false;
     _isOnboarded = false;
     _duressMode = false;
+    _ninVerified = false;
     notifyListeners();
   }
 }

@@ -6,7 +6,6 @@ import {
     Cpu,
     Map as MapIcon,
     Bell,
-    Settings,
     User,
     Radio,
     Zap,
@@ -33,16 +32,16 @@ interface CyberDashboardProps {
     securityStatus: SystemStatus;
     user: UserType | null;
     logout: () => void;
+    displayMode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal';
+    setDisplayMode: (mode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal') => void;
 }
 
-export default function CyberDashboard({ alerts, currentTime, securityStatus, user, logout }: CyberDashboardProps) {
+export default function CyberDashboard({ alerts, currentTime, securityStatus, user, logout, displayMode, setDisplayMode }: CyberDashboardProps) {
     // const { user, logout } = useAuth(); // Redundant, passed as props
     const [activeView, setActiveView] = useState<'map' | 'alerts' | 'data' | 'analytics' | 'profile' | 'registry' | 'compliance'>('map');
     const [filterMode, setFilterMode] = useState<'all' | 'secure' | 'active' | 'signal'>('all');
     const [operationMode, setOperationMode] = useState<'NOMINAL' | 'SURGICAL' | 'TACTICAL' | 'DARK_OPS'>('NOMINAL');
     const [showNotifications, setShowNotifications] = useState(false);
-    const [showSettings, setShowSettings] = useState(false);
-    const [displayMode, setDisplayMode] = useState<'dark' | 'light' | 'contrast' | 'oled' | 'terminal'>('dark');
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
     const [showSatellite, setShowSatellite] = useState(false);
@@ -308,7 +307,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
             {/* Animated Background Grid - Specific to Cyber Theme */}
             {showGrid && (
                 <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-                    <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-900 to-black" />
+                    <div className="absolute inset-0 bg-transparent" />
                     <div className="absolute inset-0" style={{
                         backgroundImage: `
                         linear-gradient(${currentTheme.primary}08 1px, transparent 1px),
@@ -341,7 +340,9 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
             `}</style>
 
             <div className="relative z-10 w-full h-full">
-                <div className="flex h-screen bg-[#050505] text-white font-sans overflow-hidden selection:bg-[#00FF95]/30">
+                <div className="flex w-full h-full bg-[#050505]/60 text-zinc-100 font-mono overflow-hidden cyber-grid cyber-grid-animate" data-theme={displayMode}>
+                    {/* Aesthetic Scanline Overlay */}
+                    <div className="absolute inset-0 pointer-events-none cyber-scanline z-50 opacity-20" />
                     {/* Left Utility Bar */}
                     <aside className="w-16 border-r border-white/5 flex flex-col items-center py-8 gap-10 bg-black/40 backdrop-blur-md z-40">
                         <div className="p-2 rounded-xl bg-white/[0.03] border border-white/10 relative group transition-all" style={{
@@ -367,26 +368,30 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     Map View
                                 </div>
                             </div>
-                            <div className="relative group">
-                                <AlertTriangle
-                                    onClick={() => setActiveView('alerts')}
-                                    className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'alerts' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
-                                        }`}
-                                />
-                                <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Alert Triage
+                            {(user?.role === 'ADMIN' || user?.role === 'CYBER_ANALYST') && (
+                                <div className="relative group">
+                                    <AlertTriangle
+                                        onClick={() => setActiveView('alerts')}
+                                        className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'alerts' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
+                                            }`}
+                                    />
+                                    <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Alert Triage
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="relative group">
-                                <Database
-                                    onClick={() => setActiveView('data')}
-                                    className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'data' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
-                                        }`}
-                                />
-                                <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Audit Logs
+                            )}
+                            {(user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN') && (
+                                <div className="relative group">
+                                    <Database
+                                        onClick={() => setActiveView('data')}
+                                        className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'data' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
+                                            }`}
+                                    />
+                                    <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Audit Logs
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                             <div className="relative group">
                                 <Cpu
                                     onClick={() => setActiveView('analytics')}
@@ -397,16 +402,18 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     Analytics
                                 </div>
                             </div>
-                            <div className="relative group">
-                                <Activity
-                                    onClick={() => setActiveView('compliance')}
-                                    className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'compliance' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
-                                        }`}
-                                />
-                                <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Security Compliance
+                            {(user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN') && (
+                                <div className="relative group">
+                                    <Activity
+                                        onClick={() => setActiveView('compliance')}
+                                        className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'compliance' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
+                                            }`}
+                                    />
+                                    <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                        Security Compliance
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </nav>
                         <div className="mt-auto flex flex-col gap-8 items-center pb-4">
                             <div className="relative group">
@@ -417,16 +424,6 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                 />
                                 <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                                     Notifications
-                                </div>
-                            </div>
-                            <div className="relative group">
-                                <Settings
-                                    onClick={() => setShowSettings(!showSettings)}
-                                    className={`w-5 h-5 transition-colors cursor-pointer ${showSettings ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
-                                        }`}
-                                />
-                                <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Settings
                                 </div>
                             </div>
                             <div className="relative group">
@@ -445,7 +442,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                     </aside>
 
                     {/* Main Interactive Map Area */}
-                    <main className="flex-1 relative overflow-hidden bg-black">
+                    <main className="flex-1 relative overflow-hidden bg-transparent">
                         {/* HUD Overlays */}
                         <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 flex flex-col gap-3 pointer-events-none items-center">
                             <div className="flex items-center gap-3">
@@ -1118,102 +1115,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
             )}
 
             {/* Notifications Panel */}
-            {
-                showNotifications && (
-                    <div className="fixed inset-0 z-50 flex items-end justify-start pointer-events-none">
-                        <motion.div
-                            drag
-                            dragMomentum={false}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="pointer-events-auto mb-48 ml-24 w-96 glass-card border border-white/10 p-6 cursor-move"
-                        >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <Bell className="w-5 h-5" style={{ color: currentTheme.primary }} />
-                                    <h3 className="text-white font-bold uppercase tracking-wide">Notifications</h3>
-                                </div>
-                                <button onClick={() => setShowNotifications(false)} className="text-white/40 hover:text-white transition-colors">
-                                    ✕
-                                </button>
-                            </div>
-                            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                {(notifications || []).length === 0 ? (
-                                    <div className="bg-white/5 p-4 rounded border border-white/10">
-                                        <p className="text-sm text-white/80">System operational - All services running</p>
-                                        <span className="text-xs text-white/40">Now</span>
-                                    </div>
-                                ) : (
-                                    (notifications || []).map((notif, idx) => (
-                                        <div key={idx} className="bg-white/5 p-3 rounded border border-white/10 animate-fade-in-up">
-                                            <p className="text-sm text-white/90">{notif.message}</p>
-                                            <span className="text-xs text-white/40">{notif.timestamp.toLocaleTimeString()}</span>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </motion.div>
-                    </div>
-                )
-            }
 
-            {/* Settings Panel */}
-            {
-                showSettings && (
-                    <div className="fixed inset-0 z-50 flex items-end justify-start pointer-events-none">
-                        <motion.div
-                            drag
-                            dragMomentum={false}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="pointer-events-auto mb-24 ml-24 w-96 glass-card border border-white/10 p-6 cursor-move"
-                        >
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <Settings className="w-5 h-5" style={{ color: currentTheme.primary }} />
-                                    <h3 className="text-white font-bold uppercase tracking-wide">Settings</h3>
-                                </div>
-                                <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white transition-colors">
-                                    ✕
-                                </button>
-                            </div>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-sm text-white/60 block mb-2">Display Mode</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {[
-                                            { id: 'dark', label: 'Dark', color: '#000000', border: '#333333' },
-                                            { id: 'light', label: 'Light', color: '#ffffff', border: '#e5e7eb' },
-                                            { id: 'contrast', label: 'Contrast', color: '#000000', border: '#FFFF00' },
-                                            { id: 'oled', label: 'OLED', color: '#000000', border: '#1a1a1a' },
-                                            { id: 'terminal', label: 'Terminal', color: '#0a0a0a', border: '#00ff00' }
-                                        ].map(theme => (
-                                            <button
-                                                key={theme.id}
-                                                onClick={() => setDisplayMode(theme.id as any)}
-                                                className={`
-                                                    relative p-3 rounded-lg border transition-all text-xs font-bold uppercase tracking-wider
-                                                    ${displayMode === theme.id ? 'ring-2 ring-offset-2 ring-offset-black' : 'hover:scale-[1.02]'}
-                                                `}
-                                                style={{
-                                                    backgroundColor: theme.color,
-                                                    borderColor: theme.border,
-                                                    color: theme.id === 'light' ? '#000' : theme.border
-                                                }}
-                                            >
-                                                {theme.label}
-                                                {displayMode === theme.id && (
-                                                    <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-current" />
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )
-            }
 
             {/* User Menu */}
             {

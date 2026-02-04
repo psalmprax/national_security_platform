@@ -80,6 +80,10 @@ type RequestAccessRequest struct {
 	DomainTerritory string `json:"domain_territory,omitempty"`
 }
 
+type VerifyNINRequest struct {
+	NIN string `json:"nin"`
+}
+
 func main() {
 	// Initialize database
 	if err := db.InitDB(); err != nil {
@@ -152,7 +156,22 @@ func main() {
 		log.Printf("⚠️ Warning: Failed to initialize storage provider: %v", err)
 	}
 
-	alertService := &service.AlertService{}
+	// Initialize SMS Service (Resilient Communications)
+	var smsService service.SMSService
+	if os.Getenv("SMS_PROVIDER") == "africastalking" {
+		username := os.Getenv("AT_USERNAME")
+		apiKey := os.Getenv("AT_API_KEY")
+		if username == "" || apiKey == "" {
+			log.Printf("⚠️ Warning: SMS_PROVIDER is set to africastalking but credentials missing. Falling back to Mock.")
+			smsService = service.NewMockSMSService()
+		} else {
+			log.Printf("📱 [SMS] Initializing AfricasTalking gateway...")
+			smsService = service.NewAfricasTalkingService(username, apiKey)
+		}
+	} else {
+		smsService = service.NewMockSMSService()
+	}
+	alertService := service.NewAlertService(smsService)
 	h := handlers.NewHandler(db.Pool, log.Default(), storageProvider)
 
 	// Setup Router
@@ -206,6 +225,9 @@ func main() {
 
 		// Onboarding (authenticated/verified)
 		r.Post("/api/v1/auth/onboard", handleOnboard)
+		r.Post("/api/v1/auth/verify-nin", func(w http.ResponseWriter, r *http.Request) {
+			handleVerifyNIN(w, r, smsService)
+		})
 		r.Post("/api/v1/auth/device-token", handleUpdateDeviceToken)
 		r.Post("/api/v1/auth/location", handleUpdateLocation)
 
@@ -799,6 +821,63 @@ func handleUpdateMissionStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Mission status updated"})
+}
+
+func handleVerifyNIN(w http.ResponseWriter, r *http.Request, sms service.SMSService) {
+	var req VerifyNINRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, Response{Success: false, Message: "Invalid request"})
+		return
+	}
+
+	tokenUserID, _ := r.Context().Value(middleware.UserIDKey).(string)
+	userID, _ := uuid.Parse(tokenUserID)
+
+	nimc := service.NewNIMCService()
+	data, err := nimc.VerifyNIN(r.Context(), req.NIN)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Identity provider error: " + err.Error()})
+		return
+	}
+
+	status := "REJECTED"
+	if data.Verified {
+		status = "VERIFIED"
+	}
+
+	// Create Log
+	logRef, _ := nimc.LogIdentityVerification(r.Context(), userID.String(), status)
+	vLog := &models.IdentityVerificationLog{
+		ID:                 uuid.New(),
+		UserID:             userID,
+		ProviderReference:  logRef,
+		VerificationStatus: status,
+	}
+	db.CreateIdentityVerificationLog(r.Context(), vLog)
+
+	if !data.Verified {
+		respondJSON(w, http.StatusUnprocessableEntity, Response{Success: false, Message: "NIN verification failed: identity not found or data mismatch"})
+		return
+	}
+
+	// Update User
+	if err := db.UpdateUserIdentityStatus(r.Context(), userID, true, "NIMC", logRef); err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to update identity status"})
+		return
+	}
+
+	// Fetch user for phone number to send confirmation SMS
+	user, err := db.GetUserByID(r.Context(), userID)
+	if err == nil && sms != nil {
+		go func() {
+			smsMsg := "Trust Level Elevated: Your National Identity (NIN) has been successfully verified. You now have access to classified situational intelligence."
+			if err := sms.SendSMS(context.Background(), user.PhoneNumber, smsMsg); err != nil {
+				log.Printf("⚠️ Failed to send verification confirmation SMS: %v", err)
+			}
+		}()
+	}
+
+	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Identity successfully verified via NIMC"})
 }
 
 func handleUpdateDeviceToken(w http.ResponseWriter, r *http.Request) {

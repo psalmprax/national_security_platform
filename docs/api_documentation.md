@@ -133,3 +133,19 @@ The platform uses gRPC for high-performance service-to-service communication.
 ### `IntelligenceService` (Python)
 - **Methods**:
     - `AnalyzeAlert`: Asynchronous NLP analysis, entity extraction, and severity scoring.
+
+---
+
+## 7. Admin
+
+### `GET /api/v1/admin/audit-logs`
+- **Description**: Fetches a ledger of all administrative actions.
+- **Role Required**: `ADMIN`.
+
+### `GET /api/v1/admin/roles`
+- **Description**: Fetches all available roles.
+- **Role Required**: `ADMIN`.
+
+### `GET /api/v1/admin/permissions`
+- **Description**: Fetches all available permissions.
+- **Role Required**: `ADMIN`.

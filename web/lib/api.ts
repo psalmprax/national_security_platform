@@ -32,6 +32,48 @@ export interface Alert {
     classification_level?: string;
 }
 
+// Helper to get CSRF token from double-submit cookie
+function getCsrfToken(): string {
+    if (typeof document === 'undefined') return '';
+    const name = 'csrf_token=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) === 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return '';
+}
+
+/**
+ * Standardized Fetch Wrapper for the Core API
+ * Automatically injecting CSRF tokens and ensuring credentials for RBAC.
+ */
+async function apiFetch(endpoint: string, options: RequestInit = {}) {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+
+    // Inject CSRF token for state-mutating methods
+    if (options.method && !['GET', 'HEAD', 'OPTIONS'].includes(options.method.toUpperCase())) {
+        (headers as any)['X-CSRF-Token'] = getCsrfToken();
+    }
+
+    return fetch(url, {
+        ...options,
+        headers,
+        credentials: 'include', // Essential for sending HttpOnly auth cookies
+    });
+}
+
 // Helper to detect Base64 strings (simple heuristic)
 function isBase64(str: string) {
     if (!str || str.length % 4 !== 0 || /[^A-Z0-9+\/=]/i.test(str)) {
@@ -43,7 +85,7 @@ function isBase64(str: string) {
 
 export async function fetchAlerts(): Promise<Alert[]> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/alerts`, {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/alerts`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -105,7 +147,7 @@ export interface SystemStatus {
 
 export async function fetchSystemStatus(): Promise<SystemStatus | null> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/system/status`, {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/system/status`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -184,7 +226,7 @@ export interface SecurityScan {
 
 export async function fetchSecurityScans(page: number = 1, limit: number = 10): Promise<SecurityScan[]> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/system/security-scans?page=${page}&limit=${limit}`, {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/system/security-scans?page=${page}&limit=${limit}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -252,7 +294,7 @@ export interface Mission {
 
 export async function fetchTriangulatedAssets(alertId: string): Promise<TriangulatedAsset[]> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/alerts/${alertId}/triangulation`, {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/alerts/${alertId}/triangulation`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -272,7 +314,7 @@ export async function fetchTriangulatedAssets(alertId: string): Promise<Triangul
 
 export async function fetchSectorReport(): Promise<SectorReport | null> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/system/reports/sector`, {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/system/reports/sector`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -292,10 +334,11 @@ export async function fetchSectorReport(): Promise<SectorReport | null> {
 
 export async function dispatchAsset(assetId: string): Promise<boolean> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/assets/${assetId}/dispatch`, {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/assets/${assetId}/dispatch`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
             },
         });
 
@@ -308,10 +351,11 @@ export async function dispatchAsset(assetId: string): Promise<boolean> {
 
 export async function verifyAlert(alertId: string): Promise<boolean> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/alerts/${alertId}/verify`, {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/alerts/${alertId}/verify`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
             },
         });
 
@@ -324,12 +368,7 @@ export async function verifyAlert(alertId: string): Promise<boolean> {
 
 export async function fetchAssets(): Promise<Asset[]> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/assets`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        const response = await apiFetch(`/api/v1/assets`);
 
         if (!response.ok) {
             return [];
@@ -344,12 +383,7 @@ export async function fetchAssets(): Promise<Asset[]> {
 
 export async function fetchActiveMissions(): Promise<Mission[]> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/missions/active`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        const response = await apiFetch(`/api/v1/missions/active`);
 
         if (!response.ok) {
             return [];
@@ -364,11 +398,8 @@ export async function fetchActiveMissions(): Promise<Mission[]> {
 
 export async function createMission(alertId: string, assetId: string, priority: string = 'MEDIUM'): Promise<Mission | null> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/missions`, {
+        const response = await apiFetch(`/api/v1/missions`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
                 alert_id: alertId,
                 asset_id: assetId,
@@ -389,11 +420,8 @@ export async function createMission(alertId: string, assetId: string, priority: 
 
 export async function updateMissionStatus(missionId: string, status: string): Promise<boolean> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/missions/${missionId}/status`, {
+        const response = await apiFetch(`/api/v1/missions/${missionId}/status`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({ status }),
         });
 
@@ -456,11 +484,8 @@ export interface PublicAlert {
 
 export async function createPublicAlert(alert: Partial<PublicAlert>): Promise<PublicAlert | null> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/public-alerts`, {
+        const response = await apiFetch(`/api/v1/public-alerts`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify(alert),
         });
 
@@ -490,15 +515,8 @@ export interface SafetyScore {
 
 export async function fetchSafetyScores(riskLevel?: string): Promise<SafetyScore[]> {
     try {
-        const url = new URL(`${API_BASE_URL}/api/v1/analytics/safety-scores`);
-        if (riskLevel) url.searchParams.append('risk_level', riskLevel);
-
-        const response = await fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        const urlPath = riskLevel ? `/api/v1/analytics/safety-scores?risk_level=${riskLevel}` : `/api/v1/analytics/safety-scores`;
+        const response = await apiFetch(urlPath);
 
         if (!response.ok) return [];
         return await response.json();
@@ -510,12 +528,7 @@ export async function fetchSafetyScores(riskLevel?: string): Promise<SafetyScore
 
 export async function fetchSafetyScoresSummary(): Promise<any> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/analytics/safety-scores/summary`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        const response = await apiFetch(`/api/v1/analytics/safety-scores/summary`);
 
         if (!response.ok) return null;
         return await response.json();
@@ -538,12 +551,7 @@ export interface AnonymousTip {
 
 export async function fetchAnonymousTips(): Promise<AnonymousTip[]> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/tips`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        const response = await apiFetch(`/api/v1/tips`);
 
         if (!response.ok) return [];
         return await response.json();
@@ -555,11 +563,8 @@ export async function fetchAnonymousTips(): Promise<AnonymousTip[]> {
 
 export async function verifyTip(tipId: string, status: 'verified' | 'rejected'): Promise<boolean> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/tips/${tipId}/verify`, {
+        const response = await apiFetch(`/api/v1/tips/${tipId}/verify`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({ status }),
         });
 
@@ -572,12 +577,7 @@ export async function verifyTip(tipId: string, status: 'verified' | 'rejected'):
 
 export async function getMediaAccessURL(key: string, bucket: string = 'national-security-evidence'): Promise<string | null> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/media/access?key=${encodeURIComponent(key)}&bucket=${encodeURIComponent(bucket)}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        const response = await apiFetch(`/api/v1/media/access?key=${encodeURIComponent(key)}&bucket=${encodeURIComponent(bucket)}`);
 
         if (!response.ok) return null;
         const data = await response.json();
@@ -589,9 +589,65 @@ export async function getMediaAccessURL(key: string, bucket: string = 'national-
 }
 
 // Admin API
+export interface AuditEntry {
+    id: string;
+    timestamp: string;
+    actor: string;
+    action: string;
+    target: string;
+    from: string;
+    to: string;
+    details: string;
+}
+
+export interface Role {
+    id: string;
+    name: string;
+    permissions: string[];
+}
+
+export interface Permission {
+    id: string;
+    name: string;
+    description: string;
+}
+
+export async function fetchAuditLogs(): Promise<AuditEntry[]> {
+    try {
+        const response = await apiFetch('/api/v1/admin/audit-logs');
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch audit logs:', error);
+        return [];
+    }
+}
+
+export async function fetchRoles(): Promise<Role[]> {
+    try {
+        const response = await apiFetch('/api/v1/admin/roles');
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch roles:', error);
+        return [];
+    }
+}
+
+export async function fetchPermissions(): Promise<Permission[]> {
+    try {
+        const response = await apiFetch('/api/v1/admin/permissions');
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch permissions:', error);
+        return [];
+    }
+}
+
 export async function fetchAllUsers(): Promise<any[]> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/admin/users`);
+        const response = await apiFetch('/api/v1/admin/users');
         if (!response.ok) return [];
         return await response.json();
     } catch (error) {
@@ -602,9 +658,8 @@ export async function fetchAllUsers(): Promise<any[]> {
 
 export async function updateUserClearance(userId: string, level: string): Promise<boolean> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${userId}/clearance`, {
+        const response = await apiFetch(`/api/v1/admin/users/${userId}/clearance`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ level })
         });
         return response.ok;
@@ -614,11 +669,24 @@ export async function updateUserClearance(userId: string, level: string): Promis
     }
 }
 
+export async function createRole(name: string, permissions: string[]): Promise<Role | null> {
+    try {
+        const response = await apiFetch('/api/v1/admin/roles', {
+            method: 'POST',
+            body: JSON.stringify({ name, permissions }),
+        });
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to create role:', error);
+        return null;
+    }
+}
+
 export async function updateAlertClassification(alertId: string, level: string): Promise<boolean> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/admin/alerts/${alertId}/classify`, {
+        const response = await apiFetch(`/api/v1/admin/alerts/${alertId}/classify`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ level })
         });
         return response.ok;

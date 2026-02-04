@@ -43,8 +43,13 @@ type User struct {
 	VillageID       *uuid.UUID `json:"village_id,omitempty"`
 	LGAID           *uuid.UUID `json:"lga_id,omitempty"`
 	StateID         *uuid.UUID `json:"state_id,omitempty"`
-	Status          string     `json:"status"`
-	PasswordHash    *string    `json:"-"` // Never expose password hash in JSON
+	Status              string     `json:"status"`
+	NINVerified         bool       `json:"nin_verified"`
+	NINVerificationDate *time.Time `json:"nin_verification_date,omitempty"`
+	IdentityProvider    string     `json:"identity_provider"`
+	BiometricEnrolled   bool       `json:"biometric_enrolled"`
+	IdentityNotes       *string    `json:"identity_notes,omitempty"`
+	PasswordHash        *string    `json:"-"` // Never expose password hash in JSON
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 }
@@ -194,4 +199,14 @@ type CreateMissionRequest struct {
 	AlertID  string `json:"alert_id"`
 	AssetID  string `json:"asset_id"`
 	Priority string `json:"priority"`
+}
+
+type IdentityVerificationLog struct {
+	ID                 uuid.UUID `json:"id"`
+	UserID             uuid.UUID `json:"user_id"`
+	CheckedBy          uuid.UUID `json:"checked_by"`
+	ProviderReference  string    `json:"provider_reference"`
+	VerificationStatus string    `json:"verification_status"`
+	FailureReason      *string   `json:"failure_reason,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
 }

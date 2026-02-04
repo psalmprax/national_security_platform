@@ -14,6 +14,12 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const { login, getCsrfToken } = useAuth();
+    const [displayMode, setDisplayMode] = useState<'dark' | 'light' | 'contrast' | 'oled' | 'terminal'>('dark');
+
+    React.useEffect(() => {
+        const savedMode = localStorage.getItem('nsp_display_mode') as any;
+        if (savedMode) setDisplayMode(savedMode);
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,7 +56,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-transparent flex items-center justify-center p-4 relative overflow-hidden" data-theme={displayMode}>
             {/* Background Ambience */}
             <div className="absolute top-0 left-0 w-full h-full">
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[128px] animate-pulse"></div>

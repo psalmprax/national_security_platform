@@ -80,6 +80,61 @@ body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   font-feature-settings: "rlig" 1, "calt" 1;
+  position: relative;
+}
+
+/* Global Watermark Support - Works on body or any container with data-watermark */
+[data-watermark] {
+  position: relative;
+}
+
+[data-watermark]::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70vh;
+  height: 70vh;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: 0;
+  filter: grayscale(1) opacity(0.8);
+  transition: all 0.5s ease;
+}
+
+[data-watermark='seal']::before {
+  background-image: url('/security_seal.png');
+}
+
+[data-watermark='coat_of_arms']::before {
+  background-image: url('/coat_of_arms.png');
+  width: 85vh;
+  height: 85vh;
+}
+
+[data-theme='light'] [data-watermark]::before {
+  opacity: 0.05;
+  filter: grayscale(1) invert(1) brightness(0.7);
+}
+
+[data-theme='contrast'] [data-watermark]::before {
+  opacity: 0.15;
+  filter: grayscale(1) brightness(3);
+}
+
+[data-theme='terminal'] [data-watermark]::before {
+  opacity: 0.08;
+  filter: sepia(1) hue-rotate(90deg) brightness(1.1) drop-shadow(0 0 10px rgba(0, 255, 149, 0.2));
+}
+
+/* Ensure content stays above the watermark */
+[data-watermark]>* {
+  position: relative;
+  z-index: 10;
 }
 
 /* Theme-specific glass overrides */
@@ -180,6 +235,63 @@ body {
   /* Fade in animation */
   .fade-in {
     animation: fadeIn 0.3s ease-in forwards;
+  }
+
+  /* Enhanced aesthetic utilities for WOW factor */
+  .cyber-grid {
+    background-image:
+      linear-gradient(rgba(0, 255, 149, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 255, 149, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    background-position: center center;
+  }
+
+  .cyber-grid-animate {
+    animation: gridMove 20s linear infinite;
+  }
+
+  .cyber-scanline {
+    background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(0, 255, 149, 0.02) 50%,
+        transparent 100%);
+    background-size: 100% 4px;
+    animation: scanline 10s linear infinite;
+  }
+
+  .glass-contrast {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 255, 149, 0.2);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .neon-text-green {
+    text-shadow: 0 0 5px rgba(0, 255, 149, 0.5), 0 0 10px rgba(0, 255, 149, 0.3);
+  }
+
+  .neon-text-red {
+    text-shadow: 0 0 5px rgba(255, 0, 60, 0.5), 0 0 10px rgba(255, 0, 60, 0.3);
+  }
+}
+
+@keyframes gridMove {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 50px 50px;
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100%);
   }
 }
 

@@ -58,7 +58,9 @@ func GetUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	query := `
 		SELECT id, phone_number, full_name, nin, role, 
 		       monarch_grade, domain_territory, hierarchy_weight,
-		       trust_score, clearance_level, village_id, lga_id, state_id, status, password_hash, created_at, updated_at
+		       trust_score, clearance_level, village_id, lga_id, state_id, status, 
+		       nin_verified, nin_verification_date, identity_provider, biometric_enrolled, identity_notes,
+		       password_hash, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -79,6 +81,11 @@ func GetUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 		&user.LGAID,
 		&user.StateID,
 		&user.Status,
+		&user.NINVerified,
+		&user.NINVerificationDate,
+		&user.IdentityProvider,
+		&user.BiometricEnrolled,
+		&user.IdentityNotes,
 		&user.PasswordHash,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -96,7 +103,9 @@ func GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User
 	query := `
 		SELECT id, phone_number, full_name, nin, role, 
 		       monarch_grade, domain_territory, hierarchy_weight,
-		       trust_score, clearance_level, village_id, lga_id, state_id, status, password_hash, created_at, updated_at
+		       trust_score, clearance_level, village_id, lga_id, state_id, status, 
+		       nin_verified, nin_verification_date, identity_provider, biometric_enrolled, identity_notes,
+		       password_hash, created_at, updated_at
 		FROM users
 		WHERE phone_number = $1
 	`
@@ -117,6 +126,11 @@ func GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (*models.User
 		&user.LGAID,
 		&user.StateID,
 		&user.Status,
+		&user.NINVerified,
+		&user.NINVerificationDate,
+		&user.IdentityProvider,
+		&user.BiometricEnrolled,
+		&user.IdentityNotes,
 		&user.PasswordHash,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -834,7 +848,9 @@ func GetAllUsers(ctx context.Context) ([]models.User, error) {
 	query := `
 		SELECT id, phone_number, full_name, nin, role, 
 		       monarch_grade, domain_territory, hierarchy_weight,
-		       trust_score, clearance_level, village_id, lga_id, state_id, status, created_at, updated_at
+		       trust_score, clearance_level, village_id, lga_id, state_id, status, 
+		       nin_verified, nin_verification_date, identity_provider, biometric_enrolled, identity_notes,
+		       created_at, updated_at
 		FROM users
 		ORDER BY created_at DESC
 	`
@@ -863,6 +879,11 @@ func GetAllUsers(ctx context.Context) ([]models.User, error) {
 			&user.LGAID,
 			&user.StateID,
 			&user.Status,
+			&user.NINVerified,
+			&user.NINVerificationDate,
+			&user.IdentityProvider,
+			&user.BiometricEnrolled,
+			&user.IdentityNotes,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)
@@ -872,4 +893,35 @@ func GetAllUsers(ctx context.Context) ([]models.User, error) {
 		users = append(users, user)
 	}
 	return users, nil
+}
+
+// UpdateUserIdentityStatus updates the NIMC/NIN verification status for a user
+func UpdateUserIdentityStatus(ctx context.Context, userID uuid.UUID, verified bool, provider string, providerRef string) error {
+	query := `
+		UPDATE users 
+		SET nin_verified = $1, 
+		    nin_verification_date = current_timestamp(),
+		    identity_provider = $2,
+		    identity_notes = $3,
+		    trust_score = CASE WHEN $1 = TRUE THEN LEAST(1.0, trust_score + 0.3) ELSE trust_score END,
+		    updated_at = current_timestamp()
+		WHERE id = $4
+	`
+	notes := fmt.Sprintf("Verified via %s (Ref: %s)", provider, providerRef)
+	_, err := Pool.Exec(ctx, query, verified, provider, notes, userID)
+	return err
+}
+
+// CreateIdentityVerificationLog records a verification attempt in the audit trail
+func CreateIdentityVerificationLog(ctx context.Context, log *models.IdentityVerificationLog) error {
+	query := `
+		INSERT INTO identity_verification_logs (
+			id, user_id, checked_by, provider_reference, verification_status, failure_reason, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, current_timestamp())
+	`
+	_, err := Pool.Exec(ctx, query,
+		log.ID, log.UserID, log.CheckedBy, log.ProviderReference,
+		log.VerificationStatus, log.FailureReason,
+	)
+	return err
 }

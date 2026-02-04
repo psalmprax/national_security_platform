@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { PieChart, FileText, Activity, Shield, TrendingUp, ShieldAlert } from 'lucide-react';
+import { PieChart, FileText, Activity, Shield, TrendingUp, ShieldAlert, Bell, User as UserIcon } from 'lucide-react';
 import { getIncidentTrends, getThreatDistribution, Alert, SystemStatus } from '../../lib/api';
 import { User } from '../../lib/AuthContext';
 import SafetyLeaderboard from '../analytics/SafetyLeaderboard';
@@ -12,12 +12,18 @@ interface StrategicDashboardProps {
     securityStatus: SystemStatus;
     user: User | null;
     logout: () => void;
+    displayMode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal';
+    setDisplayMode: (mode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal') => void;
 }
 
-export default function StrategicDashboard({ alerts, currentTime, securityStatus, user, logout }: StrategicDashboardProps) {
+export default function StrategicDashboard({ alerts, currentTime, securityStatus, user, logout, displayMode, setDisplayMode }: StrategicDashboardProps) {
     const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
     const [showUserMenu, setShowUserMenu] = React.useState(false);
     const [activeView, setActiveView] = React.useState<'overview' | 'profile' | 'registry' | 'analytics'>('overview');
+    const [showNotifications, setShowNotifications] = React.useState(false);
+    const [notifications, setNotifications] = React.useState([
+        { message: "System initialized. Secure connection established.", timestamp: new Date(), type: 'system' }
+    ]);
 
     const criticalCount = (alerts || []).filter(a => a.severity > 0.8).length;
     const trends = getIncidentTrends(alerts || []);
@@ -35,7 +41,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
     };
 
     return (
-        <div className="w-full h-full bg-slate-50 text-slate-800 overflow-auto font-sans">
+        <div className="w-full h-full bg-transparent text-slate-800 overflow-auto font-sans" data-theme={displayMode}>
             {/* Top Navigation Bar */}
             <nav className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shadow-sm">
                 <div className="flex items-center gap-3">
@@ -72,12 +78,22 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                         Agencies
                     </button>
                     <div className="h-4 w-px bg-slate-300 mx-2" />
+                    <div className="relative group">
+                        <Bell
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className={`w-5 h-5 transition-colors cursor-pointer ${showNotifications ? 'text-blue-700' : 'text-slate-500 hover:text-blue-700'
+                                }`}
+                        />
+                        <div className="absolute left-full ml-3 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                            Notifications
+                        </div>
+                    </div>
                     <div className="relative">
                         <button
                             onClick={() => setShowUserMenu(!showUserMenu)}
                             className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-xs transition-all uppercase cursor-pointer ${showUserMenu ? 'border-blue-600 bg-blue-600 text-white' : 'border-blue-900 bg-blue-900 text-white hover:ring-4 hover:ring-blue-100'}`}
                         >
-                            {user?.full_name?.charAt(0) || 'A'}
+                            <UserIcon className="w-4 h-4" />
                         </button>
 
                         {showUserMenu && (
@@ -460,7 +476,7 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                             <div className="bg-blue-900 p-8 rounded-2xl text-white shadow-xl relative overflow-hidden group">
                                 <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-all duration-700" />
                                 <h3 className="font-bold mb-8 flex items-center gap-2">
-                                    <Shield className="w-5 h-5 text-blue-400" />
+                                    <UserIcon className="w-5 h-5 text-slate-500" />
                                     System Security Posture
                                 </h3>
                                 <div className="grid grid-cols-2 gap-8">
@@ -514,6 +530,36 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                     </div>
                 )}
             </main>
+
+            {/* Notifications Panel */}
+            {showNotifications && (
+                <div className="fixed inset-0 z-50 flex items-start justify-end p-4 pointer-events-none">
+                    <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm p-6 pointer-events-auto">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-slate-900">Notifications</h3>
+                            <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-slate-600">
+                                ✕
+                            </button>
+                        </div>
+                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                            {(notifications || []).length === 0 ? (
+                                <div className="bg-slate-50 p-4 rounded border border-slate-100">
+                                    <p className="text-sm text-slate-800">System operational - All services running</p>
+                                    <span className="text-xs text-slate-400">Now</span>
+                                </div>
+                            ) : (
+                                (notifications || []).map((notif, idx) => (
+                                    <div key={idx} className="bg-slate-50 p-3 rounded border border-slate-100 animate-fade-in-up">
+                                        <p className="text-sm text-slate-900">{notif.message}</p>
+                                        <span className="text-xs text-slate-400">{notif.timestamp.toLocaleTimeString()}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             {/* Incident Detail Modal */}
             {selectedAlert && (

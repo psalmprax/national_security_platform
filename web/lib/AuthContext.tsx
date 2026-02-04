@@ -11,6 +11,8 @@ export interface User {
     full_name: string;
     role: string;
     clearance_level: string;
+    nin_verified: boolean;
+    biometric_enrolled: boolean;
     status: string;
     created_at: string;
     updated_at: string;
