@@ -19,6 +19,15 @@ func CSRFMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		// 2. Skip check for specific public/auth endpoints (Mobile/Public API)
+		path := r.URL.Path
+		if path == "/api/v1/tips/submit" ||
+			(len(path) >= 13 && path[:13] == "/api/v1/auth/") ||
+			path == "/api/v1/events/stream" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// 2. Extract tokens
 		cookie, err := r.Cookie("csrf_token")
 		if err != nil {

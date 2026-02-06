@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save, Loader2, AlertTriangle, User, LogOut, Layout, Map as MapIcon, List, Settings } from 'lucide-react';
+import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save, Loader2, AlertTriangle, User, LogOut, Layout, Map as MapIcon, List, Settings, Maximize, Minimize, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
 import { UserRole } from '@/lib/auth';
-import { fetchSectorReport, Asset } from '@/lib/api';
+import { fetchSectorReport, Asset, Mission, fetchActiveMissions, updateMissionStatus } from '@/lib/api';
 import MapboxMap from '@/components/MapboxMap';
+import UserMenu from '@/components/UserMenu';
+import CommandBar from '@/components/CommandBar';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -32,17 +34,20 @@ export default function AgencyPortalPage() {
     const [assets, setAssets] = useState<Asset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showAssetForm, setShowAssetForm] = useState(false);
-    const [showAgencyPicker, setShowAgencyPicker] = useState(false);
     const [agencyName, setAgencyName] = useState<string>("Agency Command Portal");
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [displayMode, setDisplayMode] = useState<'dark' | 'light' | 'contrast' | 'oled' | 'terminal'>('dark');
     const [watermarkMode, setWatermarkMode] = useState<'none' | 'seal' | 'coat_of_arms'>('seal');
     const [showSettings, setShowSettings] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [missions, setMissions] = useState<Mission[]>([]);
+    const [isMissionsLoading, setIsMissionsLoading] = useState(false);
+    const [isPanicMode, setIsPanicMode] = useState(false);
 
     // New Asset Form State
     const [newAsset, setNewAsset] = useState({
-        agency_id: '00000000-0000-0000-0000-000000000000', // Placeholder or fetch real agency ID
+        agency_id: '00000000-0000-0000-0000-000000000000',
         name: '',
         type: 'PATROL_VEHICLE',
         latitude: 9.0765,
@@ -57,23 +62,20 @@ export default function AgencyPortalPage() {
     const loadPortalData = async () => {
         setIsLoading(true);
         try {
-            // 1. Fetch Assets
             const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {});
             if (res.ok) {
                 const data = await res.json();
                 setAssets(data || []);
             }
 
-            // 2. Fetch Agency Branding (via Sector Report)
             if (user?.role === 'AGENCY_OFFICER') {
                 const report = await fetchSectorReport();
                 if (report && report.sector_id) {
-                    setAgencyName(report.sector_id); // Backend maps sector_id to Agency Name for officers
+                    setAgencyName(report.sector_id);
                 }
             } else if (user?.role === 'ADMIN') {
                 setAgencyName("National Command Oversight");
             }
-
         } catch (err) {
             console.error("Failed to fetch portal data", err);
         } finally {
@@ -81,12 +83,26 @@ export default function AgencyPortalPage() {
         }
     };
 
+    const loadMissions = async () => {
+        setIsMissionsLoading(true);
+        try {
+            const data = await fetchActiveMissions();
+            setMissions(data || []);
+        } catch (err) {
+            console.error("Failed to fetch missions", err);
+        } finally {
+            setIsMissionsLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!isAuthLoading && user) {
             loadPortalData();
+            loadMissions();
+            const interval = setInterval(loadMissions, 5000);
+            return () => clearInterval(interval);
         }
 
-        // Load theme preference
         const savedMode = localStorage.getItem('nsp_display_mode') as any;
         if (savedMode) setDisplayMode(savedMode);
 
@@ -102,6 +118,31 @@ export default function AgencyPortalPage() {
     const updateDisplayMode = (mode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal') => {
         setDisplayMode(mode);
         localStorage.setItem('nsp_display_mode', mode);
+    };
+
+    // Handle Panic Mode Toggling
+    const togglePanicMode = () => {
+        const newMode = !isPanicMode;
+        setIsPanicMode(newMode);
+
+        if (newMode) {
+            setNewAsset(prev => ({
+                ...prev,
+                type: 'RAPID_RESPONSE_UNIT',
+                status: 'CRITICAL_DEPLOYMENT',
+                description: 'EMERGENCY SCRAMBLE - COMMANDER AUTHORIZATION',
+                capacity_level: 100
+            }));
+            setShowAssetForm(true);
+        } else {
+            setNewAsset(prev => ({
+                ...prev,
+                type: 'PATROL_VEHICLE',
+                status: 'ACTIVE',
+                description: '',
+                capacity_level: 100
+            }));
+        }
     };
 
     if (isAuthLoading) {
@@ -141,7 +182,6 @@ export default function AgencyPortalPage() {
         );
     }
 
-    // Handle Submit
     const handleCreateAsset = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -155,7 +195,7 @@ export default function AgencyPortalPage() {
             });
             if (res.ok) {
                 setShowAssetForm(false);
-                loadPortalData(); // Refresh list
+                loadPortalData();
                 alert('Asset Deployed Successfully');
             } else {
                 alert('Failed to deploy asset');
@@ -165,108 +205,55 @@ export default function AgencyPortalPage() {
         }
     };
 
-    // Handle View Switching for Admins
-    const toggleAgencyView = (view: string) => {
-        window.location.href = `/?view=${view}`;
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            setIsFullscreen(true);
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+                setIsFullscreen(false);
+            }
+        }
     };
 
     return (
-        <div className="min-h-screen bg-transparent text-white p-6 relative flex flex-col" data-theme={displayMode} data-watermark={watermarkMode}>
-            {/* Unified Command Bar - Sycned with Main Dashboard */}
-            <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[110] flex items-center">
-                <div className="flex items-center bg-black/80 border-b border-x border-white/20 rounded-b-xl backdrop-blur-md px-1 py-1 shadow-2xl">
-                    {/* View Picker Toggle */}
-                    {['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
-                        <button
-                            className="h-7 px-4 hover:bg-white/5 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all group"
-                            onClick={() => setShowAgencyPicker(!showAgencyPicker)}
-                        >
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                            <span className="text-[9px] font-black text-white/80 uppercase tracking-widest group-hover:text-blue-400">
-                                PORTAL
-                            </span>
-                        </button>
-                    )}
+        <div className="min-h-screen bg-transparent text-slate-900 dark:text-white relative flex flex-col" data-theme={displayMode} data-watermark={watermarkMode}>
+            <CommandBar
+                agencyName={agencyName}
+                userRole={user?.role}
+                showSettings={showSettings}
+                setShowSettings={setShowSettings}
+                isFullscreen={isFullscreen}
+                toggleFullscreen={toggleFullscreen}
+                showUserMenu={showUserMenu}
+                setShowUserMenu={setShowUserMenu}
+            />
 
-                    <div className="w-px h-4 bg-white/10 mx-1" />
-
-                    {/* Global Settings */}
-                    <button
-                        onClick={() => setShowSettings(!showSettings)}
-                        className={`h-7 w-8 rounded-lg flex items-center justify-center transition-all group ${showSettings ? 'bg-blue-600/20 text-blue-400' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
-                        title="Global Environment Settings"
-                    >
-                        <Settings className="w-3.5 h-3.5" />
-                    </button>
-
-                    <div className="w-px h-4 bg-white/10 mx-1" />
-
-                    {/* Global Logout */}
-                    <button
-                        onClick={logout}
-                        className="h-7 w-8 hover:bg-red-500/20 rounded-lg flex items-center justify-center text-white/40 hover:text-red-400 transition-all group"
-                        title="Secure Logout"
-                    >
-                        <LogOut className="w-3.5 h-3.5" />
-                    </button>
-                </div>
-            </div>
-
-            {/* View Switcher Dropdown */}
-            <AnimatePresence>
-                {showAgencyPicker && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -20, x: '-50%' }}
-                        animate={{ opacity: 1, y: 0, x: '-50%' }}
-                        exit={{ opacity: 0, y: -20, x: '-50%' }}
-                        className="fixed top-12 left-1/2 z-[110] bg-black/90 border border-white/20 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200"
-                    >
-                        <div className="flex items-center gap-4 text-white">
-                            <button
-                                onClick={() => toggleAgencyView('cyber')}
-                                className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
-                            >
-                                <Layout className="w-6 h-6" />
-                                <span className="text-xs font-bold uppercase">Cyber</span>
-                            </button>
-                            <button
-                                onClick={() => toggleAgencyView('tactical')}
-                                className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
-                            >
-                                <Layout className="w-6 h-6" />
-                                <span className="text-xs font-bold uppercase">Tactical</span>
-                            </button>
-                            <button
-                                onClick={() => toggleAgencyView('strategic')}
-                                className="flex flex-col items-center gap-2 p-3 rounded-lg border border-transparent hover:bg-white/10 text-white/60 hover:text-white transition-all"
-                            >
-                                <Layout className="w-6 h-6" />
-                                <span className="text-xs font-bold uppercase">Strategic</span>
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <UserMenu
+                user={user}
+                onLogout={logout}
+                showMenu={showUserMenu}
+            />
 
             {/* Global Environment Settings Modal */}
             <AnimatePresence>
                 {showSettings && (
                     <motion.div
-                        initial={{ opacity: 0, y: -20, x: '-50%' }}
-                        animate={{ opacity: 1, y: 0, x: '-50%' }}
-                        exit={{ opacity: 0, y: -20, x: '-50%' }}
-                        className="fixed top-14 left-1/2 z-[110] w-[400px] glass-contrast rounded-xl border border-blue-500/30 p-6 shadow-2xl backdrop-blur-xl"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="fixed top-20 right-6 z-[110] w-[300px] bg-black/95 border border-white/10 rounded-xl p-6 shadow-2xl backdrop-blur-xl"
                     >
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-2">
                                 <Settings className="w-4 h-4 text-blue-400" />
-                                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Environment Config</h3>
+                                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Config</h3>
                             </div>
                             <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white">✕</button>
                         </div>
 
                         <div className="space-y-6">
-                            {/* Theme Selection */}
                             <div>
                                 <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Display Mode</h4>
                                 <div className="grid grid-cols-5 gap-2">
@@ -280,19 +267,17 @@ export default function AgencyPortalPage() {
                                         <button
                                             key={theme.id}
                                             onClick={() => updateDisplayMode(theme.id as any)}
-                                            className={`h-10 rounded border flex flex-col items-center justify-center transition-all ${displayMode === theme.id ? 'border-blue-500 bg-blue-600/10 shadow-[0_0_15px_rgba(37,99,235,0.2)]' : 'border-white/10 hover:border-white/20'}`}
+                                            className={`h-8 rounded border flex flex-col items-center justify-center transition-all ${displayMode === theme.id ? 'border-blue-500 bg-blue-600/10' : 'border-white/10 hover:border-white/20'}`}
                                         >
-                                            <div className="w-2.5 h-2.5 rounded-full mb-1" style={{ backgroundColor: theme.color, border: '1px solid white' }} />
-                                            <span className="text-[7px] font-black text-white/60 uppercase">{theme.id}</span>
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.color, border: '1px solid white' }} />
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Watermark Selection */}
                             <div>
                                 <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Background Identity</h4>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-1 gap-2">
                                     {[
                                         { id: 'none', label: 'NONE' },
                                         { id: 'seal', label: 'COMMISSION SEAL' },
@@ -301,195 +286,148 @@ export default function AgencyPortalPage() {
                                         <button
                                             key={wm.id}
                                             onClick={() => updateWatermarkMode(wm.id as any)}
-                                            className={`py-3 rounded border transition-all ${watermarkMode === wm.id ? 'border-blue-500 bg-blue-600/10 text-blue-400' : 'border-white/10 text-white/40 hover:text-white/60'}`}
+                                            className={`py-2 rounded border transition-all text-left px-3 ${watermarkMode === wm.id ? 'border-blue-500 bg-blue-600/10 text-blue-400' : 'border-white/10 text-white/40 hover:text-white/60'}`}
                                         >
                                             <span className="text-[8px] font-black uppercase tracking-tighter">{wm.label}</span>
                                         </button>
                                     ))}
                                 </div>
                             </div>
-
-                            <div className="pt-4 border-t border-white/5">
-                                <p className="text-[7px] text-white/20 uppercase tracking-[0.3em] text-center">National Security Platform // Portal V2.0</p>
-                            </div>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 border-b border-slate-800 pb-6 gap-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20">
-                        <Shield className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl lg:text-3xl font-bold italic tracking-tight">{agencyName}</h1>
-                        <p className="text-slate-400 text-sm font-medium uppercase tracking-wide">Logistics & Asset Administration</p>
-                    </div>
-                </div>
+            <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 relative overflow-hidden p-8 pt-20">
+                {/* Action Toolbar (Centered & Unified) */}
+                <div className="lg:col-span-3 flex justify-center mb-6">
+                    <div className="glass-card-premium p-1.5 rounded-2xl border-white/10 flex items-center gap-4 shadow-2xl backdrop-blur-xl">
 
-                <div className="flex flex-col md:flex-row items-center gap-6 w-full lg:w-auto">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center bg-slate-900 p-1 rounded-lg border border-slate-800">
+                        {/* View Toggles */}
+                        <div className="flex bg-white/5 dark:bg-black/40 rounded-xl p-1 gap-1">
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold uppercase transition-all ${viewMode === 'list'
-                                    ? 'bg-blue-600 text-white shadow-lg'
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'list'
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                                     }`}
                             >
-                                <List className="w-4 h-4" />
-                                List
+                                <List className="w-3.5 h-3.5" />
+                                Index
                             </button>
                             <button
                                 onClick={() => setViewMode('map')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold uppercase transition-all ${viewMode === 'map'
-                                    ? 'bg-blue-600 text-white shadow-lg'
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'map'
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                                     }`}
                             >
-                                <MapIcon className="w-4 h-4" />
-                                Map
+                                <MapIcon className="w-3.5 h-3.5" />
+                                Spatial
                             </button>
                         </div>
-                    </div>
 
-                    <button
-                        onClick={() => setShowAssetForm(!showAssetForm)}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium transition-all shadow-lg shadow-blue-900/20 w-full md:w-auto justify-center"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Deploy New Asset
-                    </button>
+                        {/* Divider */}
+                        <div className="w-px h-8 bg-white/10" />
 
-                    <div className="hidden md:flex items-center gap-4 pl-6 border-l border-slate-800">
-                        <div className="text-right">
-                            <p className="text-sm font-bold text-slate-200">{user.full_name || user.phone_number}</p>
-                            <div className="flex items-center justify-end gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-                                    {user.role}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="relative">
+                        {/* Actions */}
+                        <div className="flex items-center gap-3 pr-2">
                             <button
-                                onClick={() => setShowUserMenu(!showUserMenu)}
-                                className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all cursor-pointer ${showUserMenu ? 'border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'}`}
+                                onClick={() => setShowAssetForm(!showAssetForm)}
+                                className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-6 py-2 rounded-lg flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all group"
                             >
-                                <User className="w-5 h-5" />
+                                <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
+                                Deploy_Asset
                             </button>
 
-                            {showUserMenu && (
-                                <div className="absolute top-12 right-0 w-64 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-4 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
-                                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-800">
-                                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
-                                            <Shield className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-white font-bold text-sm tracking-tight">{user.full_name || 'Anonymous'}</p>
-                                            <p className="text-blue-400 text-[10px] uppercase font-bold tracking-wider">{user.role}</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <button
-                                            onClick={() => {
-                                                setShowUserMenu(false);
-                                                // Link to profile view if needed
-                                            }}
-                                            className="w-full text-left text-xs text-slate-400 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-all font-medium"
-                                        >
-                                            Personnel Profile
-                                        </button>
-                                        <button
-                                            onClick={logout}
-                                            className="w-full text-left text-xs text-red-500 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-all font-bold mt-2"
-                                        >
-                                            Terminate Session
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+                            <button
+                                onClick={togglePanicMode}
+                                className={`px-6 py-2 rounded-lg flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all border ${isPanicMode
+                                    ? 'bg-red-600 text-white border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.6)] animate-pulse'
+                                    : 'bg-white/5 text-slate-400 hover:text-red-400 border-transparent hover:border-red-500/30 hover:bg-red-500/10'
+                                    }`}
+                            >
+                                <AlertTriangle className={`w-3.5 h-3.5 ${isPanicMode ? 'animate-bounce' : ''}`} />
+                                {isPanicMode ? 'PANIC_ACTIVE' : 'PANIC'}
+                            </button>
                         </div>
+
                     </div>
                 </div>
-            </header>
 
-
-            <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 relative overflow-hidden">
                 {/* Asset Form Panel - Sliding Overlay on Mobile or Sidebar on Desktop */}
                 {showAssetForm && (
-                    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center lg:static lg:bg-transparent lg:block lg:col-span-1">
+                    <div className="fixed inset-0 z-[115] bg-black/80 backdrop-blur-md flex items-center justify-center lg:static lg:bg-transparent lg:block lg:col-span-1">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl w-full max-w-md lg:max-w-none"
+                            className="glass-card-premium p-8 w-full max-w-md lg:max-w-none border-blue-500/20"
                         >
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-lg font-bold flex items-center gap-2">
-                                    <Navigation className="w-5 h-5 text-blue-400" />
-                                    New Asset Deployment
+                            <div className="flex justify-between items-center mb-8">
+                                <h2 className="text-sm font-black flex items-center gap-3 uppercase tracking-widest text-slate-900 dark:text-white">
+                                    <Navigation className="w-5 h-5 text-blue-500" />
+                                    Deployment Interface
                                 </h2>
-                                <button onClick={() => setShowAssetForm(false)} className="lg:hidden text-slate-400 hover:text-white">
+                                <button onClick={() => setShowAssetForm(false)} className="lg:hidden text-slate-400 hover:text-white transition-all">
                                     <LogOut className="w-5 h-5 rotate-180" />
                                 </button>
                             </div>
 
-                            <form onSubmit={handleCreateAsset} className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Asset Name</label>
+                            <form onSubmit={handleCreateAsset} className="space-y-5">
+                                <div className="space-y-2">
+                                    <label className="block text-[9px] font-black text-slate-500 dark:text-white/20 uppercase tracking-[0.25em] pl-1">Asset Designation</label>
                                     <input
                                         type="text"
                                         required
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm focus:border-blue-500 outline-none"
-                                        placeholder="e.g. Alpha Patrol Unit 1"
+                                        className="w-full bg-white/5 dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 text-[11px] font-black uppercase tracking-widest focus:border-blue-500/50 outline-none dark:text-white transition-all shadow-inner"
+                                        placeholder="ALPHA_PATROL_01"
                                         value={newAsset.name}
                                         onChange={e => setNewAsset({ ...newAsset, name: e.target.value })}
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[9px] font-black text-slate-500 dark:text-white/20 uppercase tracking-[0.25em] pl-1">Resource Type</label>
                                         <select
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm focus:border-blue-500 outline-none"
+                                            className="w-full bg-white/5 dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 text-[11px] font-black uppercase tracking-widest focus:border-blue-500/50 outline-none text-slate-900 dark:text-white appearance-none cursor-pointer shadow-inner"
                                             value={newAsset.type}
                                             onChange={e => setNewAsset({ ...newAsset, type: e.target.value })}
                                         >
-                                            <option value="PATROL_VEHICLE">Patrol Vehicle</option>
-                                            <option value="STATION">Station / HQ</option>
-                                            <option value="CHECKPOINT">Checkpoint</option>
-                                            <option value="AMBULANCE">Ambulance</option>
-                                            <option value="FIRE_TRUCK">Fire Truck</option>
+                                            <option value="PATROL_VEHICLE">Vehicle</option>
+                                            <option value="STATION">HQ Node</option>
+                                            <option value="CHECKPOINT">Sentinel</option>
+                                            <option value="AMBULANCE">Medical</option>
+                                            <option value="FIRE_TRUCK">Tactical</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Call Sign</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[9px] font-black text-slate-500 dark:text-white/20 uppercase tracking-[0.25em] pl-1">IDENT_Code</label>
                                         <input
                                             type="text"
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm focus:border-blue-500 outline-none"
-                                            placeholder="e.g. RED-1"
+                                            className="w-full bg-white/5 dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 text-[11px] font-black uppercase tracking-widest focus:border-blue-500/50 outline-none dark:text-white transition-all shadow-inner"
+                                            placeholder="RED-1"
                                             value={newAsset.call_sign}
                                             onChange={e => setNewAsset({ ...newAsset, call_sign: e.target.value })}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Lat</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[9px] font-black text-slate-500 dark:text-white/20 uppercase tracking-[0.25em] pl-1">Lat_Vect</label>
                                         <input
                                             type="number"
                                             step="0.0001"
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm focus:border-blue-500 outline-none"
+                                            className="w-full bg-white/5 dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 text-[11px] font-black uppercase tracking-widest focus:border-blue-500/50 outline-none dark:text-white transition-all shadow-inner"
                                             value={newAsset.latitude}
                                             onChange={e => setNewAsset({ ...newAsset, latitude: parseFloat(e.target.value) })}
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Lng</label>
+                                    <div className="space-y-2">
+                                        <label className="block text-[9px] font-black text-slate-500 dark:text-white/20 uppercase tracking-[0.25em] pl-1">Long_Vect</label>
                                         <input
                                             type="number"
                                             step="0.0001"
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm focus:border-blue-500 outline-none"
+                                            className="w-full bg-white/5 dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 text-[11px] font-black uppercase tracking-widest focus:border-blue-500/50 outline-none dark:text-white transition-all shadow-inner"
                                             value={newAsset.longitude}
                                             onChange={e => setNewAsset({ ...newAsset, longitude: parseFloat(e.target.value) })}
                                         />
@@ -497,10 +435,10 @@ export default function AgencyPortalPage() {
                                 </div>
                                 <button
                                     type="submit"
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all mt-4"
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl flex items-center justify-center gap-3 transition-all mt-4 uppercase text-[10px] tracking-[0.3em] shadow-[0_10px_20px_rgba(37,99,235,0.3)] border border-blue-400/30"
                                 >
                                     <Save className="w-4 h-4" />
-                                    Confirm Deployment
+                                    Authorize_Deployment
                                 </button>
                             </form>
                         </motion.div>
@@ -508,47 +446,125 @@ export default function AgencyPortalPage() {
                 )}
 
                 {/* Main Content Area */}
-                <div className={showAssetForm ? "lg:col-span-2 relative" : "lg:col-span-3 relative"}>
+                <div className={`${showAssetForm ? "lg:col-span-2" : "lg:col-span-3"} space-y-8 h-full`}>
+                    {/* Mission Control Section */}
+                    {viewMode === 'list' && (
+                        <div className="glass-card-premium p-8 border-emerald-500/20">
+                            <h2 className="text-sm font-black mb-6 flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-widest">
+                                <Activity className="w-5 h-5 text-emerald-500" />
+                                Active_Mission_Control
+                                <div className="ml-auto flex items-center gap-3">
+                                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                        <span className="text-emerald-500 text-[9px] font-black tracking-widest">LIVE</span>
+                                    </div>
+                                    <span className="bg-emerald-500/10 text-emerald-500 text-[9px] font-black px-3 py-1 rounded-lg border border-emerald-500/20 tracking-widest">
+                                        {missions.length} LIVE_OPS
+                                    </span>
+                                </div>
+                            </h2>
+
+                            {isMissionsLoading && missions.length === 0 ? (
+                                <div className="h-24 flex items-center justify-center">
+                                    <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                                </div>
+                            ) : missions.length === 0 ? (
+                                <div className="py-12 bg-emerald-500/5 rounded-2xl border border-dashed border-emerald-500/20 flex flex-col items-center justify-center gap-3">
+                                    <Shield className="w-8 h-8 text-emerald-500/20" />
+                                    <p className="text-[9px] font-black uppercase text-emerald-500/40 tracking-[0.2em]">All sectors quiet. No active missions assigned.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4">
+                                    {missions.map(mission => (
+                                        <div key={mission.id} className="bg-white/5 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl p-4 hover:border-emerald-500/30 transition-all group">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                                                        <Navigation className="w-4 h-4" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tighter">OP_{mission.id.slice(0, 6)}</p>
+                                                        <p className="text-[8px] text-slate-400 dark:text-white/40 uppercase font-black">{mission.priority} PRIORITY</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-md border tracking-widest ${mission.status === 'ASSIGNED' ? 'bg-blue-500/20 text-blue-500 border-blue-500/20' :
+                                                        mission.status === 'EN_ROUTE' ? 'bg-amber-500/20 text-amber-500 border-amber-500/20' :
+                                                            'bg-emerald-500/20 text-emerald-500 border-emerald-500/20'
+                                                        }`}>
+                                                        {mission.status}
+                                                    </span>
+                                                    {mission.eta_minutes !== null && (
+                                                        <p className="text-[8px] text-slate-400 dark:text-white/30 font-mono mt-1">ETA: {mission.eta_minutes}m</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2 mt-4">
+                                                <button
+                                                    onClick={async () => {
+                                                        const nextStatus = mission.status === 'ASSIGNED' ? 'EN_ROUTE' : 'ON_SITE';
+                                                        if (mission.status === 'ON_SITE') return;
+                                                        await updateMissionStatus(mission.id, nextStatus);
+                                                        loadMissions();
+                                                    }}
+                                                    className={`flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${mission.status === 'ON_SITE'
+                                                        ? 'bg-emerald-500/10 text-emerald-500 cursor-default'
+                                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20'
+                                                        }`}
+                                                >
+                                                    {mission.status === 'ASSIGNED' ? 'Advance_Route' : mission.status === 'EN_ROUTE' ? 'Confirm_Arrival' : 'Mission_Active'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* View: LIST */}
                     {viewMode === 'list' && (
-                        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 h-full min-h-[500px]">
-                            <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-slate-300">
-                                <Activity className="w-5 h-5 text-emerald-400" />
-                                Active Fleet & Resources
-                                <span className="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full ml-2">
-                                    {assets.length} Units
+                        <div className="glass-card-premium p-8 h-full min-h-[500px]">
+                            <h2 className="text-sm font-black mb-8 flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-widest">
+                                <Activity className="w-5 h-5 text-emerald-500" />
+                                Fleet_Resource_Manifest
+                                <span className="bg-blue-500/10 text-blue-500 text-[9px] font-black px-3 py-1 rounded-lg border border-blue-500/20 ml-auto tracking-widest">
+                                    {assets.length} UNITS_SYNCED
                                 </span>
                             </h2>
 
                             {isLoading ? (
-                                <div className="text-center py-20 text-slate-500">Loading Fleet Data...</div>
+                                <div className="h-48 flex flex-col items-center justify-center gap-4">
+                                    <div className="w-8 h-8 border-2 border-slate-200 dark:border-white/10 border-t-blue-500 rounded-full animate-spin" />
+                                    <span className="text-[10px] text-slate-500 dark:text-white/40 font-black uppercase tracking-widest animate-pulse">Querying Central Hub...</span>
+                                </div>
                             ) : assets.length === 0 ? (
-                                <div className="text-center py-20 bg-slate-950/30 rounded-xl border border-dashed border-slate-800">
-                                    <Truck className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-                                    <p className="text-slate-500">No assets deployed yet.</p>
+                                <div className="text-center py-24 bg-white/5 dark:bg-black/20 rounded-2xl border border-dashed border-slate-200 dark:border-white/10">
+                                    <Truck className="w-12 h-12 text-slate-300 dark:text-white/10 mx-auto mb-4" />
+                                    <p className="text-[10px] font-black uppercase text-slate-400 dark:text-white/20 tracking-widest">No active deployments found in sector.</p>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                     {assets.map((asset) => (
-                                        <div key={asset.id} className="bg-slate-950 border border-slate-800 hover:border-slate-700 p-4 rounded-xl transition-all group">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="bg-slate-900 p-2 rounded-lg text-slate-400 group-hover:text-blue-400 transition-colors">
+                                        <div key={asset.id} className="glass-card-premium p-6 hover:scale-[1.02] border-white/5">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="bg-blue-500/10 p-2.5 rounded-xl text-blue-500 border border-blue-500/20 group-hover:scale-110 transition-transform">
                                                     {asset.type === 'STATION' ? <Building2 className="w-5 h-5" /> :
                                                         asset.type === 'CHECKPOINT' ? <MapPin className="w-5 h-5" /> :
                                                             <Truck className="w-5 h-5" />}
                                                 </div>
-                                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${asset.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg border uppercase tracking-widest shadow-sm ${asset.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                                     }`}>
                                                     {asset.status}
                                                 </span>
                                             </div>
-                                            <h3 className="font-bold text-slate-200 mb-1">{asset.name}</h3>
-                                            <p className="text-xs text-slate-500 line-clamp-2">{asset.description || 'No operational details logged.'}</p>
+                                            <h3 className="font-black text-slate-900 dark:text-white mb-1.5 uppercase tracking-tight text-sm">{(asset.name || 'UNNAMED_ASSET')}</h3>
+                                            <p className="text-[10px] text-slate-500 dark:text-white/40 line-clamp-2 font-medium italic">{(asset.description || 'No operational details logged by agency.')}</p>
 
-                                            <div className="mt-4 pt-3 border-t border-slate-900 flex justify-between items-center text-xs text-slate-600 font-mono">
-                                                <span>OP: {asset.capacity_level}%</span>
-                                                <span>ID: {asset.id.slice(0, 8)}</span>
+                                            <div className="mt-5 pt-4 border-t border-white/10 flex justify-between items-center text-[9px] text-slate-400 dark:text-white/20 font-black font-mono tracking-widest uppercase">
+                                                <span className="flex items-center gap-1.5"><span className="w-1 h-1 bg-blue-500 rounded-full" /> CAP: {asset.capacity_level}%</span>
+                                                <span className="opacity-50">NODE_{asset.id.slice(0, 8)}</span>
                                             </div>
                                         </div>
                                     ))}
@@ -559,16 +575,15 @@ export default function AgencyPortalPage() {
 
                     {/* View: MAP */}
                     {viewMode === 'map' && (
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden h-full min-h-[500px]">
+                        <div className="glass-card-premium overflow-hidden h-full min-h-[500px]">
                             <MapboxMap
                                 alerts={[]}
                                 resources={assets}
                                 mode="tactical"
-                                primaryColor="#3B82F6" // Police Blue
+                                primaryColor="#3B82F6"
                             />
                         </div>
                     )}
-
                 </div>
             </main>
         </div>

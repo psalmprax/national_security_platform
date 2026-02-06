@@ -490,7 +490,7 @@ export async function createPublicAlert(alert: Partial<PublicAlert>): Promise<Pu
         });
 
         if (!response.ok) return null;
-        return await response.json();
+        return (await response.json()) || null;
     } catch (error) {
         console.error('Failed to create public alert:', error);
         return null;
@@ -519,7 +519,7 @@ export async function fetchSafetyScores(riskLevel?: string): Promise<SafetyScore
         const response = await apiFetch(urlPath);
 
         if (!response.ok) return [];
-        return await response.json();
+        return (await response.json()) || [];
     } catch (error) {
         console.error('Failed to fetch safety scores:', error);
         return [];
@@ -531,7 +531,7 @@ export async function fetchSafetyScoresSummary(): Promise<any> {
         const response = await apiFetch(`/api/v1/analytics/safety-scores/summary`);
 
         if (!response.ok) return null;
-        return await response.json();
+        return (await response.json()) || null;
     } catch (error) {
         console.error('Failed to fetch safety score summary:', error);
         return null;
@@ -554,7 +554,7 @@ export async function fetchAnonymousTips(): Promise<AnonymousTip[]> {
         const response = await apiFetch(`/api/v1/tips`);
 
         if (!response.ok) return [];
-        return await response.json();
+        return (await response.json()) || [];
     } catch (error) {
         console.error('Failed to fetch tips:', error);
         return [];
@@ -563,9 +563,10 @@ export async function fetchAnonymousTips(): Promise<AnonymousTip[]> {
 
 export async function verifyTip(tipId: string, status: 'verified' | 'rejected'): Promise<boolean> {
     try {
+        const action = status === 'verified' ? 'verify' : 'reject';
         const response = await apiFetch(`/api/v1/tips/${tipId}/verify`, {
             method: 'POST',
-            body: JSON.stringify({ status }),
+            body: JSON.stringify({ action }),
         });
 
         return response.ok;
@@ -616,7 +617,7 @@ export async function fetchAuditLogs(): Promise<AuditEntry[]> {
     try {
         const response = await apiFetch('/api/v1/admin/audit-logs');
         if (!response.ok) return [];
-        return await response.json();
+        return (await response.json()) || [];
     } catch (error) {
         console.error('Failed to fetch audit logs:', error);
         return [];
@@ -627,7 +628,7 @@ export async function fetchRoles(): Promise<Role[]> {
     try {
         const response = await apiFetch('/api/v1/admin/roles');
         if (!response.ok) return [];
-        return await response.json();
+        return (await response.json()) || [];
     } catch (error) {
         console.error('Failed to fetch roles:', error);
         return [];
@@ -638,7 +639,7 @@ export async function fetchPermissions(): Promise<Permission[]> {
     try {
         const response = await apiFetch('/api/v1/admin/permissions');
         if (!response.ok) return [];
-        return await response.json();
+        return (await response.json()) || [];
     } catch (error) {
         console.error('Failed to fetch permissions:', error);
         return [];
@@ -649,7 +650,7 @@ export async function fetchAllUsers(): Promise<any[]> {
     try {
         const response = await apiFetch('/api/v1/admin/users');
         if (!response.ok) return [];
-        return await response.json();
+        return (await response.json()) || [];
     } catch (error) {
         console.error('Failed to fetch all users:', error);
         return [];
@@ -676,7 +677,7 @@ export async function createRole(name: string, permissions: string[]): Promise<R
             body: JSON.stringify({ name, permissions }),
         });
         if (!response.ok) return null;
-        return await response.json();
+        return (await response.json()) || null;
     } catch (error) {
         console.error('Failed to create role:', error);
         return null;

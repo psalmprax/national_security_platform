@@ -213,15 +213,22 @@ func main() {
 		// Phase 1 Features: Protected Endpoints
 		handlers.RegisterPublicAlertRoutes(r, h)
 		handlers.RegisterSafetyScoreRoutes(r, h)
+		handlers.RegisterAdminTipRoutes(r, h)
 
-		// Agency & Asset Management
-		r.Post("/api/v1/assets/{id}/dispatch", agency.DispatchAssetHandler)
-		r.Post("/api/v1/alerts/{id}/verify", handleVerifyAlert)
+		// Agency & Asset Management (Agency/Tactical Roles)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireAnyRole("ADMIN", "AGENCY_OFFICER", "TACTICAL_COMMAND", "SECURITY_OFFICER", "SYSTEM_ADMIN"))
+			r.Post("/api/v1/assets/{id}/dispatch", agency.DispatchAssetHandler)
+			r.Post("/api/v1/alerts/{id}/verify", handleVerifyAlert)
+		})
 
-		// Missions
-		r.Post("/api/v1/missions", handleCreateMission)
-		r.Get("/api/v1/missions/active", handleGetActiveMissions)
-		r.Patch("/api/v1/missions/{id}/status", handleUpdateMissionStatus)
+		// Missions (High-Privilege Tactical Roles)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RequireAnyRole("ADMIN", "TACTICAL_COMMAND", "SECURITY_OFFICER", "SYSTEM_ADMIN"))
+			r.Post("/api/v1/missions", handleCreateMission)
+			r.Get("/api/v1/missions/active", handleGetActiveMissions)
+			r.Patch("/api/v1/missions/{id}/status", handleUpdateMissionStatus)
+		})
 
 		// Onboarding (authenticated/verified)
 		r.Post("/api/v1/auth/onboard", handleOnboard)
@@ -259,7 +266,7 @@ func main() {
 	// --- AGENCY & ASSET MANAGEMENT (Shared Admin/Operations) ---
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware)
-		r.Use(middleware.RequireAnyRole("ADMIN", "SYSTEM_ADMIN", "SECURITY_OFFICER", "TACTICAL_COMMAND"))
+		r.Use(middleware.RequireAnyRole("ADMIN", "SYSTEM_ADMIN", "SECURITY_OFFICER", "TACTICAL_COMMAND", "AGENCY_OFFICER"))
 
 		r.Post("/api/v1/agencies", agency.RegisterAgencyHandler)
 		r.Get("/api/v1/assets", agency.ListAssetsHandler)

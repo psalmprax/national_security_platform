@@ -62,8 +62,11 @@ func (h *Handler) CreatePublicAlert(w http.ResponseWriter, r *http.Request) {
 	// Authorization: Only specific roles can create public alerts
 	allowedRoles := map[string]bool{
 		"ADMIN":             true,
+		"SYSTEM_ADMIN":      true,
+		"SECURITY_OFFICER":  true,
 		"TACTICAL_COMMAND":  true,
 		"STRATEGIC_PLANNER": true,
+		"CYBER_ANALYST":     true,
 	}
 
 	if !allowedRoles[userRole] {

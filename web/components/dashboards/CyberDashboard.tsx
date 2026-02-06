@@ -340,7 +340,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
             `}</style>
 
             <div className="relative z-10 w-full h-full">
-                <div className="flex w-full h-full bg-[#050505]/60 text-zinc-100 font-mono overflow-hidden cyber-grid cyber-grid-animate" data-theme={displayMode}>
+                <div className="flex w-full h-full bg-transparent text-zinc-100 font-mono overflow-hidden cyber-grid cyber-grid-animate" data-theme={displayMode}>
                     {/* Aesthetic Scanline Overlay */}
                     <div className="absolute inset-0 pointer-events-none cyber-scanline z-50 opacity-20" />
                     {/* Left Utility Bar */}
