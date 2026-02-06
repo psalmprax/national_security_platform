@@ -11,7 +11,7 @@ services:
       - PORT=8080
       - GRPC_PORT=50051
       - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
-      - NATS_URL=nats://nats_token@nats:4222
+      - NATS_URL=nats://${NATS_TOKEN:-nats_token_change_immediately}@nats:4222
       - INTELLIGENCE_SERVICE_URL=intelligence-service:50051
       - JWT_SECRET=${JWT_SECRET}
       - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY}
@@ -39,7 +39,7 @@ services:
       - "8000:8000"
     environment:
       - ENV=development
-      - NATS_URL=nats://nats_token@nats:4222
+      - NATS_URL=nats://${NATS_TOKEN:-nats_token_change_immediately}@nats:4222
       - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     depends_on:
@@ -54,9 +54,10 @@ services:
   cockroachdb:
     image: cockroachdb/cockroach:latest-v23.1
     command: start-single-node --insecure
-    ports:
-      - "26257:26257"
-      - "8081:8080" # UI exposed on 8081 to avoid conflict with Core API
+    # Ports removed: Database only accessible through internal network
+    # ports:
+    #   - "26257:26257"
+    #   - "8081:8080"
     volumes:
       - cockroach_data:/cockroach/cockroach-data
     healthcheck:
@@ -85,8 +86,8 @@ services:
       - "9000:9000" # API
       - "9001:9001" # Console
     environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=password123
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-change_this_password_123}
     volumes:
       - minio_data:/data
     networks:
@@ -95,7 +96,7 @@ services:
   # NATS JetStream (Message Bus)
   nats:
     image: nats:alpine
-    command: "--js --sd=/data --auth nats_token"
+    command: "--js --sd=/data --auth ${NATS_TOKEN:-nats_token_change_immediately}"
     ports:
       - "4222:4222" # Client
       - "8222:8222" # Monitoring

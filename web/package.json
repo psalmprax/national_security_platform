@@ -9,13 +9,14 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@next/swc-linux-x64-gnu": "^15.5.7",
         "date-fns": "^3.3.1",
         "eslint": "^6.4.0",
         "framer-motion": "^11.18.2",
         "jose": "^5.2.2",
         "lucide-react": "^0.474.0",
         "mapbox-gl": "^3.1.2",
-        "next": "15.5.11",
+        "next": "^15.5.11",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "react-draggable": "^4.5.0",

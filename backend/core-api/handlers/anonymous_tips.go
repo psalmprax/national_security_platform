@@ -133,9 +133,13 @@ func (h *Handler) GetAnonymousTips(w http.ResponseWriter, r *http.Request) {
 	// Authorization: Only analysts can review tips
 	userRole, _ := r.Context().Value(middleware.UserRoleKey).(string)
 	allowedRoles := map[string]bool{
-		"ADMIN":            true,
-		"CYBER_ANALYST":    true,
-		"TACTICAL_COMMAND": true,
+		"ADMIN":             true,
+		"SYSTEM_ADMIN":      true,
+		"SECURITY_OFFICER":  true,
+		"CYBER_ANALYST":     true,
+		"TACTICAL_COMMAND":  true,
+		"STRATEGIC_PLANNER": true,
+		"AGENCY_OFFICER":    true,
 	}
 
 	if !allowedRoles[userRole] {
@@ -213,6 +217,20 @@ func (h *Handler) VerifyTip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Authorization
+	userRole, _ := r.Context().Value(middleware.UserRoleKey).(string)
+	allowedRoles := map[string]bool{
+		"ADMIN":            true,
+		"SYSTEM_ADMIN":     true,
+		"CYBER_ANALYST":    true,
+		"TACTICAL_COMMAND": true,
+	}
+
+	if !allowedRoles[userRole] {
+		http.Error(w, "Insufficient permissions", http.StatusForbidden)
+		return
+	}
+
 	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
 
 	if req.Action == "verify" {
@@ -274,12 +292,14 @@ func getClientIP(r *http.Request) string {
 	return strings.Split(r.RemoteAddr, ":")[0]
 }
 
-// RegisterAnonymousTipRoutes registers tip endpoints
+// RegisterAnonymousTipRoutes registers ONLY public tip endpoints
 func RegisterAnonymousTipRoutes(r chi.Router, h *Handler) {
 	// Public endpoint (no auth required)
 	r.Post("/api/v1/tips/submit", h.SubmitAnonymousTip)
+}
 
-	// Protected endpoints (auth required)
+// RegisterAdminTipRoutes registers protected tip endpoints for analysts
+func RegisterAdminTipRoutes(r chi.Router, h *Handler) {
 	r.Get("/api/v1/tips", h.GetAnonymousTips)
 	r.Post("/api/v1/tips/{id}/verify", h.VerifyTip)
 }

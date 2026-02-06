@@ -33,7 +33,7 @@ export default function SafetyLeaderboard() {
         setSortConfig({ key, direction });
     };
 
-    const sortedScores = [...scores]
+    const sortedScores = [...(scores || [])]
         .filter(s =>
             s.lga_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             s.state_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -60,7 +60,7 @@ export default function SafetyLeaderboard() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-black/40 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden">
+        <div className="flex flex-col h-full glass-card-premium overflow-hidden border-none shadow-2xl">
             {/* Header */}
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -68,17 +68,17 @@ export default function SafetyLeaderboard() {
                         <Shield className="w-5 h-5 text-cyan-400" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-black text-white uppercase tracking-wider">Safety Leaderboard</h3>
-                        <p className="text-[10px] text-white/40 font-mono uppercase">National Security Index</p>
+                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Safety Leaderboard</h3>
+                        <p className="text-[10px] text-slate-500 dark:text-white/40 font-black uppercase tracking-widest font-mono">National Security Index</p>
                     </div>
                 </div>
 
                 <div className="relative">
-                    <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-3.5 h-3.5 text-slate-400 dark:text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                         type="text"
-                        placeholder="SEARCH LOCAL GOV..."
-                        className="bg-black/60 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-[10px] text-white font-mono uppercase focus:border-cyan-500/50 outline-none w-48 transition-all"
+                        placeholder="SEARCH_LGA..."
+                        className="bg-white/5 dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-lg pl-10 pr-4 py-2 text-[10px] text-slate-900 dark:text-white font-black uppercase tracking-widest focus:border-blue-500/50 outline-none w-48 transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -98,33 +98,33 @@ export default function SafetyLeaderboard() {
                     </div>
                 ) : (
                     <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 bg-[#0A0A0A]/95 z-10">
-                            <tr className="border-b border-white/5">
-                                <th onClick={() => handleSort('lga_name')} className="p-4 text-[10px] font-bold text-white/40 uppercase cursor-pointer hover:text-white transition-colors">
+                        <thead className="sticky top-0 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10 border-b border-slate-200 dark:border-white/10">
+                            <tr className="border-none">
+                                <th onClick={() => handleSort('lga_name')} className="p-4 text-[10px] font-black text-slate-400 dark:text-white/30 uppercase cursor-pointer hover:text-blue-500 transition-colors tracking-widest">
                                     <div className="flex items-center gap-2">LGA / State <ArrowUpDown className="w-3 h-3" /></div>
                                 </th>
-                                <th onClick={() => handleSort('safety_score')} className="p-4 text-[10px] font-bold text-white/40 uppercase text-center cursor-pointer hover:text-white transition-colors">
+                                <th onClick={() => handleSort('safety_score')} className="p-4 text-[10px] font-black text-slate-400 dark:text-white/30 uppercase text-center cursor-pointer hover:text-blue-500 transition-colors tracking-widest">
                                     <div className="flex items-center justify-center gap-2">Index <ArrowUpDown className="w-3 h-3" /></div>
                                 </th>
-                                <th className="p-4 text-[10px] font-bold text-white/40 uppercase text-right">Trend</th>
+                                <th className="p-4 text-[10px] font-black text-slate-400 dark:text-white/30 uppercase text-right tracking-widest">Trend</th>
                             </tr>
                         </thead>
                         <tbody>
                             {sortedScores.map((s, idx) => (
-                                <tr key={s.lga_code} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                                <tr key={s.lga_code} className="border-b border-slate-200/10 dark:border-white/5 hover:bg-blue-500/5 transition-colors group">
                                     <td className="p-4">
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-white tracking-tight">{s.lga_name}</span>
-                                            <span className="text-[10px] text-white/40 uppercase font-mono">{s.state_name}</span>
+                                            <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight uppercase">{s.lga_name}</span>
+                                            <span className="text-[10px] text-slate-500 dark:text-white/30 uppercase font-black tracking-widest opacity-60 font-mono">{s.state_name}</span>
                                         </div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex flex-col items-center gap-1">
-                                            <div className={`px-2 py-0.5 rounded text-[10px] font-black border uppercase ${getRiskStyles(s.risk_level)}`}>
+                                            <div className={`px-3 py-1 rounded-lg text-[10px] font-black border uppercase transition-all group-hover:scale-110 ${getRiskStyles(s.risk_level)}`}>
                                                 {s.safety_score}%
                                             </div>
-                                            <span className="text-[8px] text-white/20 uppercase font-bold tracking-tighter truncate max-w-[80px]">
-                                                {s.risk_level.replace('_', ' ')}
+                                            <span className="text-[8px] text-slate-400 dark:text-white/20 uppercase font-black tracking-widest truncate max-w-[80px]">
+                                                {s.risk_level.replace(/_/g, ' ')}
                                             </span>
                                         </div>
                                     </td>
@@ -142,19 +142,20 @@ export default function SafetyLeaderboard() {
             </div>
 
             {/* Footer Statistics */}
-            <div className="p-4 bg-white/5 flex items-center justify-between text-[9px] font-mono text-white/40">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span className="uppercase">Safe LGAs</span>
+            <div className="p-4 bg-white/5 border-t border-white/10 flex items-center justify-between text-[9px] font-black font-mono text-slate-500 dark:text-white/30">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                        <span className="uppercase tracking-widest">Safe_Zones</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                        <span className="uppercase">Critical</span>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                        <span className="uppercase tracking-widest">Threat_Alert</span>
                     </div>
                 </div>
-                <div className="uppercase tracking-tighter">
-                    Last Computed: {new Date().toLocaleTimeString()}
+                <div className="uppercase tracking-widest flex items-center gap-2 italic">
+                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                    Last_Refresh: {new Date().toLocaleTimeString()}
                 </div>
             </div>
         </div>
