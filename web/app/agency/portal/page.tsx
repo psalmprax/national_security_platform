@@ -6,7 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
 import { UserRole } from '@/lib/auth';
 import { fetchSectorReport, Asset, Mission, fetchActiveMissions, updateMissionStatus } from '@/lib/api';
-import MapboxMap from '@/components/MapboxMap';
+import dynamic from 'next/dynamic';
+const MapboxMap = dynamic(() => import('@/components/MapboxMap'), { ssr: false });
+
 import UserMenu from '@/components/UserMenu';
 import CommandBar from '@/components/CommandBar';
 import Portal from '@/components/Portal';
