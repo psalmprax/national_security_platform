@@ -307,7 +307,7 @@ export default function AgencyPortalPage() {
                 )}
             </AnimatePresence>
 
-            <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 relative overflow-hidden p-8 pt-20">
+            <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 relative overflow-hidden p-8 pt-6">
                 {/* Action Toolbar (Centered & Unified) */}
                 <div className="lg:col-span-3 flex justify-center mb-6">
                     <div className="glass-card-premium p-1.5 rounded-2xl border-white/10 flex items-center gap-4 shadow-2xl backdrop-blur-xl">
