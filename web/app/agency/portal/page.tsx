@@ -9,6 +9,7 @@ import { fetchSectorReport, Asset, Mission, fetchActiveMissions, updateMissionSt
 import MapboxMap from '@/components/MapboxMap';
 import UserMenu from '@/components/UserMenu';
 import CommandBar from '@/components/CommandBar';
+import Portal from '@/components/Portal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -239,62 +240,70 @@ export default function AgencyPortalPage() {
             {/* Global Environment Settings Modal */}
             <AnimatePresence>
                 {showSettings && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="fixed top-20 right-6 z-[110] w-[300px] bg-black/95 border border-white/10 rounded-xl p-6 shadow-2xl backdrop-blur-xl"
-                    >
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-2">
-                                <Settings className="w-4 h-4 text-blue-400" />
-                                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Config</h3>
-                            </div>
-                            <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white">✕</button>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div>
-                                <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Display Mode</h4>
-                                <div className="grid grid-cols-5 gap-2">
-                                    {[
-                                        { id: 'dark', label: 'Dark', color: '#000000' },
-                                        { id: 'light', label: 'Light', color: '#ffffff' },
-                                        { id: 'contrast', label: 'Contrast', color: '#000000' },
-                                        { id: 'oled', label: 'OLED', color: '#000000' },
-                                        { id: 'terminal', label: 'Term', color: '#0a0a0a' }
-                                    ].map(theme => (
-                                        <button
-                                            key={theme.id}
-                                            onClick={() => updateDisplayMode(theme.id as any)}
-                                            className={`h-8 rounded border flex flex-col items-center justify-center transition-all ${displayMode === theme.id ? 'border-blue-500 bg-blue-600/10' : 'border-white/10 hover:border-white/20'}`}
-                                        >
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.color, border: '1px solid white' }} />
-                                        </button>
-                                    ))}
+                    <Portal>
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="fixed z-[9999] w-[300px] bg-black/95 border border-white/10 rounded-xl p-6 shadow-2xl backdrop-blur-xl"
+                            style={{
+                                top: '80px',
+                                right: '24px',
+                                position: 'fixed',
+                                left: 'auto'
+                            }}
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-2">
+                                    <Settings className="w-4 h-4 text-blue-400" />
+                                    <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Config</h3>
                                 </div>
+                                <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white">✕</button>
                             </div>
 
-                            <div>
-                                <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Background Identity</h4>
-                                <div className="grid grid-cols-1 gap-2">
-                                    {[
-                                        { id: 'none', label: 'NONE' },
-                                        { id: 'seal', label: 'COMMISSION SEAL' },
-                                        { id: 'coat_of_arms', label: 'COAT OF ARMS' }
-                                    ].map(wm => (
-                                        <button
-                                            key={wm.id}
-                                            onClick={() => updateWatermarkMode(wm.id as any)}
-                                            className={`py-2 rounded border transition-all text-left px-3 ${watermarkMode === wm.id ? 'border-blue-500 bg-blue-600/10 text-blue-400' : 'border-white/10 text-white/40 hover:text-white/60'}`}
-                                        >
-                                            <span className="text-[8px] font-black uppercase tracking-tighter">{wm.label}</span>
-                                        </button>
-                                    ))}
+                            <div className="space-y-6">
+                                <div>
+                                    <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Display Mode</h4>
+                                    <div className="grid grid-cols-5 gap-2">
+                                        {[
+                                            { id: 'dark', label: 'Dark', color: '#000000' },
+                                            { id: 'light', label: 'Light', color: '#ffffff' },
+                                            { id: 'contrast', label: 'Contrast', color: '#000000' },
+                                            { id: 'oled', label: 'OLED', color: '#000000' },
+                                            { id: 'terminal', label: 'Term', color: '#0a0a0a' }
+                                        ].map(theme => (
+                                            <button
+                                                key={theme.id}
+                                                onClick={() => updateDisplayMode(theme.id as any)}
+                                                className={`h-8 rounded border flex flex-col items-center justify-center transition-all ${displayMode === theme.id ? 'border-blue-500 bg-blue-600/10' : 'border-white/10 hover:border-white/20'}`}
+                                            >
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.color, border: '1px solid white' }} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Background Identity</h4>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {[
+                                            { id: 'none', label: 'NONE' },
+                                            { id: 'seal', label: 'COMMISSION SEAL' },
+                                            { id: 'coat_of_arms', label: 'COAT OF ARMS' }
+                                        ].map(wm => (
+                                            <button
+                                                key={wm.id}
+                                                onClick={() => updateWatermarkMode(wm.id as any)}
+                                                className={`py-2 rounded border transition-all text-left px-3 ${watermarkMode === wm.id ? 'border-blue-500 bg-blue-600/10 text-blue-400' : 'border-white/10 text-white/40 hover:text-white/60'}`}
+                                            >
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">{wm.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </motion.div>
+                        </motion.div>
+                    </Portal>
                 )}
             </AnimatePresence>
 

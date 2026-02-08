@@ -3,7 +3,6 @@
 
 -- Cleanup existing assets to avoid duplicates (SIMULATION MODE)
 DELETE FROM assets;
--- Spatially correlated with alerts in 005_simulation_data.sql
 
 -- 1. Insert Agencies
 INSERT INTO agencies (id, name, acronym, type, jurisdiction_scope, hq_address) VALUES

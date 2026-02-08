@@ -171,3 +171,15 @@
     - [x] **Consolidate Settings UI**: Remove redundant gear icons/modals from all dashboards
     - [x] Verify watermarks are visible across all dashboards (Cyber, Tactical, Strategic, Access)
     - [x] Convert dashboard roots to `bg-transparent` for watermark persistence
+
+## Phase 5: Resilience & Layout Refinement (Session Update)
+
+- [x] **Database Recovery & Integrity**
+    - [x] Fix missing `mock_data_points` table (`029_recovery_schema.sql`)
+    - [x] Manual application and verification of all schema migrations (`005`, `018`–`028`)
+    - [x] Verify data seeding (9 rows in `users` table)
+
+- [x] **Mobile UX & UI Hardening**
+    - [x] Implement responsive navigation drawer for mobile (`CommandBar.tsx`)
+    - [x] Decouple dropdowns/modals using `Portal` component to fix stacking issues
+    - [x] Fix Agency Portal layout shift when settings modal is active

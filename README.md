@@ -145,11 +145,12 @@ If you see "WebGL is not supported" in Chrome, follow these steps to enable hard
 
 ---
 
-### Phase 2: Resilience & Verification (Launched Feb 2026)
-- 📱 **Resilient SMS Integration**: Out-of-band failover for critical alerts and identity verification confirmations via AfricasTalking.
-- 🆔 **Sovereign Identity (NIMC)**: Trusted onboarding with real-world NIN validation and audit logging.
-- 🎨 **Visual Excellence**: National Security watermarks, consolidated UI, and Next.js 15 modernization.
 - 🔐 **Advanced ABAC**: 5-level clearance hierarchy with automatic data redaction.
+
+### Phase 5: Persistence & Layout Refinement (Feb 2026)
+- 🧪 **Database Recovery**: Emergency schema resolution for orphaned simulation data (`mock_data_points`).
+- 📱 **Mobile UI Hardening**: Responsive hamburger navigation drawer for all tactical and strategic dashboards.
+- 🏗 **UI Decoupling**: Global implementation of **React Portals** to solve complex stacking contexts on mobile devices.
 
 **Current Implementation Progress: 100% Core Infrastructure | 70% Feature Vertical APIs | 20% Frontend Modules**
 

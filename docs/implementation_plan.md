@@ -52,3 +52,28 @@ The goal is to provide a consistent visual experience mapping across all dashboa
 - Verify that **Strategic Dashboard** is also in **OLED** mode.
 - Refresh the page and verify that the theme persists.
 - Navigate to **Access Management** and verify theme consistency.
+
+## Mobile Responsiveness & Navigation Refinement (Session Update)
+
+### Global Components
+#### [NEW] [Portal.tsx](file:///home/psalmprax/national_security_platform/web/components/Portal.tsx)
+- Implement a React Portal wrapper to render children at the `document.body` root.
+- Used to decouple dropdowns and modals from parent CSS stacking contexts.
+
+#### [MODIFY] [CommandBar.tsx](file:///home/psalmprax/national_security_platform/web/components/CommandBar.tsx)
+- Hide the primary navigation links on mobile viewports (`hidden md:flex`).
+- Add a persistent hamburger menu button for mobile users (`md:hidden`).
+- Implement a full-screen mobile navigation drawer leveraging `Portal` and `framer-motion`.
+
+#### [MODIFY] [UserMenu.tsx](file:///home/psalmprax/national_security_platform/web/components/UserMenu.tsx)
+- Enforce root-level rendering by wrapping the menu in the `Portal` component.
+- Fixes z-index and overflow issues on mobile.
+
+#### [MODIFY] [Agency Portal] [page.tsx](file:///home/psalmprax/national_security_platform/web/app/agency/portal/page.tsx)
+- Wrap the Settings Modal in `Portal`.
+- Resolves the layout shift where opening the modal would displace the header/toolbar.
+
+## Database Stability (Session Update)
+#### [NEW] [029_recovery_schema.sql](file:///home/psalmprax/national_security_platform/platform/schema/029_recovery_schema.sql)
+- Define `mock_data_points` table to fix broken simulation data seeding.
+- Standardize all timestamps to `TIMESTAMPTZ` for PostgreSQL/CockroachDB compatibility.

@@ -12,6 +12,8 @@ import { Layout, Users, ShieldAlert, LogOut, Key, Maximize, Minimize, Settings }
 import { useAuth, User } from '../lib/AuthContext';
 import Draggable from 'react-draggable';
 import { AnimatePresence, motion } from 'framer-motion';
+import CommandBar from '@/components/CommandBar';
+import UserMenu from '@/components/UserMenu';
 
 export default function DashboardPage() {
     const { user, logout, isLoading } = useAuth();
@@ -28,6 +30,9 @@ export default function DashboardPage() {
     const [displayMode, setDisplayMode] = useState<'dark' | 'light' | 'contrast' | 'oled' | 'terminal'>('dark');
     const [watermarkMode, setWatermarkMode] = useState<'none' | 'seal' | 'coat_of_arms'>('seal');
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+    const [useCommandBar, setUseCommandBar] = useState(true);
+    const [showAgencyPicker, setShowAgencyPicker] = useState(false);
     const draggableRef = React.useRef(null);
 
     // Persistence for Display & Watermark
@@ -41,7 +46,17 @@ export default function DashboardPage() {
         if (savedWatermark && ['none', 'seal', 'coat_of_arms'].includes(savedWatermark)) {
             setWatermarkMode(savedWatermark);
         }
+
+        const savedNav = localStorage.getItem('nsp_nav_style');
+        if (savedNav === 'classic') {
+            setUseCommandBar(false);
+        }
     }, []);
+
+    const toggleNavStyle = (useUnified: boolean) => {
+        setUseCommandBar(useUnified);
+        localStorage.setItem('nsp_nav_style', useUnified ? 'unified' : 'classic');
+    };
 
     const updateDisplayMode = (mode: 'dark' | 'light' | 'contrast' | 'oled' | 'terminal') => {
         setDisplayMode(mode);
@@ -75,7 +90,6 @@ export default function DashboardPage() {
 
     // Agency View State
     const [agencyView, setAgencyView] = useState<AgencyView>('cyber');
-    const [showAgencyPicker, setShowAgencyPicker] = useState(false);
 
     // Initial view selection and enforcement
     useEffect(() => {
@@ -163,7 +177,6 @@ export default function DashboardPage() {
     const toggleAgencyView = (view: AgencyView) => {
         if (!hasAccess(currentUserRole, view)) return;
         setAgencyView(view);
-        setShowAgencyPicker(false);
     };
 
     const toggleFullscreen = () => {
@@ -183,57 +196,89 @@ export default function DashboardPage() {
     return (
         <div className="relative w-full h-screen overflow-hidden">
             {/* Unified Command Bar - Only for System Admin or Higher */}
-            <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[110] flex items-center">
-                <div className="flex items-center bg-black/80 border-b border-x border-white/20 rounded-b-xl backdrop-blur-md px-1 py-1 shadow-2xl">
-                    {/* View Picker Toggle */}
-                    {['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
-                        <button
-                            className="h-7 px-4 hover:bg-white/5 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all group"
-                            onClick={() => setShowAgencyPicker(!showAgencyPicker)}
-                        >
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#00FF95] animate-pulse" />
-                            <span className="text-[9px] font-black text-white/80 uppercase tracking-widest group-hover:text-[#00FF95]">
-                                {agencyView}
-                            </span>
-                        </button>
-                    )}
-
-                    <div className="w-px h-4 bg-white/10 mx-1" />
-
-                    {/* Global Settings */}
-                    <button
-                        onClick={() => setShowSettingsModal(!showSettingsModal)}
-                        className={`h-7 w-8 rounded-lg flex items-center justify-center transition-all group ${showSettingsModal ? 'bg-[#00FF95]/20 text-[#00FF95]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
-                        title="Global Environment Settings"
-                    >
-                        <Settings className="w-3.5 h-3.5" />
-                    </button>
-
-                    <div className="w-px h-4 bg-white/10 mx-1" />
-
-                    {/* Fullscreen Toggle */}
-                    <button
-                        onClick={toggleFullscreen}
-                        className="h-7 w-8 hover:bg-white/10 rounded-lg flex items-center justify-center text-white/40 hover:text-white transition-all group"
-                        title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                    >
-                        {isFullscreen ? (
-                            <Minimize className="w-3.5 h-3.5" />
-                        ) : (
-                            <Maximize className="w-3.5 h-3.5" />
+            {/* Unified Command Bar - Only for System Admin or Higher */}
+            {useCommandBar ? (
+                <CommandBar
+                    agencyName="SITUATION ROOM"
+                    userRole={user?.role || 'GUEST'}
+                    showSettings={showSettingsModal}
+                    setShowSettings={setShowSettingsModal}
+                    isFullscreen={isFullscreen}
+                    toggleFullscreen={toggleFullscreen}
+                    showUserMenu={showUserMenu}
+                    setShowUserMenu={setShowUserMenu}
+                    activeView={agencyView}
+                    onNavigate={(view) => {
+                        if (view === 'portal') {
+                            window.location.href = '/agency/portal';
+                            return;
+                        }
+                        const v = view as AgencyView;
+                        if (hasAccess(currentUserRole, v)) {
+                            setAgencyView(v);
+                        }
+                    }}
+                />
+            ) : (
+                /* Legacy Floating Capsule Navigation */
+                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[110] flex items-center">
+                    <div className="flex items-center bg-black/80 border-b border-x border-white/20 rounded-b-xl backdrop-blur-md px-1 py-1 shadow-2xl">
+                        {/* View Picker Toggle */}
+                        {['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
+                            <button
+                                className="h-7 px-4 hover:bg-white/5 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all group"
+                                onClick={() => setShowAgencyPicker(!showAgencyPicker)}
+                            >
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#00FF95] animate-pulse" />
+                                <span className="text-[9px] font-black text-white/80 uppercase tracking-widest group-hover:text-[#00FF95]">
+                                    {agencyView}
+                                </span>
+                            </button>
                         )}
-                    </button>
 
-                    {/* Global Logout */}
-                    <button
-                        onClick={logout}
-                        className="h-7 w-8 hover:bg-red-500/20 rounded-lg flex items-center justify-center text-white/40 hover:text-red-400 transition-all group"
-                        title="Secure Logout"
-                    >
-                        <LogOut className="w-3.5 h-3.5" />
-                    </button>
+                        <div className="w-px h-4 bg-white/10 mx-1" />
+
+                        {/* Global Settings */}
+                        <button
+                            onClick={() => setShowSettingsModal(!showSettingsModal)}
+                            className={`h-7 w-8 rounded-lg flex items-center justify-center transition-all group ${showSettingsModal ? 'bg-[#00FF95]/20 text-[#00FF95]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                            title="Global Environment Settings"
+                        >
+                            <Settings className="w-3.5 h-3.5" />
+                        </button>
+
+                        <div className="w-px h-4 bg-white/10 mx-1" />
+
+                        {/* Fullscreen Toggle */}
+                        <button
+                            onClick={toggleFullscreen}
+                            className="h-7 w-8 hover:bg-white/10 rounded-lg flex items-center justify-center text-white/40 hover:text-white transition-all group"
+                            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                        >
+                            {isFullscreen ? (
+                                <Minimize className="w-3.5 h-3.5" />
+                            ) : (
+                                <Maximize className="w-3.5 h-3.5" />
+                            )}
+                        </button>
+
+                        {/* Global Logout */}
+                        <button
+                            onClick={logout}
+                            className="h-7 w-8 hover:bg-red-500/20 rounded-lg flex items-center justify-center text-white/40 hover:text-red-400 transition-all group"
+                            title="Secure Logout"
+                        >
+                            <LogOut className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
+
+            <UserMenu
+                user={user}
+                onLogout={logout}
+                showMenu={showUserMenu}
+            />
 
             {/* Global Environment Settings Modal */}
             <AnimatePresence>
@@ -299,18 +344,37 @@ export default function DashboardPage() {
                             <div className="pt-4 border-t border-white/5">
                                 <p className="text-[7px] text-white/20 uppercase tracking-[0.3em] text-center">National Security Platform // Environment V2.0</p>
                             </div>
+
+                            {/* Navigation Style Toggle */}
+                            <div>
+                                <h4 className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-3">Navigation Style</h4>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => toggleNavStyle(true)}
+                                        className={`flex-1 py-3 rounded border transition-all ${useCommandBar ? 'border-blue-500 bg-blue-600/10 text-blue-400' : 'border-white/10 text-white/40 hover:text-white/60'}`}
+                                    >
+                                        <span className="text-[8px] font-black uppercase tracking-tighter">UNIFIED BAR</span>
+                                    </button>
+                                    <button
+                                        onClick={() => toggleNavStyle(false)}
+                                        className={`flex-1 py-3 rounded border transition-all ${!useCommandBar ? 'border-blue-500 bg-blue-600/10 text-blue-400' : 'border-white/10 text-white/40 hover:text-white/60'}`}
+                                    >
+                                        <span className="text-[8px] font-black uppercase tracking-tighter">CAPSULE</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* View Switcher UI - Controlled by Admin check */}
-            {showAgencyPicker && ['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
+            {/* View Switcher UI - Legacy Capsule Mode */}
+            {!useCommandBar && showAgencyPicker && ['ADMIN', 'SYSTEM_ADMIN', 'SECURITY_OFFICER'].includes(user?.role || '') && (
                 <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[110] bg-black/90 border border-white/20 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 fade-in duration-200">
                     <div className="flex items-center gap-4 text-white">
                         <button
                             disabled={!hasAccess(currentUserRole, 'cyber')}
-                            onClick={() => toggleAgencyView('cyber')}
+                            onClick={() => { setAgencyView('cyber'); setShowAgencyPicker(false); }}
                             className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-all ${!hasAccess(currentUserRole, 'cyber') ? 'opacity-30 cursor-not-allowed border-transparent text-white/40' : agencyView === 'cyber' ? 'bg-[#00FF95]/20 border-[#00FF95] text-[#00FF95]' : 'border-transparent hover:bg-white/10 text-white/60 hover:text-white'}`}
                         >
                             <Layout className="w-6 h-6" />
@@ -319,7 +383,7 @@ export default function DashboardPage() {
                         </button>
                         <button
                             disabled={!hasAccess(currentUserRole, 'tactical')}
-                            onClick={() => toggleAgencyView('tactical')}
+                            onClick={() => { setAgencyView('tactical'); setShowAgencyPicker(false); }}
                             className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-all ${!hasAccess(currentUserRole, 'tactical') ? 'opacity-30 cursor-not-allowed border-transparent text-white/40' : agencyView === 'tactical' ? 'bg-white text-black border-white' : 'border-transparent hover:bg-white/10 text-white/60 hover:text-white'}`}
                         >
                             <Layout className="w-6 h-6" />
@@ -328,7 +392,7 @@ export default function DashboardPage() {
                         </button>
                         <button
                             disabled={!hasAccess(currentUserRole, 'strategic')}
-                            onClick={() => toggleAgencyView('strategic')}
+                            onClick={() => { setAgencyView('strategic'); setShowAgencyPicker(false); }}
                             className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-all ${!hasAccess(currentUserRole, 'strategic') ? 'opacity-30 cursor-not-allowed border-transparent text-white/40' : agencyView === 'strategic' ? 'bg-blue-600 border-blue-500 text-white' : 'border-transparent hover:bg-white/10 text-white/60 hover:text-white'}`}
                         >
                             <Layout className="w-6 h-6" />
@@ -337,7 +401,7 @@ export default function DashboardPage() {
                         </button>
                         <button
                             disabled={!hasAccess(currentUserRole, 'access')}
-                            onClick={() => toggleAgencyView('access')}
+                            onClick={() => { setAgencyView('access'); setShowAgencyPicker(false); }}
                             className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-all ${!hasAccess(currentUserRole, 'access') ? 'opacity-30 cursor-not-allowed border-transparent text-white/40' : agencyView === 'access' ? 'bg-[#00FF95] text-black border-[#00FF95]' : 'border-transparent hover:bg-white/10 text-white/60 hover:text-white'}`}
                         >
                             <Key className="w-6 h-6" />

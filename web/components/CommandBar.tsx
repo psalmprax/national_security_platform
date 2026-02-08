@@ -10,7 +10,12 @@ import {
     ChevronDown,
     List,
     Map as MapIcon,
+    Key,
+    Menu,
+    X,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import Portal from "@/components/Portal";
 
 interface CommandBarProps {
     agencyName: string;
@@ -21,6 +26,8 @@ interface CommandBarProps {
     toggleFullscreen: () => void;
     showUserMenu: boolean;
     setShowUserMenu: (show: boolean) => void;
+    activeView?: string;
+    onNavigate?: (view: string) => void;
 }
 
 const CommandBar: React.FC<CommandBarProps> = ({
@@ -32,52 +39,144 @@ const CommandBar: React.FC<CommandBarProps> = ({
     toggleFullscreen,
     showUserMenu,
     setShowUserMenu,
+    activeView,
+    onNavigate,
 }) => {
     const navigateTo = (view: string) => {
-        window.location.href = `/?view=${view}`;
+        if (onNavigate) {
+            onNavigate(view);
+        } else {
+            window.location.href = `/?view=${view}`;
+        }
     };
+
+    const [showMobileMenu, setShowMobileMenu] = React.useState(false);
 
     const isPrivileged = ["ADMIN", "SYSTEM_ADMIN", "SECURITY_OFFICER"].includes(userRole);
 
     return (
         <div className="w-full h-14 px-4 flex items-center justify-between bg-black/40 backdrop-blur-sm border-b border-white/10">
-            {/* Left: Agency */}
-            <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-blue-400" />
-                <span className="text-xs font-semibold tracking-[0.2em] text-white/60 uppercase">
-                    {agencyName}
-                </span>
+            {/* Left: Agency + Mobile Menu Toggle */}
+            <div className="flex items-center gap-4">
+                {isPrivileged && (
+                    <button
+                        onClick={() => setShowMobileMenu(true)}
+                        className="md:hidden text-white/60 hover:text-white"
+                    >
+                        <Menu className="h-5 w-5" />
+                    </button>
+                )}
+                <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-blue-400" />
+                    <span className="text-xs font-semibold tracking-[0.2em] text-white/60 uppercase">
+                        {agencyName}
+                    </span>
+                </div>
             </div>
+
+            {/* Mobile Navigation Drawer */}
+            <AnimatePresence>
+                {showMobileMenu && (
+                    <Portal>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex flex-col p-6"
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-2">
+                                    <Shield className="h-6 w-6 text-blue-400" />
+                                    <span className="text-sm font-black tracking-[0.2em] text-white uppercase">
+                                        SYSTEM NAVIGATION
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => setShowMobileMenu(false)}
+                                    className="p-2 bg-white/10 rounded-full text-white"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex flex-col gap-4">
+                                {[
+                                    { id: 'portal', label: 'Agency Portal', icon: Shield },
+                                    { id: 'cyber', label: 'Cyber Interface', icon: Key },
+                                    { id: 'tactical', label: 'Tactical Map', icon: MapIcon },
+                                    { id: 'strategic', label: 'Strategic Ops', icon: List },
+                                    { id: 'access', label: 'Access Control', icon: User },
+                                ].map((item) => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => {
+                                            navigateTo(item.id);
+                                            setShowMobileMenu(false);
+                                        }}
+                                        className={`p-4 rounded-xl flex items-center gap-4 transition-all border ${activeView === item.id
+                                            ? 'bg-blue-600/20 border-blue-500/50 text-white shadow-lg'
+                                            : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        <item.icon className={`h-5 w-5 ${activeView === item.id ? 'text-blue-400' : 'text-slate-500'}`} />
+                                        <div className="flex flex-col items-start">
+                                            <span className="text-xs font-black uppercase tracking-widest">{item.label}</span>
+                                            <span className="text-[9px] text-white/40 uppercase tracking-wider">
+                                                {activeView === item.id ? 'Active Session' : 'Switch Module'}
+                                            </span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="mt-auto pt-8 border-t border-white/10">
+                                <p className="text-[9px] text-center text-white/20 uppercase tracking-widest">
+                                    Restricted Access // Security Clearance Verified
+                                </p>
+                            </div>
+                        </motion.div>
+                    </Portal>
+                )}
+            </AnimatePresence>
 
             {/* Center: Tabs + View Toggle */}
             <div className="flex items-center gap-2">
                 {isPrivileged && (
                     <>
-                        <button
-                            onClick={() => navigateTo("portal")}
-                            className="px-3 py-1.5 rounded-full hover:bg-white/5 text-white/40 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
-                        >
-                            PORTAL
-                        </button>
-                        <button
-                            onClick={() => navigateTo("cyber")}
-                            className="px-3 py-1.5 rounded-full hover:bg-white/5 text-white/40 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
-                        >
-                            CYBER
-                        </button>
-                        <button
-                            onClick={() => navigateTo("tactical")}
-                            className="px-3 py-1.5 rounded-full hover:bg-white/5 text-white/40 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
-                        >
-                            TACTICAL
-                        </button>
-                        <button
-                            onClick={() => navigateTo("strategic")}
-                            className="px-3 py-1.5 rounded-full hover:bg-white/5 text-white/40 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
-                        >
-                            STRATEGIC
-                        </button>
-                        <div className="w-px h-4 bg-white/20 mx-2" />
+                        {/* Desktop Navigation */}
+                        <div className="hidden md:flex items-center gap-2">
+                            <button
+                                onClick={() => navigateTo("portal")}
+                                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'portal' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                            >
+                                PORTAL
+                            </button>
+                            <button
+                                onClick={() => navigateTo("cyber")}
+                                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'cyber' ? 'bg-[#00FF95]/20 text-[#00FF95] border border-[#00FF95]/30 shadow-[0_0_15px_rgba(0,255,149,0.2)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                            >
+                                CYBER
+                            </button>
+                            <button
+                                onClick={() => navigateTo("tactical")}
+                                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'tactical' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                            >
+                                TACTICAL
+                            </button>
+                            <button
+                                onClick={() => navigateTo("strategic")}
+                                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'strategic' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                            >
+                                STRATEGIC
+                            </button>
+                            <button
+                                onClick={() => navigateTo("access")}
+                                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'access' ? 'bg-[#00FF95]/20 text-[#00FF95] border border-[#00FF95]/30 shadow-[0_0_15px_rgba(0,255,149,0.2)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                            >
+                                ACCESS
+                            </button>
+                            <div className="w-px h-4 bg-white/20 mx-2" />
+                        </div>
                     </>
                 )}
 

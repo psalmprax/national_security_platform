@@ -56,16 +56,11 @@ ON CONFLICT (id) DO UPDATE SET
     severity_score = EXCLUDED.severity_score;
 
 -- 5. Scenario: Infrastructure (Strategic View)
--- Pipeline Vandalism
-INSERT INTO alerts (id, user_id, alert_type, priority_class, status, content_text, location, impact_radius_meters, severity_score, created_at)
-SELECT '7e560df3-0d47-7fe7-2277-88e5d4f64062', id, 'INFRASTRUCTURE', 'HIGH', 'ANALYSIS_REQ', 'Satellite imagery suggests pipeline tapering near Delta creek.', ST_GeomFromText('POINT(5.75 5.51)', 4326), 1000, 0.75, NOW() - INTERVAL '5 hours'
-FROM users WHERE phone_number = '+2348000000102'
-ON CONFLICT (id) DO UPDATE SET 
-    location = EXCLUDED.location,
-    content_text = EXCLUDED.content_text,
-    priority_class = EXCLUDED.priority_class,
-    status = EXCLUDED.status,
-    severity_score = EXCLUDED.severity_score;
+-- Truncated for storage optimization
+INSERT INTO mock_data_points (id, timestamp, value, location) VALUES
+  (gen_random_uuid(), NOW() - INTERVAL '1 hour', 42.5, ST_GeomFromText('POINT(7.4951 9.0579)', 4326)),
+  (gen_random_uuid(), NOW() - INTERVAL '30 minutes', 38.2, ST_GeomFromText('POINT(3.3792 6.5244)', 4326)),
+  (gen_random_uuid(), NOW(), 45.1, ST_GeomFromText('POINT(8.6753 9.0820)', 4326));
 
 -- 6. Corroboration
 -- Verify the kidnapping alert

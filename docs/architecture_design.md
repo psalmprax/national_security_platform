@@ -600,3 +600,16 @@ Standardized the platform's visual identity to reflect national authority and se
 ### 14.4 Technical Modernization
 *   **Web Stack**: Upgraded to **Next.js 15.5.11** for improved build performance and server component stability.
 *   **Build Integrity**: Implementation of strict Docker isolation (via `.dockerignore`) to prevent local environment leakage into production images.
+
+### 14.5 Operational Self-Healing & Data Integrity
+Ensured the platform's survivability through automated recovery patterns.
+
+*   **Schema Recovery Logic**:
+    - **Atomic Schema Definitions**: Introduced dedicated recovery migrations (`029_recovery_schema.sql`) for orphaned entities like `mock_data_points`, ensuring the data pipeline never breaks during partial seeding.
+    - **Temporal Consistency**: Standardized global usage of `TIMESTAMPTZ` at the database level to ensure cross-regional intelligence aggregation remains synchronized.
+
+### 14.6 Decoupled UI Stacking & Mobile Navigation
+Architected the frontend to handle high-density data overlays and diverse viewing conditions.
+
+*   **React Portal Pattern**: Standardized the use of Portals for all floating UI elements (Modals, Dropdowns). This architectural choice decouples UI interactivity from parent container constraints (z-index, overflow, CSS transforms), critical for mission-critical overlays on mobile.
+*   **Adaptive Command Interface**: Evolved the `CommandBar` into a responsive component. Desktop users retain high-density button layouts, while mobile users transition to a secure, animated navigation drawer to maintain ergonomics and situational visibility.
