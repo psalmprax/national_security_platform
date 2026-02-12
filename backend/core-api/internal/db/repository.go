@@ -169,6 +169,42 @@ func CreateAuditLog(ctx context.Context, entityID uuid.UUID, action string, acto
 	return nil
 }
 
+// GetAuditLogs retrieves a list of audit logs with pagination
+func GetAuditLogs(ctx context.Context, limit, offset int) ([]models.AuditLog, error) {
+	query := `
+		SELECT id, entity_id, action, actor_id, timestamp, changes, classification_level
+		FROM audit_logs
+		ORDER BY timestamp DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := Pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query audit logs: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []models.AuditLog
+	for rows.Next() {
+		var l models.AuditLog
+		err := rows.Scan(
+			&l.ID,
+			&l.EntityID,
+			&l.Action,
+			&l.ActorID,
+			&l.Timestamp,
+			&l.Changes,
+			&l.ClassificationLevel,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan audit log: %w", err)
+		}
+		logs = append(logs, l)
+	}
+
+	return logs, nil
+}
+
 // CreateUserRequest creates a new user in PENDING status
 func CreateUserRequest(ctx context.Context, user *models.User) error {
 	query := `
@@ -296,7 +332,7 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 			ST_X(a.location::geometry) as longitude, 
 			ST_Y(a.location::geometry) as latitude,
 			a.impact_radius_meters, a.alert_type,
-			a.content_text, a.content_media_url, a.severity_score, a.verification_count,
+			a.content_text, a.content_media_url, a.severity_score, a.risk_keywords, a.verification_count,
 			a.created_at, a.updated_at, a.classification_level,
 			-- Hybrid LGA resolution: boundary match OR nearest centroid
 			COALESCE(
@@ -367,6 +403,7 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 			&alert.ContentText,
 			&alert.ContentMediaURL,
 			&alert.SeverityScore,
+			&alert.RiskKeywords,
 			&alert.VerificationCount,
 			&alert.CreatedAt,
 			&alert.UpdatedAt,

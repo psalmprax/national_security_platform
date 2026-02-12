@@ -401,6 +401,16 @@ To ensure 100% location resolution despite incomplete boundary data, the system 
     - **Infrastructure Tuning**: Automatic adjustment of database storage thresholds (e.g., `max_disk_utilization_threshold`) to maintain availability during local disk pressure, crucial for survival in degraded hardware environments.
     - **Seeding Integrity**: Atomic validation of the data initialization sequence, ensuring that authentication entities and agency mappings are consistently applied following schema rotations.
 
+### 3.4 Modular Component Architecture (Web)
+To maintain velocity and code quality, the dashboard layer follows a strictly modular architecture, separating high-level orchestration from specialized UI components.
+
+*   **Strategic Dashboard Modules**:
+    - `StrategicKPIs`: Encapsulates high-level performance metrics.
+    - `StrategicOverview`: Orchestrates situational awareness charts and logs.
+    - `StrategicAnalytics`: Handles deep-dive data processing and visualization.
+    - `StrategicRegistry`: Manages the agency node inventory and status.
+*   **Encapsulation Principle**: Sub-components are designed to be stateless where possible, receiving operational data via props from parent controllers. This ensures visual consistency and simplifies unit testing for critical intelligence views.
+
 ---
 
 ## 4. Technology Stack Recommendations

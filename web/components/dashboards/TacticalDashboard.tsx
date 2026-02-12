@@ -16,14 +16,19 @@ import {
     Lock,
     Megaphone,
     User as UserIcon,
-    Share2
+    ChevronDown,
+    LogOut,
+    Compass,
+    MapPin,
+    Activity
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import MapboxMap from '../MapboxMap';
-import MissionSidebar from '../MissionSidebar';
 import PublicAlertBroadcast from '../modals/PublicAlertBroadcast';
-import MeshNetworkStatus from '../MeshNetworkStatus';
+
+
+import TacticalCommandDock from './TacticalCommandDock';
 import { Alert, fetchTriangulatedAssets, TriangulatedAsset, dispatchAsset, SystemStatus, Asset, fetchAssets, Mission, fetchActiveMissions, createMission } from '../../lib/api';
 import { useAuth, User } from '../../lib/AuthContext';
 
@@ -39,9 +44,8 @@ interface TacticalDashboardProps {
 
 export default function TacticalDashboard({ alerts, currentTime, securityStatus, user, logout, displayMode, setDisplayMode }: TacticalDashboardProps) {
     // We no longer need token here as we use cookies
-    // const { token } = useAuth();
+    // const {token} = useAuth();
     const [activeView, setActiveView] = useState<'map' | 'list'>('map');
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
     const [showSatellite, setShowSatellite] = useState(false);
     const [radarAngle, setRadarAngle] = useState(0);
@@ -49,7 +53,7 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     const [assets, setAssets] = useState<Asset[]>([]);
     const [activeMissions, setActiveMissions] = useState<Mission[]>([]);
     const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
-    const [showMissions, setShowMissions] = useState(true);
+    const [showMissions, setShowMissions] = useState(false);
     const [isDispatchingResponse, setIsDispatchingResponse] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isEngagingProtocols, setIsEngagingProtocols] = useState(false);
@@ -58,6 +62,29 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
     const [notifications, setNotifications] = useState([
         { message: "System initialized. Secure connection established.", timestamp: new Date(), type: 'system' }
     ]);
+    const [phantomBlips, setPhantomBlips] = useState<{ id: number; x: number; y: number; opacity: number }[]>([]);
+
+    // Simulated Radar Phantom Blips
+    useEffect(() => {
+        const blipInterval = setInterval(() => {
+            if (Math.random() > 0.6) {
+                const id = Date.now();
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 320 + 40;
+                setPhantomBlips(prev => [...prev, {
+                    id,
+                    x: Math.cos(angle) * radius,
+                    y: Math.sin(angle) * radius,
+                    opacity: 1
+                }]);
+
+                setTimeout(() => {
+                    setPhantomBlips(prev => prev.filter(b => b.id !== id));
+                }, 2500);
+            }
+        }, 1200);
+        return () => clearInterval(blipInterval);
+    }, []);
 
     // Security Redaction Helpers
     const isAlertRedacted = (alert: Alert | null): boolean => {
@@ -308,84 +335,16 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
             {/* Aesthetic Scanline Overlay */}
             <div className="absolute inset-0 pointer-events-none cyber-scanline z-50 opacity-20" />
 
-            {/* Header / Status Bar - Industrial Rugged */}
-            <header className="h-14 bg-[#1a1a1a] border-b-2 border-yellow-500/50 flex items-center justify-between px-6 z-50 relative">
-                <div className="flex items-center gap-4">
-                    <div className="bg-yellow-500 p-1.5 rounded-sm">
-                        <Shield className="w-6 h-6 text-black" />
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-black uppercase tracking-tighter leading-none text-white">
-                            FIELD OPERATIONAL COMMAND <span className="text-yellow-500">[DANGER_ZONE]</span>
-                        </h1>
-                        <div className="text-[10px] font-bold text-zinc-500 flex items-center gap-3">
-                            <span className="flex items-center gap-1"><Wifi className="w-3 h-3 text-yellow-500" /> SAT_LINK: STABLE</span>
-                            <span className="flex items-center gap-1 text-green-500 font-black"><LocateFixed className="w-3 h-3" /> GPS_LOCK: TRUE</span>
-                            <span className="flex items-center gap-1 text-orange-500 font-black"><Share2 className="w-3 h-3" /> MESH_NET: ACTIVE (3 NODES)</span>
-                        </div>
+            {/* EMERGENCY SOS OVERLAY */}
+            {(alerts || []).some(a => a.type === 'SOS') && (
+                <div className="absolute top-0 left-0 right-0 z-[60] pointer-events-none flex justify-center">
+                    <div className="bg-red-600 text-white px-8 py-2 font-black text-xs uppercase tracking-[0.3em] animate-pulse shadow-[0_0_30px_rgba(220,38,38,0.6)] rounded-b-lg border-x-2 border-b-2 border-white/20">
+                        ⚠️ EMERGENCY SOS SIGNAL DETECTED ⚠️
                     </div>
                 </div>
+            )}
 
-                <div className="flex items-center gap-8">
-                    <div className="flex gap-4">
-                        <div className="text-center px-4 border-l border-zinc-800">
-                            <div className="text-[10px] text-zinc-500 font-bold uppercase">Bearing</div>
-                            <div className="text-xs font-black text-white tabular-nums">284° N/NW</div>
-                        </div>
-                        <div className="text-center px-4 border-l border-zinc-800">
-                            <div className="text-[10px] text-zinc-500 font-bold uppercase">GridRef</div>
-                            <div className="text-xs font-black text-white tabular-nums">
-                                {(alerts || []).length > 0
-                                    ? `14P.${((alerts || [])[0]).latitude.toFixed(2)}-${((alerts || [])[0]).longitude.toFixed(2)}`
-                                    : 'Searching...'}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="text-right bg-yellow-500/10 border-l border-r border-yellow-500/20 px-6 py-1">
-                        <div className="text-xl font-black tabular-nums leading-none text-yellow-500">
-                            {currentTime?.toLocaleTimeString('en-US', { hour12: false })}
-                        </div>
-                        <div className="text-[9px] font-black text-yellow-500/60 text-center uppercase tracking-widest">
-                            Local Ops Time
-                        </div>
-                    </div>
-
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowUserMenu(!showUserMenu)}
-                            className="flex items-center gap-3 pl-4 border-l border-zinc-800 hover:opacity-80 transition-opacity cursor-pointer"
-                        >
-                            <div className="text-right hidden sm:block">
-                                <p className="text-[10px] font-black text-white uppercase leading-none">{user?.full_name || 'Operator'}</p>
-                                <p className="text-[8px] font-bold text-yellow-500/60 uppercase">{user?.role || 'Guest'}</p>
-                            </div>
-                            <div className="w-8 h-8 bg-zinc-800 border-2 border-yellow-500/50 flex items-center justify-center text-yellow-500 font-black text-xs">
-                                <UserIcon className="w-5 h-5" />
-                            </div>
-                        </button>
-
-                        {showUserMenu && (
-                            <div className="absolute top-12 right-0 w-48 bg-[#1a1a1a] border-2 border-yellow-500/50 shadow-2xl p-2 z-[100] animate-in slide-in-from-top-2 fade-in duration-200">
-                                <button
-                                    onClick={() => setShowNotifications(!showNotifications)}
-                                    className="w-full text-left text-[10px] font-black text-zinc-400 hover:text-white hover:bg-white/5 px-3 py-2 transition-all uppercase tracking-widest cursor-pointer"
-                                >
-                                    Notifications
-                                </button>
-                                <div className="h-px bg-yellow-500/20 my-1" />
-                                <button
-                                    onClick={logout}
-                                    className="w-full text-left text-[10px] font-black text-red-500 hover:bg-red-500/10 px-3 py-2 transition-all uppercase tracking-widest cursor-pointer"
-                                >
-                                    Terminate Session
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </header>
-
-            <div className="flex h-[calc(100vh-56px)]">
+            <div className="flex h-full">
                 {/* Sidebar Controls - Field Grade */}
                 <aside className="w-20 bg-[#151515] border-r border-white/5 flex flex-col items-center py-6 gap-6 shadow-[inset_-10px_0_20px_rgba(0,0,0,0.3)]">
                     <button
@@ -432,381 +391,335 @@ export default function TacticalDashboard({ alerts, currentTime, securityStatus,
                     </div>
                 </aside>
 
-                {showMissions && (
-                    <MissionSidebar
-                        missions={activeMissions}
-                        onSelect={setSelectedMission}
-                        selectedId={selectedMission?.id}
-                        onRefresh={loadMissions}
-                    />
-                )}
-
                 {/* Main Content */}
-                <main className="flex-1 relative flex">
-                    {activeView === 'map' && (
-                        <div className="flex-1 relative bg-transparent">
-                            <MapboxMap
-                                alerts={alerts}
-                                selectedAlert={selectedAlert}
-                                triangulatedAssets={triangulatedAssets}
-                                mode="tactical"
-                                onSelect={setSelectedAlert}
-                                showSatellite={showSatellite}
-                            />
+                <main className="flex-1 relative flex flex-col h-full overflow-hidden">
+                    {/* Operational Header - Fixed at Top */}
+                    <div className="flex-none h-22 bg-[#1a1a1a] border-b border-orange-500/30 flex items-center justify-between px-8 pt-1 z-[70] shadow-2xl">
+                        {/* Left: Operational Name */}
+                        <div className="flex flex-col relative">
+                            {/* Decorative Brackets - Header Focus */}
+                            <div className="absolute -top-1 -left-4 w-2 h-2 border-t-2 border-l-2 border-yellow-500/40" />
+                            <div className="absolute -bottom-1 -left-4 w-2 h-2 border-b-2 border-l-2 border-yellow-500/40" />
 
-                            {/* Style Toggle */}
-                            <div className="absolute top-8 right-8 z-30 flex flex-col gap-2">
-                                <button
-                                    onClick={() => setShowSatellite(!showSatellite)}
-                                    className={`px-4 py-2 border backdrop-blur-md transition-all flex items-center gap-2 group cursor-pointer ${showSatellite ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500' : 'border-white/10 bg-black/40 text-white/40 hover:border-white/30'
-                                        }`}
-                                >
-                                    <div className={`w-2 h-2 rounded-full ${showSatellite ? 'bg-yellow-500 animate-pulse' : 'bg-white/20'}`} />
-                                    <span className="text-[10px] font-black tracking-widest uppercase">
-                                        {showSatellite ? 'Feed: Satellite' : 'Feed: Tactical'}
-                                    </span>
-                                </button>
+                            <div className="flex items-center gap-3">
+                                <Shield className="w-6 h-6 text-yellow-500" />
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <h1 className="text-xl font-black tracking-[0.2em] text-white uppercase italic">
+                                            Field Operational Command
+                                        </h1>
+                                        <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                                            <div className="w-1 h-1 rounded-full bg-red-500 animate-ping" />
+                                            <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">[Danger Zone]</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-6 mt-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[10px] font-black text-emerald-500/80 uppercase tracking-[0.2em]">Sat Link: Stable</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[10px] font-black text-emerald-500/80 uppercase tracking-[0.2em]">GPS Lock: True</span>
+                                </div>
+                                <div className="w-px h-3 bg-white/10 mx-1" />
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Unified Command:</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="px-1.5 py-0.5 rounded-sm bg-blue-500/10 border border-blue-500/40 text-[8px] font-black text-blue-400">NPF</span>
+                                        <span className="px-1.5 py-0.5 rounded-sm bg-red-500/10 border border-red-500/40 text-[8px] font-black text-red-400">NA</span>
+                                        <span className="px-1.5 py-0.5 rounded-sm bg-emerald-500/10 border border-emerald-500/40 text-[8px] font-black text-emerald-400">DSS</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        {/* Right: Telemetry */}
+                        <div className="flex items-center gap-10 relative">
+                            {/* Decorative Brackets - Telemetry Focus */}
+                            <div className="absolute -top-4 -right-2 w-2 h-2 border-t-2 border-r-2 border-orange-500/40" />
+                            <div className="absolute -bottom-1 -right-2 w-2 h-2 border-b-2 border-r-2 border-orange-500/40" />
+
+                            <div className="flex items-center gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-white/60">
+                                <div className="flex flex-col items-end">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <Compass className="w-3 h-3 text-zinc-500" />
+                                        <span className="text-[9px] text-zinc-500 leading-none">Bearing</span>
+                                    </div>
+                                    <span className="text-white">284° N/NW</span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <MapPin className="w-3 h-3 text-zinc-500" />
+                                        <span className="text-[9px] text-zinc-500 leading-none">GridRef</span>
+                                    </div>
+                                    <span className="text-white">14P.QH.92</span>
+                                </div>
                             </div>
 
-                            {/* RADAR OVERLAY EFFECT */}
-                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                                <div className="w-[800px] h-[800px] border border-yellow-500/10 rounded-full relative">
-                                    {/* Concentric circles */}
-                                    <div className="absolute inset-[15%] border border-yellow-500/10 rounded-full" />
-                                    <div className="absolute inset-[35%] border border-yellow-500/10 rounded-full" />
-                                    <div className="absolute inset-[55%] border border-yellow-500/10 rounded-full" />
+                            <div className="flex flex-col items-end border-l border-white/10 pl-8">
+                                <span className="text-amber-500 text-3xl font-black tabular-nums leading-none tracking-tighter">
+                                    {currentTime?.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                </span>
+                                <span className="text-[8px] text-zinc-500 uppercase font-black tracking-[0.3em] mt-2 pr-1">Local GPS Time</span>
+                            </div>
+                        </div>
+                    </div>
 
-                                    {/* RADAR SWEEP LINE */}
-                                    <div
-                                        className="absolute top-1/2 left-1/2 w-full h-[2px] bg-gradient-to-r from-yellow-500/20 to-yellow-500/60 origin-left"
-                                        style={{ transform: `rotate(${radarAngle}deg)` }}
-                                    />
+                    <div className="flex-1 relative">
+                        {activeView === 'map' && (
+                            <div className="absolute inset-0 bg-transparent">
+                                <MapboxMap
+                                    alerts={alerts}
+                                    selectedAlert={selectedAlert}
+                                    triangulatedAssets={triangulatedAssets}
+                                    mode="tactical"
+                                    onSelect={setSelectedAlert}
+                                    showSatellite={showSatellite}
+                                />
+                                {/* Style Toggle */}
+                                <div className="absolute top-8 right-8 z-30 flex flex-col gap-2">
+                                    <button
+                                        onClick={() => setShowSatellite(!showSatellite)}
+                                        className={`px-4 py-2 border backdrop-blur-md transition-all flex items-center gap-2 group cursor-pointer ${showSatellite ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500' : 'border-white/10 bg-black/40 text-white/40 hover:border-white/30'
+                                            }`}
+                                    >
+                                        <div className={`w-2 h-2 rounded-full ${showSatellite ? 'bg-yellow-500 animate-pulse' : 'bg-white/20'}`} />
+                                        <span className="text-[10px] font-black tracking-widest uppercase">
+                                            {showSatellite ? 'Feed: Satellite' : 'Feed: Tactical'}
+                                        </span>
+                                    </button>
+                                </div>
 
-                                    {/* Tick marks */}
-                                    {[0, 90, 180, 270].map(deg => (
+                                {/* Combat Information Center (CIC) - Top Stats Bar */}
+                                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1">
+                                    <div className="flex items-center gap-8 px-10 py-3 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)] relative overflow-hidden group">
+                                        {/* Premium Glass Texture */}
+                                        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+
+                                        <div className="flex flex-col items-center relative z-10">
+                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40 mb-1.5">Active Threats</span>
+                                            <div className="flex items-center gap-3">
+                                                <Target className="w-4 h-4 text-red-500" />
+                                                <span className="text-lg font-black text-white tabular-nums">{(alerts || []).filter(a => a.severity > 0.8).length}</span>
+                                            </div>
+                                            <div className="w-12 h-0.5 bg-white/5 mt-2 overflow-hidden rounded-full">
+                                                <div className="h-full bg-red-500 transition-all duration-1000" style={{ width: `${Math.min(100, (alerts || []).filter(a => a.severity > 0.8).length * 10)}%` }} />
+                                            </div>
+                                        </div>
+
+                                        <div className="w-px h-10 bg-white/10" />
+
+                                        <div className="flex flex-col items-center relative z-10">
+                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40 mb-1.5">Units in Field</span>
+                                            <div className="flex items-center gap-3">
+                                                <Users className="w-4 h-4 text-yellow-500" />
+                                                <span className="text-lg font-black text-white tabular-nums">{activeMissions.length}</span>
+                                            </div>
+                                            <div className="w-12 h-0.5 bg-white/5 mt-2 overflow-hidden rounded-full">
+                                                <div className="h-full bg-yellow-500 transition-all duration-1000" style={{ width: `${Math.min(100, activeMissions.length * 20)}%` }} />
+                                            </div>
+                                        </div>
+
+                                        <div className='w-px h-10 bg-white/10' />
+
+                                        <div className='flex flex-col items-center relative z-10'>
+                                            <span className='text-[8px] font-black uppercase tracking-[0.2em] text-white/40 mb-1.5'>Mesh Fidelity</span>
+                                            <div className='flex items-center gap-3'>
+                                                <Wifi className='w-4 h-4 text-emerald-500' />
+                                                <span className='text-lg font-black text-white tabular-nums'>{(securityStatus?.trustedDevices ?? 0) > 0 ? "98.4%" : "OFFLINE"}</span>
+                                            </div>
+                                            <div className="w-12 h-0.5 bg-white/5 mt-2 overflow-hidden rounded-full">
+                                                <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: '98%' }} />
+                                            </div>
+                                        </div>
+
+                                        <div className='w-px h-10 bg-white/10' />
+
+                                        <div className='flex flex-col items-center relative z-10'>
+                                            <span className='text-[8px] font-black uppercase tracking-[0.2em] text-white/40 mb-1.5'>SAT Link</span>
+                                            <div className='flex items-center gap-3'>
+                                                <Activity className='w-4 h-4 text-cyan-500 animate-pulse' />
+                                                <span className='text-lg font-black text-white tabular-nums uppercase'>Active</span>
+                                            </div>
+                                            <div className="w-12 h-0.5 bg-white/5 mt-2 overflow-hidden rounded-full">
+                                                <div className="h-full bg-cyan-500 transition-all duration-1000" style={{ width: '100%' }} />
+                                            </div>
+                                        </div>
+
+                                        {/* Subtle scanline on the widget */}
+                                        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-0 bg-[length:100%_2px,3px_100%]" />
+                                    </div>
+                                </div>
+
+                                {/* RADAR OVERLAY EFFECT */}
+                                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                    <div className="w-[800px] h-[800px] border border-yellow-500/10 rounded-full relative">
+                                        {/* Concentric circles */}
+                                        <div className="absolute inset-[15%] border border-yellow-500/10 rounded-full" />
+                                        <div className="absolute inset-[35%] border border-yellow-500/10 rounded-full" />
+                                        <div className="absolute inset-[55%] border border-yellow-500/10 rounded-full" />
+
+                                        {/* RADAR SWEEP LINE */}
                                         <div
-                                            key={deg}
-                                            className="absolute top-1/2 left-1/2 w-8 h-px bg-yellow-500/40"
-                                            style={{ transform: `rotate(${deg}deg) translateX(360px)` }}
+                                            className="absolute top-1/2 left-1/2 w-full h-[2px] bg-gradient-to-r from-yellow-500/20 to-yellow-500/60 origin-left"
+                                            style={{ transform: `rotate(${radarAngle}deg)` }}
                                         />
-                                    ))}
+
+                                        {/* PHANTOM BLIPS */}
+                                        <AnimatePresence>
+                                            {phantomBlips.map(blip => (
+                                                <motion.div
+                                                    key={blip.id}
+                                                    initial={{ opacity: 0, scale: 0 }}
+                                                    animate={{ opacity: [0, 0.6, 0], scale: [0.5, 1, 1.2] }}
+                                                    exit={{ opacity: 0 }}
+                                                    transition={{ duration: 2.5 }}
+                                                    className="absolute w-1.5 h-1.5 bg-yellow-500/40 rounded-full shadow-[0_0_10px_rgba(234,179,8,0.5)]"
+                                                    style={{
+                                                        left: `calc(50% + ${blip.x}px)`,
+                                                        top: `calc(50% + ${blip.y}px)`,
+                                                        transform: 'translate(-50%, -50%)'
+                                                    }}
+                                                />
+                                            ))}
+                                        </AnimatePresence>
+
+                                        {/* Tick marks */}
+                                        {[0, 90, 180, 270].map(deg => (
+                                            <div
+                                                key={deg}
+                                                className="absolute top-1/2 left-1/2 w-8 h-px bg-yellow-500/40"
+                                                style={{ transform: `rotate(${deg}deg) translateX(360px)` }}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
+                        )}
 
-                            {/* Tactical Overlays (Draggable) */}
-                            <motion.div
-                                drag
-                                dragMomentum={false}
-                                className="absolute bottom-6 left-6 flex flex-col gap-4 cursor-move"
-                            >
-                                <div className="bg-black/90 p-4 border-2 border-yellow-500/50 rounded-sm shadow-2xl backdrop-blur-md w-64 pointer-events-auto">
-                                    <div className="flex items-center justify-between border-b border-yellow-500/20 mb-3 pb-2">
-                                        <h3 className="font-black text-[11px] uppercase tracking-widest text-yellow-500 flex items-center gap-2">
-                                            <Target className="w-4 h-4" /> Sector Threats
-                                        </h3>
-                                        <span className="text-[10px] font-black bg-red-600 px-1.5 py-0.5 text-white animate-pulse">LIVE</span>
+                        {activeView === 'list' && (
+                            <div className="p-8 bg-[#0a0a0a] h-full overflow-auto flex-1 border-l border-white/5">
+                                <div className="max-w-4xl mx-auto">
+                                    <div className="flex items-center justify-between mb-8 border-b-2 border-yellow-500 pb-2">
+                                        <h2 className="text-2xl font-black uppercase tracking-tighter">Tactical Manifest</h2>
+                                        <span className="text-xs font-bold text-zinc-500 tabular-nums">RECORDS: {(alerts || []).length}</span>
                                     </div>
-                                    <div className="space-y-4">
-                                        <div className="space-y-1">
-                                            <div className="flex justify-between text-[10px] font-bold uppercase text-zinc-500">
-                                                <span>Hostile Activity</span>
-                                                <span className="text-white">CRITICAL (x{(alerts || []).filter(a => a.severity > 0.8).length})</span>
-                                            </div>
-                                            <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden">
-                                                <div className="h-full bg-red-600" style={{ width: '65%' }} />
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={handleEngageProtocols}
-                                            disabled={isEngagingProtocols}
-                                            className="w-full bg-yellow-500 hover:bg-yellow-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black py-2 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                                        >
-                                            {isEngagingProtocols ? (
-                                                <>
-                                                    <div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                                                    Engaging...
-                                                </>
-                                            ) : (
-                                                'Engage Protocols'
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-
-                            {/* MESH NETWORK STATUS WIDGET (NEW) */}
-                            <motion.div
-                                drag
-                                dragMomentum={false}
-                                className="absolute bottom-6 left-[280px] z-40 cursor-move"
-                            >
-                                <MeshNetworkStatus />
-                            </motion.div>
-
-                            {/* Right Panel - Field Agents (Draggable) */}
-                            <motion.div
-                                drag
-                                dragMomentum={false}
-                                className="absolute top-6 right-6 w-64 flex flex-col gap-4 cursor-move"
-                            >
-                                <div className="bg-black/80 backdrop-blur-md border border-white/5 rounded-sm p-4 pointer-events-auto">
-                                    <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                        <Users className="w-3 h-3 text-yellow-500" /> Active Agents
-                                    </h4>
-                                    <div className="space-y-3 max-h-60 overflow-y-auto scrollbar-cyber">
-                                        {(assets || []).length === 0 ? (
-                                            <div className="text-[10px] text-zinc-600 italic text-center py-4">No active field units.</div>
-                                        ) : (
-                                            (assets || []).map(agent => (
-                                                <div key={agent.id} className="flex flex-col gap-1.5 p-2 bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                                                    <div className="flex justify-between items-center text-[10px]">
-                                                        <span className="font-black text-white">{agent.call_sign || agent.name}</span>
-                                                        <span className={`px-1 rounded-sm text-[8px] font-black ${agent.status === 'ENGAGED' ? 'bg-orange-600 text-white' : 'text-green-500'}`}>{agent.status}</span>
-                                                    </div>
-                                                    <div className="flex justify-between text-[8px] font-bold text-zinc-500 uppercase">
-                                                        <div className="flex items-center gap-1">
-                                                            <span>R:</span>
-                                                            <div className="w-8 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                                                                <div
-                                                                    className={`h-full ${agent.capacity_level < 30 ? 'bg-red-500' : 'bg-green-500'}`}
-                                                                    style={{ width: `${agent.capacity_level}%` }}
-                                                                />
+                                    <div className="grid gap-4">
+                                        {(alerts || []).map((alert) => (
+                                            <div
+                                                key={alert.id}
+                                                onClick={() => {
+                                                    setSelectedAlert(alert);
+                                                    setActiveView('map');
+                                                }}
+                                                className={`bg-zinc-900 border p-5 shadow-sm group transition-all cursor-pointer ${selectedAlert?.id === alert.id ? 'border-yellow-500 bg-yellow-500/5' : 'border-white/5 hover:border-yellow-500/50'
+                                                    }`}
+                                            >
+                                                <div className="flex items-start gap-4">
+                                                    <div className={`w-1 self-stretch ${alert.severity > 0.8 ? 'bg-red-600' : 'bg-yellow-500'}`} />
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-start mb-3">
+                                                            <div>
+                                                                <div className="text-[9px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-1">Classification: {alert.severity > 0.8 ? 'Priority-1' : 'Priority-2'}</div>
+                                                                <h3 className="font-black text-xl uppercase tracking-tight text-white">{alert.type}</h3>
                                                             </div>
-                                                            <span>{agent.capacity_level}%</span>
-                                                        </div>
-                                                        <span className="flex items-center gap-1"><Navigation className="w-2 h-2" /> LOC: {agent.latitude.toFixed(2)}, {agent.longitude.toFixed(2)}</span>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Tactical Proximity Radar (NEW) */}
-                                {selectedAlert && (
-                                    <div className="bg-black/90 p-4 border-2 border-yellow-500/50 rounded-sm shadow-2xl backdrop-blur-md">
-                                        <div className="flex items-center justify-between border-b border-yellow-500/20 mb-3 pb-2">
-                                            <h3 className="font-black text-[11px] uppercase tracking-widest text-yellow-500 flex items-center gap-2">
-                                                <Shield className="w-4 h-4" /> Tactical Proximity Radar
-                                            </h3>
-                                            <span className="text-[9px] font-mono text-yellow-500/50 animate-pulse uppercase">Scanning...</span>
-                                        </div>
-                                        <div className="space-y-4">
-                                            {(triangulatedAssets || []).length > 0 ? (
-                                                (triangulatedAssets || []).map((ta, i) => (
-                                                    <div key={ta.asset.id} className="space-y-1.5">
-                                                        <div className="flex justify-between items-center text-[10px]">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-zinc-500 font-bold">0{i + 1}</span>
-                                                                <span className="font-black text-white uppercase tracking-tight">{ta.asset.name}</span>
+                                                            <div className="text-right">
+                                                                <div className="text-[10px] font-bold text-zinc-500 mb-1">{new Date(alert.timestamp).toLocaleTimeString()}</div>
+                                                                <div className="text-[10px] font-bold text-zinc-500 uppercase">LOG_ID: {alert.id.slice(0, 8)}</div>
                                                             </div>
-                                                            <span className="font-black text-yellow-500">{(ta.distance_meters / 1000).toFixed(1)}KM</span>
                                                         </div>
-                                                        <div className="h-1 bg-zinc-800 w-full rounded-full overflow-hidden">
-                                                            <div
-                                                                className="h-full bg-yellow-500"
-                                                                style={{ width: `${ta.suitability_score}%` }}
-                                                            />
-                                                        </div>
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-tighter">Suitability: {ta.suitability_score.toFixed(0)}%</span>
-                                                            {ta.asset.status !== 'DISPATCHED' ? (
-                                                                <button
-                                                                    onClick={async (e) => {
-                                                                        e.stopPropagation();
-                                                                        // Use the new createMission API which handles mission record + asset status
-                                                                        const mission = await createMission(selectedAlert.id, ta.asset.id, selectedAlert.severity > 0.8 ? 'HIGH' : 'MEDIUM');
-                                                                        if (mission) {
-                                                                            loadMissions(); // Refresh active missions list
-                                                                            setTriangulatedAssets(prev => prev.map(p =>
-                                                                                p.asset.id === ta.asset.id ? { ...p, asset: { ...p.asset, status: 'DISPATCHED' } } : p
-                                                                            ));
-                                                                            alert(`UNIT [${ta.asset.name}] DISPATCHED. MISSION_ID: ${mission.id.slice(0, 8)}`);
-                                                                        }
-                                                                    }}
-                                                                    className="text-black bg-yellow-500 px-2 py-0.5 text-[8px] font-black uppercase hover:bg-yellow-400 transition-colors"
-                                                                >
-                                                                    Activate
-                                                                </button>
-                                                            ) : (
-                                                                <span className="bg-orange-600/20 text-orange-500 border border-orange-500/30 px-2 py-0.5 text-[8px] font-black uppercase">Dispatched</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="text-[10px] text-zinc-500 italic py-2 text-center border border-dashed border-zinc-800">
-                                                    No assets in immediate proximity.
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Alert Action Panel */}
-                                {selectedAlert && (
-                                    <div className="bg-black/80 border-2 border-yellow-500/50 p-4 rounded-sm">
-                                        <h4 className="text-[11px] font-black text-yellow-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                            <Zap className="w-4 h-4" /> Tactical Actions
-                                        </h4>
-                                        <div className="space-y-2">
-                                            <button
-                                                onClick={handleDispatchResponse}
-                                                disabled={isDispatchingResponse || isAlertRedacted(selectedAlert)}
-                                                className="w-full bg-green-600 hover:bg-green-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white py-2.5 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                                            >
-                                                {isDispatchingResponse ? (
-                                                    <>
-                                                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                        Dispatching...
-                                                    </>
-                                                ) : (
-                                                    'Dispatch Response'
-                                                )}
-                                            </button>
-                                            <button
-                                                onClick={handleVerifyIntegrity}
-                                                disabled={isVerifying || isAlertRedacted(selectedAlert)}
-                                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white py-2.5 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                                            >
-                                                {isVerifying ? (
-                                                    <>
-                                                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                        Verifying...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Lock className="w-3.5 h-3.5" />
-                                                        Verify Integrity
-                                                    </>
-                                                )}
-                                            </button>
-                                            <button
-                                                onClick={() => setShowBroadcastModal(true)}
-                                                className="w-full bg-orange-600 hover:bg-orange-500 text-white py-2.5 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <Megaphone className="w-3.5 h-3.5" />
-                                                Public Broadcast
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="bg-orange-600/10 border border-orange-600/30 p-4 rounded-sm flex items-center gap-3">
-                                    <div className="relative">
-                                        <Radio className="w-6 h-6 text-orange-500" />
-                                        <div className="absolute inset-0 bg-orange-500 animate-ping opacity-20 rounded-full" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-orange-500 uppercase leading-none mb-1">Incoming Comms</p>
-                                        <p className="text-[9px] text-orange-500/60 font-medium">RE: Incident #{(alerts || [])[0]?.id.slice(0, 8) || 'NO-SIGNAL'}</p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-
-                    {activeView === 'list' && (
-                        <div className="p-8 bg-[#0a0a0a] h-full overflow-auto flex-1 border-l border-white/5">
-                            <div className="max-w-4xl mx-auto">
-                                <div className="flex items-center justify-between mb-8 border-b-2 border-yellow-500 pb-2">
-                                    <h2 className="text-2xl font-black uppercase tracking-tighter">Tactical Manifest</h2>
-                                    <span className="text-xs font-bold text-zinc-500 tabular-nums">RECORDS: {(alerts || []).length}</span>
-                                </div>
-                                <div className="grid gap-4">
-                                    {(alerts || []).map((alert) => (
-                                        <div
-                                            key={alert.id}
-                                            onClick={() => {
-                                                setSelectedAlert(alert);
-                                                setActiveView('map');
-                                            }}
-                                            className={`bg-zinc-900 border p-5 shadow-sm group transition-all cursor-pointer ${selectedAlert?.id === alert.id ? 'border-yellow-500 bg-yellow-500/5' : 'border-white/5 hover:border-yellow-500/50'
-                                                }`}
-                                        >
-                                            <div className="flex items-start gap-4">
-                                                <div className={`w-1 self-stretch ${alert.severity > 0.8 ? 'bg-red-600' : 'bg-yellow-500'}`} />
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <div>
-                                                            <div className="text-[9px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-1">Classification: {alert.severity > 0.8 ? 'Priority-1' : 'Priority-2'}</div>
-                                                            <h3 className="font-black text-xl uppercase tracking-tight text-white">{alert.type.replace(/_/g, ' ')}</h3>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <div className="text-[10px] font-bold text-zinc-500 mb-1">{new Date(alert.timestamp).toLocaleTimeString()}</div>
-                                                            <div className="text-[10px] font-bold text-zinc-500 uppercase">LOG_ID: {alert.id.slice(0, 8)}</div>
-                                                        </div>
-                                                    </div>
-                                                    {/* Classification-Aware Content Display */}
-                                                    {isAlertRedacted(alert) ? (() => {
-                                                        const classification = getClassificationLevel(alert);
-                                                        return (
-                                                            <div className="relative bg-red-950/30 border-2 border-red-600/50 p-6 rounded-sm mb-4">
-                                                                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent animate-pulse" />
-                                                                <div className="flex items-center gap-3 mb-3">
-                                                                    <div className="w-10 h-10 bg-red-600/20 rounded-full flex items-center justify-center border border-red-600/50">
-                                                                        <Lock className="w-5 h-5 text-red-500" />
+                                                        {/* Classification-Aware Content Display */}
+                                                        {isAlertRedacted(alert) ? (() => {
+                                                            const classification = getClassificationLevel(alert);
+                                                            return (
+                                                                <div className="relative bg-red-950/30 border-2 border-red-600/50 p-6 rounded-sm mb-4">
+                                                                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent animate-pulse" />
+                                                                    <div className="flex items-center gap-3 mb-3">
+                                                                        <div className="w-10 h-10 bg-red-600/20 rounded-full flex items-center justify-center border border-red-600/50">
+                                                                            <Lock className="w-5 h-5 text-red-500" />
+                                                                        </div>
+                                                                        <div className="flex-1">
+                                                                            <h4 className="text-sm font-black uppercase tracking-widest text-red-500">TACTICAL ANALYSIS LOCKED</h4>
+                                                                            <p className="text-[10px] font-bold text-red-400/70 uppercase tracking-wider">Insufficient Security Clearance</p>
+                                                                        </div>
+                                                                        {/* Color-Coded Classification Badge */}
+                                                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded border-2"
+                                                                            style={{
+                                                                                backgroundColor: classification.bgColor,
+                                                                                borderColor: classification.borderColor,
+                                                                                boxShadow: `0 0 15px ${classification.borderColor}40`
+                                                                            }}>
+                                                                            <span className="text-[10px] font-black tracking-wider" style={{ color: classification.color }}>
+                                                                                {classification.level}
+                                                                            </span>
+                                                                            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: classification.color }} />
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="flex-1">
-                                                                        <h4 className="text-sm font-black uppercase tracking-widest text-red-500">TACTICAL ANALYSIS LOCKED</h4>
-                                                                        <p className="text-[10px] font-bold text-red-400/70 uppercase tracking-wider">Insufficient Security Clearance</p>
-                                                                    </div>
-                                                                    {/* Color-Coded Classification Badge */}
-                                                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded border-2"
-                                                                        style={{
-                                                                            backgroundColor: classification.bgColor,
-                                                                            borderColor: classification.borderColor,
-                                                                            boxShadow: `0 0 15px ${classification.borderColor}40`
-                                                                        }}>
-                                                                        <span className="text-[10px] font-black tracking-wider" style={{ color: classification.color }}>
-                                                                            {classification.level}
-                                                                        </span>
-                                                                        <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: classification.color }} />
+                                                                    <div className="space-y-2 pl-13">
+                                                                        <p className="text-xs font-mono text-red-300/80 leading-relaxed">
+                                                                            This intelligence report has been <span className="font-black text-red-400">REDACTED</span> due to your current clearance level.
+                                                                        </p>
+                                                                        <p className="text-[9px] font-mono text-red-500/40 italic mt-3 pt-3 border-t border-red-600/30">
+                                                                            Contact your commanding officer to request elevated access privileges.
+                                                                        </p>
                                                                     </div>
                                                                 </div>
-                                                                <div className="space-y-2 pl-13">
-                                                                    <p className="text-xs font-mono text-red-300/80 leading-relaxed">
-                                                                        This intelligence report has been <span className="font-black text-red-400">REDACTED</span> due to your current clearance level.
-                                                                    </p>
-                                                                    <p className="text-[9px] font-mono text-red-500/40 italic mt-3 pt-3 border-t border-red-600/30">
-                                                                        Contact your commanding officer to request elevated access privileges.
-                                                                    </p>
+                                                            );
+                                                        })() : (
+                                                            <>
+                                                                <p className="text-zinc-400 font-medium text-sm leading-relaxed mb-4">{alert.content}</p>
+                                                                <div className="flex items-center gap-6 pt-4 border-t border-white/5">
+                                                                    <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase">
+                                                                        <MapIcon className="w-3 h-3" /> {alert.location}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 text-[10px] font-black text-green-500 uppercase">
+                                                                        <Lock className="w-3 h-3" /> {alert.isTrusted ? 'Source Verified' : 'Integrity Uncertain'}
+                                                                    </div>
+                                                                    <button className="ml-auto flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#00FF95] hover:text-white transition-colors">
+                                                                        View Details <ChevronRight className="w-4 h-4" />
+                                                                    </button>
                                                                 </div>
-                                                            </div>
-                                                        );
-                                                    })() : (
-                                                        <>
-                                                            <p className="text-zinc-400 font-medium text-sm leading-relaxed mb-4">{alert.content}</p>
-                                                            <div className="flex items-center gap-6 pt-4 border-t border-white/5">
-                                                                <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase">
-                                                                    <MapIcon className="w-3 h-3" /> {alert.location}
-                                                                </div>
-                                                                <div className="flex items-center gap-2 text-[10px] font-black text-green-500 uppercase">
-                                                                    <Lock className="w-3 h-3" /> {alert.isTrusted ? 'Source Verified' : 'Integrity Uncertain'}
-                                                                </div>
-                                                                <button className="ml-auto flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#00FF95] hover:text-white transition-colors">
-                                                                    View Details <ChevronRight className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        </>
-                                                    )}
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </main>
+
+                <AnimatePresence>
+                    {showMissions && (
+                        <TacticalCommandDock
+                            assets={assets}
+                            activeMissions={activeMissions}
+                            selectedMission={selectedMission}
+                            setSelectedMission={setSelectedMission}
+                            loadMissions={loadMissions}
+                            selectedAlert={selectedAlert}
+                            triangulatedAssets={triangulatedAssets}
+                            alerts={alerts}
+                            handleEngageProtocols={handleEngageProtocols}
+                            isEngagingProtocols={isEngagingProtocols}
+                            securityStatus={securityStatus}
+                            createMission={createMission}
+                        />
+                    )}
+                </AnimatePresence>
+
             </div>
 
             {/* Global Warning Banner - If Critical Alerts Exist */}
             {(alerts || []).some(a => a.severity > 0.8) && (
-                <div className="absolute top-14 left-0 right-0 h-1 bg-red-600 z-[100] animate-pulse">
-                    <div className="absolute top-1 right-4 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-b-sm uppercase tracking-widest translate-y-[-1px]">
-                        Alert: Critical Hostility Detected
-                    </div>
+                <div className="absolute top-0 left-0 right-0 h-1 bg-red-600 z-[100] animate-pulse">
                 </div>
             )}
             {/* Notifications Panel */}

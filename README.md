@@ -139,6 +139,7 @@ If you see "WebGL is not supported" in Chrome, follow these steps to enable hard
 - [Mobile App Store Publication Guide](docs/mobile_publication_guide.md)
 - [Feature Expansion Blueprint](docs/expansion_blueprint.md) ⭐ **NEW: V2.0+ Roadmap**
 - [Implementation Plan](docs/implementation_plan.md)
+- [Investor Proposal](docs/Investor_proposal.md)
 - [Active Task Checklist](docs/task.md)
 - [Web Troubleshooting Guide](web/TROUBLESHOOTING.md)
 - [Database Schema](platform/schema/001_initial_schema.sql)
@@ -156,4 +157,3 @@ If you see "WebGL is not supported" in Chrome, follow these steps to enable hard
 
 ---
 See [roadmap.md](docs/roadmap.md) for implementation timeline and [expansion_blueprint.md](docs/expansion_blueprint.md) for V2.0+ planning.
-

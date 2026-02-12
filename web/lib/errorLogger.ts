@@ -18,6 +18,12 @@ export interface LogEntry {
 let logQueue: LogEntry[] = [];
 const IS_DEV = process.env.NODE_ENV === 'development';
 
+// Throttling state
+let lastLogTime = 0;
+let logCountInWindow = 0;
+const LOG_WINDOW_MS = 1000;
+const MAX_LOGS_PER_WINDOW = 5;
+
 /**
  * Creates a standardized log entry
  */
@@ -52,7 +58,25 @@ const sendToServer = async (entry: LogEntry) => {
     return;
   }
 
+  // Throttle client-side logging to prevent hitting backend 429 in a loop
+  const now = Date.now();
+  if (now - lastLogTime < LOG_WINDOW_MS) {
+    logCountInWindow++;
+    if (logCountInWindow > MAX_LOGS_PER_WINDOW) {
+      if (IS_DEV && logCountInWindow === MAX_LOGS_PER_WINDOW + 1) {
+        console.warn('[ErrorLogger] Throttling active: excessive logs detected.');
+      }
+      return;
+    }
+  } else {
+    lastLogTime = now;
+    logCountInWindow = 1;
+  }
+
   try {
+    // Prevent recursive logging loops
+    if (entry.message.includes('Expected array') || entry.message.includes('429')) return;
+
     // Use apiFetch for automatic CSRF and Auth handling
     await apiFetch('/api/v1/logs', {
       method: 'POST',
@@ -60,8 +84,10 @@ const sendToServer = async (entry: LogEntry) => {
     });
   } catch (error) {
     if (IS_DEV) console.error('[ErrorLogger] Failed to send log:', error);
-    // Re-queue on failure
-    logQueue.push(entry);
+    // Re-queue on failure (but only if it's not a 429)
+    if (!(error instanceof Error && error.message.includes('429'))) {
+      logQueue.push(entry);
+    }
   }
 };
 

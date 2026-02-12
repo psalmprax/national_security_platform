@@ -35,8 +35,8 @@ export default function SafetyLeaderboard() {
 
     const sortedScores = [...(scores || [])]
         .filter(s =>
-            s.lga_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.state_name.toLowerCase().includes(searchTerm.toLowerCase())
+            (s.lga_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (s.state_name || '').toLowerCase().includes(searchTerm.toLowerCase())
         )
         .sort((a, b) => {
             if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -124,7 +124,7 @@ export default function SafetyLeaderboard() {
                                                 {s.safety_score}%
                                             </div>
                                             <span className="text-[8px] text-slate-400 dark:text-white/20 uppercase font-black tracking-widest truncate max-w-[80px]">
-                                                {s.risk_level.replace(/_/g, ' ')}
+                                                {s.risk_level}
                                             </span>
                                         </div>
                                     </td>
@@ -146,7 +146,7 @@ export default function SafetyLeaderboard() {
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        <span className="uppercase tracking-widest">Safe_Zones</span>
+                        <span className="uppercase tracking-widest">Safe Zones</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />

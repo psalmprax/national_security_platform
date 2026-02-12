@@ -2,10 +2,32 @@
 declare var process: any;
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+// Helper to ensure data is an array
+function ensureArray<T>(data: any): T[] {
+    // ensureArray v2 - robust check
+    if (Array.isArray(data)) return data;
+    if (!data) return [];
+
+    // Common pagination/wrapper patterns
+    if (data.data && Array.isArray(data.data)) return data.data;
+    if (data.items && Array.isArray(data.items)) return data.items;
+
+    // Domain specific wrappers
+    if (data.tips && Array.isArray(data.tips)) return data.tips;
+    if (data.alerts && Array.isArray(data.alerts)) return data.alerts;
+    if (data.users && Array.isArray(data.users)) return data.users;
+    if (data.roles && Array.isArray(data.roles)) return data.roles;
+    if (data.permissions && Array.isArray(data.permissions)) return data.permissions;
+    if (data.scans && Array.isArray(data.scans)) return data.scans;
+
+    return [];
+}
+
 export interface Alert {
     id: string;
     user_id: string;
     status: string;
+
     priority_class: string;
     longitude: number;
     latitude: number;
@@ -30,6 +52,8 @@ export interface Alert {
     isEncrypted?: boolean;
     source_device_id?: string;
     classification_level?: string;
+    severity_score?: number;
+    risk_keywords?: string[];
 }
 
 // Helper to get CSRF token from double-submit cookie
@@ -54,7 +78,7 @@ function getCsrfToken(): string {
  * Standardized Fetch Wrapper for the Core API
  * Automatically injecting CSRF tokens and ensuring credentials for RBAC.
  */
-async function apiFetch(endpoint: string, options: RequestInit = {}) {
+export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 
     const headers = {
@@ -83,6 +107,15 @@ function isBase64(str: string) {
     return firstPaddingChar === -1 || firstPaddingChar === str.length - 1 || (firstPaddingChar === str.length - 2 && str[str.length - 1] === '=');
 }
 
+/**
+ * Universal formatter to clean data for display.
+ * Removes underscores and ensures clean spacing.
+ */
+export function formatLabel(str: string | undefined | null): string {
+    if (!str) return '';
+    return str.replace(/_/g, ' ');
+}
+
 export async function fetchAlerts(): Promise<Alert[]> {
     try {
         const response = await apiFetch(`${API_BASE_URL}/api/v1/alerts`, {
@@ -99,14 +132,14 @@ export async function fetchAlerts(): Promise<Alert[]> {
         }
 
         const data = await response.json();
-        const rawAlerts = (data || []) as any[];
+        const rawAlerts = ensureArray(data) as any[];
 
         return rawAlerts.map(alert => ({
             ...alert,
             id: alert.id || '',
             latitude: Number(alert.latitude || 0),
             longitude: Number(alert.longitude || 0),
-            type: alert.alert_type || 'Unknown',
+            type: formatLabel(alert.alert_type || 'Unknown'),
             content: alert.content_text || 'No description available.',
             location: `${Number(alert.latitude || 0).toFixed(4)}, ${Number(alert.longitude || 0).toFixed(4)}`,
             timestamp: alert.created_at || new Date().toISOString(),
@@ -114,9 +147,11 @@ export async function fetchAlerts(): Promise<Alert[]> {
             severity: mapPriorityToSeverity(alert.priority_class || 'LOW'),
             lga_name: alert.lga_name,
             state_name: alert.state_name,
-            location_source: alert.location_source as 'GPS' | 'GOVERNANCE_OVERRIDE',
+            location_source: formatLabel(alert.location_source) as 'GPS' | 'GOVERNANCE OVERRIDE',
             isEncrypted: isBase64(alert.content_text || '') && (alert.content_text || '').length > 30 && !(alert.content_text || '').includes(' '),
-            classification_level: alert.classification_level
+            classification_level: formatLabel(alert.classification_level),
+            severity_score: alert.severity_score,
+            risk_keywords: (alert.risk_keywords || []).map((k: string) => formatLabel(k))
         }));
     } catch (error) {
         console.error('Failed to fetch alerts:', error);
@@ -237,7 +272,7 @@ export async function fetchSecurityScans(page: number = 1, limit: number = 10): 
             return [];
         }
 
-        return (await response.json()) || [];
+        return ensureArray(await response.json());
     } catch (error) {
         console.error('Failed to fetch security scans:', error);
         return [];
@@ -288,6 +323,7 @@ export interface Mission {
     dispatch_time: string;
     arrival_time?: string;
     completion_time?: string;
+    description?: string;
     created_at: string;
     updated_at: string;
 }
@@ -305,7 +341,7 @@ export async function fetchTriangulatedAssets(alertId: string): Promise<Triangul
             return [];
         }
 
-        return (await response.json()) || [];
+        return ensureArray(await response.json());
     } catch (error) {
         console.error('Failed to fetch triangulated assets:', error);
         return [];
@@ -374,7 +410,12 @@ export async function fetchAssets(): Promise<Asset[]> {
             return [];
         }
 
-        return (await response.json()) || [];
+        const assets = ensureArray(await response.json());
+        return assets.map((asset: any) => ({
+            ...asset,
+            type: formatLabel(asset.type),
+            status: formatLabel(asset.status)
+        }));
     } catch (error) {
         console.error('Failed to fetch assets:', error);
         return [];
@@ -389,7 +430,12 @@ export async function fetchActiveMissions(): Promise<Mission[]> {
             return [];
         }
 
-        return (await response.json()) || [];
+        const missions = ensureArray(await response.json());
+        return missions.map((mission: any) => ({
+            ...mission,
+            status: formatLabel(mission.status),
+            priority: formatLabel(mission.priority)
+        }));
     } catch (error) {
         console.error('Failed to fetch active missions:', error);
         return [];
@@ -519,7 +565,11 @@ export async function fetchSafetyScores(riskLevel?: string): Promise<SafetyScore
         const response = await apiFetch(urlPath);
 
         if (!response.ok) return [];
-        return (await response.json()) || [];
+        const scores = ensureArray(await response.json());
+        return scores.map((score: any) => ({
+            ...score,
+            risk_level: formatLabel(score.risk_level)
+        }));
     } catch (error) {
         console.error('Failed to fetch safety scores:', error);
         return [];
@@ -554,7 +604,12 @@ export async function fetchAnonymousTips(): Promise<AnonymousTip[]> {
         const response = await apiFetch(`/api/v1/tips`);
 
         if (!response.ok) return [];
-        return (await response.json()) || [];
+        const tips = ensureArray(await response.json());
+        return tips.map((tip: any) => ({
+            ...tip,
+            threat_type: formatLabel(tip.threat_type),
+            verification_status: formatLabel(tip.verification_status)
+        }));
     } catch (error) {
         console.error('Failed to fetch tips:', error);
         return [];
@@ -617,7 +672,12 @@ export async function fetchAuditLogs(): Promise<AuditEntry[]> {
     try {
         const response = await apiFetch('/api/v1/admin/audit-logs');
         if (!response.ok) return [];
-        return (await response.json()) || [];
+        const logs = ensureArray(await response.json());
+        return logs.map((l: any) => ({
+            ...l,
+            action: formatLabel(l.action),
+            classification_level: formatLabel(l.classification_level)
+        }));
     } catch (error) {
         console.error('Failed to fetch audit logs:', error);
         return [];
@@ -628,7 +688,11 @@ export async function fetchRoles(): Promise<Role[]> {
     try {
         const response = await apiFetch('/api/v1/admin/roles');
         if (!response.ok) return [];
-        return (await response.json()) || [];
+        const roles = ensureArray(await response.json());
+        return roles.map((r: any) => ({
+            ...r,
+            name: formatLabel(r.name)
+        }));
     } catch (error) {
         console.error('Failed to fetch roles:', error);
         return [];
@@ -639,7 +703,7 @@ export async function fetchPermissions(): Promise<Permission[]> {
     try {
         const response = await apiFetch('/api/v1/admin/permissions');
         if (!response.ok) return [];
-        return (await response.json()) || [];
+        return ensureArray(await response.json());
     } catch (error) {
         console.error('Failed to fetch permissions:', error);
         return [];
@@ -650,7 +714,13 @@ export async function fetchAllUsers(): Promise<any[]> {
     try {
         const response = await apiFetch('/api/v1/admin/users');
         if (!response.ok) return [];
-        return (await response.json()) || [];
+        const users = ensureArray(await response.json());
+        return users.map((u: any) => ({
+            ...u,
+            role: formatLabel(u.role),
+            status: formatLabel(u.status),
+            clearance_level: formatLabel(u.clearance_level)
+        }));
     } catch (error) {
         console.error('Failed to fetch all users:', error);
         return [];
@@ -694,5 +764,31 @@ export async function updateAlertClassification(alertId: string, level: string):
     } catch (error) {
         console.error('Failed to update alert classification:', error);
         return false;
+    }
+}
+
+export interface SatcomTelemetry {
+    linkStatus: string;
+    downlink: string;
+    uplink: string;
+    latency: string;
+    satelliteId: string;
+    signalStrength: number;
+    timestamp: number;
+}
+
+export async function fetchSatcomTelemetry(): Promise<SatcomTelemetry | null> {
+    try {
+        const response = await apiFetch('/api/v1/system/telemetry/satcom');
+        if (!response.ok) return null;
+        const data = await response.json();
+        return {
+            ...data,
+            linkStatus: formatLabel(data.linkStatus),
+            activeBeams: formatLabel(data.activeBeams)
+        };
+    } catch (error) {
+        console.error('Failed to fetch satcom telemetry:', error);
+        return null;
     }
 }

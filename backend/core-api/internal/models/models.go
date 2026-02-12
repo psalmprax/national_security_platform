@@ -29,20 +29,20 @@ type Alert struct {
 }
 
 type User struct {
-	ID              uuid.UUID  `json:"id"`
-	PhoneNumber     string     `json:"phone_number"`
-	Email           *string    `json:"email,omitempty"`
-	FullName        *string    `json:"full_name,omitempty"`
-	NIN             *string    `json:"nin,omitempty"`
-	Role            string     `json:"role"`
-	MonarchGrade    *string    `json:"monarch_grade,omitempty"`
-	DomainTerritory *string    `json:"domain_territory,omitempty"`
-	HierarchyWeight int        `json:"hierarchy_weight"`
-	TrustScore      float64    `json:"trust_score"`
-	ClearanceLevel  string     `json:"clearance_level"`
-	VillageID       *uuid.UUID `json:"village_id,omitempty"`
-	LGAID           *uuid.UUID `json:"lga_id,omitempty"`
-	StateID         *uuid.UUID `json:"state_id,omitempty"`
+	ID                  uuid.UUID  `json:"id"`
+	PhoneNumber         string     `json:"phone_number"`
+	Email               *string    `json:"email,omitempty"`
+	FullName            *string    `json:"full_name,omitempty"`
+	NIN                 *string    `json:"nin,omitempty"`
+	Role                string     `json:"role"`
+	MonarchGrade        *string    `json:"monarch_grade,omitempty"`
+	DomainTerritory     *string    `json:"domain_territory,omitempty"`
+	HierarchyWeight     int        `json:"hierarchy_weight"`
+	TrustScore          float64    `json:"trust_score"`
+	ClearanceLevel      string     `json:"clearance_level"`
+	VillageID           *uuid.UUID `json:"village_id,omitempty"`
+	LGAID               *uuid.UUID `json:"lga_id,omitempty"`
+	StateID             *uuid.UUID `json:"state_id,omitempty"`
 	Status              string     `json:"status"`
 	NINVerified         bool       `json:"nin_verified"`
 	NINVerificationDate *time.Time `json:"nin_verification_date,omitempty"`
@@ -50,8 +50,8 @@ type User struct {
 	BiometricEnrolled   bool       `json:"biometric_enrolled"`
 	IdentityNotes       *string    `json:"identity_notes,omitempty"`
 	PasswordHash        *string    `json:"-"` // Never expose password hash in JSON
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
 type State struct {
@@ -209,4 +209,14 @@ type IdentityVerificationLog struct {
 	VerificationStatus string    `json:"verification_status"`
 	FailureReason      *string   `json:"failure_reason,omitempty"`
 	CreatedAt          time.Time `json:"created_at"`
+}
+
+type AuditLog struct {
+	ID                  uuid.UUID `json:"id"`
+	EntityID            uuid.UUID `json:"entity_id"`
+	Action              string    `json:"action"`
+	ActorID             uuid.UUID `json:"actor_id"`
+	Timestamp           time.Time `json:"timestamp"`
+	Changes             []byte    `json:"changes,omitempty"`
+	ClassificationLevel string    `json:"classification_level"`
 }

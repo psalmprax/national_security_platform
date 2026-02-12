@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
+function formatLabel(str: string | undefined | null): string {
+    if (!str) return '';
+    return str.replace(/_/g, ' ');
+}
+
 export interface User {
     id: string;
     phone_number: string;
@@ -25,6 +30,8 @@ interface AuthContextType {
     logout: () => void;
     checkAuth: () => Promise<void>;
     getCsrfToken: () => string;
+    isAuthenticated: boolean;
+    currentUserRole: string | undefined;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,6 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (response.ok) {
                 const userData = await response.json();
+                if (userData) {
+                    userData.role = formatLabel(userData.role);
+                    userData.clearance_level = formatLabel(userData.clearance_level);
+                    userData.status = formatLabel(userData.status);
+                }
                 setUser(userData);
             } else {
                 // If 401 or 404 (User not found/Zombie token), we must clear the cookie
@@ -109,8 +121,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return '';
     };
 
+    const isAuthenticated = !!user;
+    const currentUserRole = user?.role;
+
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, logout, checkAuth, getCsrfToken }}>
+        <AuthContext.Provider value={{ user, isLoading, login, logout, checkAuth, getCsrfToken, isAuthenticated, currentUserRole }}>
             {children}
         </AuthContext.Provider>
     );

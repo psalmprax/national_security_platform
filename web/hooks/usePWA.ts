@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react'
 
+// Extend WindowEventMap to include beforeinstallprompt event
+interface WindowEventMap {
+  beforeinstallprompt: BeforeInstallPromptEvent
+}
+
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[]
   readonly userChoice: Promise<{
@@ -47,9 +52,10 @@ export function usePWAInstall(): PWAInstallPrompt {
     }
 
     // Listen for beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
-      e.preventDefault()
-      setInstallPrompt(e)
+    const handleBeforeInstallPrompt = (e: Event) => {
+      const beforeInstallPromptEvent = e as BeforeInstallPromptEvent
+      beforeInstallPromptEvent.preventDefault()
+      setInstallPrompt(beforeInstallPromptEvent)
       setIsInstallable(true)
     }
 
@@ -96,14 +102,9 @@ export function usePWAInstall(): PWAInstallPrompt {
   }
 
   const dismiss = () => {
-    if (installPrompt) {
-      installPrompt.userChoice = Promise.resolve({
-        outcome: 'dismissed' as const,
-        platform: ''
-      })
-      setInstallPrompt(null)
-      setIsInstallable(false)
-    }
+    // Just clear the install prompt state without modifying the event
+    setInstallPrompt(null)
+    setIsInstallable(false)
   }
 
   return {
@@ -266,8 +267,10 @@ export function usePWANotifications() {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '')
-      })
+        applicationServerKey: urlBase64ToUint8Array(
+          (typeof window !== 'undefined' && (window as any).ENV?.NEXT_PUBLIC_VAPID_PUBLIC_KEY) || ''
+        )
+      } as any)
 
       setSubscription(subscription)
       return true

@@ -12,7 +12,13 @@ interface MeshNode {
     connections: string[];
 }
 
-export default function MeshNetworkStatus() {
+interface MeshNetworkStatusProps {
+    className?: string;
+    style?: React.CSSProperties;
+    dockVariant?: boolean;
+}
+
+export default function MeshNetworkStatus({ className, style, dockVariant = false }: MeshNetworkStatusProps) {
     const [nodes, setNodes] = useState<MeshNode[]>([
         { id: '1', label: 'HUB-ALPHA', status: 'online', latency: 42, connections: ['2', '3'] },
         { id: '2', label: 'NODE-02', status: 'online', latency: 85, connections: ['1', '4'] },
@@ -35,8 +41,70 @@ export default function MeshNetworkStatus() {
         return () => clearInterval(interval);
     }, []);
 
+    const content = (
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white/5 border border-white/5 p-2 text-center">
+                    <div className="text-[8px] font-black text-zinc-500 uppercase">Backhaul</div>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                        <Wifi className="w-3 h-3 text-cyan-400" />
+                        <span className="text-[10px] font-black text-white">SATELLITE</span>
+                    </div>
+                </div>
+                <div className="bg-white/5 border border-white/5 p-2 text-center">
+                    <div className="text-[8px] font-black text-zinc-500 uppercase">Local Mesh</div>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                        <Radio className="w-3 h-3 text-orange-500" />
+                        <span className="text-[10px] font-black text-white">LORA/P2P</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">Topology Nodes (Active)</p>
+                {nodes.map((node) => (
+                    <div key={node.id} className="flex items-center justify-between p-2 bg-white/5 border border-white/5 hover:border-orange-500/20 transition-all">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-1.5 h-1.5 rounded-full ${node.status === 'relay' ? 'bg-cyan-400' : 'bg-orange-500'}`} />
+                            <span className="text-[10px] font-black text-zinc-200">{node.label}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[8px] font-mono text-zinc-600">{node.latency.toFixed(0)}MS</span>
+                            <Activity className="w-3 h-3 text-orange-500/30" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-orange-500/10">
+                <div className="flex justify-between items-center text-[9px] font-black text-orange-500/60 uppercase">
+                    <span>Reliability Index</span>
+                    <span>98.4%</span>
+                </div>
+                <div className="h-1 bg-zinc-800 w-full mt-1.5 overflow-hidden">
+                    <motion.div
+                        className="h-full bg-orange-500"
+                        initial={{ width: '0%' }}
+                        animate={{ width: '98.4%' }}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+
+    if (dockVariant) {
+        return content;
+    }
+
     return (
-        <div className="bg-black/90 p-4 border-2 border-orange-500/50 rounded-sm shadow-2xl backdrop-blur-md w-72">
+        <motion.div
+            drag
+            dragMomentum={false}
+            className={`bg-black/90 p-4 border-2 border-orange-500/50 rounded-sm shadow-2xl backdrop-blur-md w-72 absolute z-50 cursor-move ${className || ''}`}
+            style={style}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+        >
             <div className="flex items-center justify-between border-b border-orange-500/20 mb-4 pb-2">
                 <h3 className="font-black text-[11px] uppercase tracking-widest text-orange-500 flex items-center gap-2">
                     <Share2 className="w-4 h-4" /> Tactical Mesh Status
@@ -47,55 +115,7 @@ export default function MeshNetworkStatus() {
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-500/40" />
                 </div>
             </div>
-
-            <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-white/5 border border-white/5 p-2 text-center">
-                        <div className="text-[8px] font-black text-zinc-500 uppercase">Backhaul</div>
-                        <div className="flex items-center justify-center gap-1 mt-1">
-                            <Wifi className="w-3 h-3 text-cyan-400" />
-                            <span className="text-[10px] font-black text-white">SATELLITE</span>
-                        </div>
-                    </div>
-                    <div className="bg-white/5 border border-white/5 p-2 text-center">
-                        <div className="text-[8px] font-black text-zinc-500 uppercase">Local Mesh</div>
-                        <div className="flex items-center justify-center gap-1 mt-1">
-                            <Radio className="w-3 h-3 text-orange-500" />
-                            <span className="text-[10px] font-black text-white">LORA/P2P</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">Topology Nodes (Active)</p>
-                    {nodes.map((node) => (
-                        <div key={node.id} className="flex items-center justify-between p-2 bg-white/5 border border-white/5 hover:border-orange-500/20 transition-all">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-1.5 h-1.5 rounded-full ${node.status === 'relay' ? 'bg-cyan-400' : 'bg-orange-500'}`} />
-                                <span className="text-[10px] font-black text-zinc-200">{node.label}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className="text-[8px] font-mono text-zinc-600">{node.latency.toFixed(0)}MS</span>
-                                <Activity className="w-3 h-3 text-orange-500/30" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-orange-500/10">
-                    <div className="flex justify-between items-center text-[9px] font-black text-orange-500/60 uppercase">
-                        <span>Reliability Index</span>
-                        <span>98.4%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 w-full mt-1.5 overflow-hidden">
-                        <motion.div
-                            className="h-full bg-orange-500"
-                            initial={{ width: '0%' }}
-                            animate={{ width: '98.4%' }}
-                        />
-                    </div>
-                </div>
-            </div>
-        </div>
+            {content}
+        </motion.div>
     );
 }

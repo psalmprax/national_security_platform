@@ -13,6 +13,7 @@ import {
     Key,
     Menu,
     X,
+    LogOut,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Portal from "@/components/Portal";
@@ -20,6 +21,10 @@ import Portal from "@/components/Portal";
 interface CommandBarProps {
     agencyName: string;
     userRole: string;
+    user?: {
+        full_name?: string;
+        role?: string;
+    } | null;
     showSettings: boolean;
     setShowSettings: (show: boolean) => void;
     isFullscreen: boolean;
@@ -28,11 +33,13 @@ interface CommandBarProps {
     setShowUserMenu: (show: boolean) => void;
     activeView?: string;
     onNavigate?: (view: string) => void;
+    onLogout?: () => void;
 }
 
 const CommandBar: React.FC<CommandBarProps> = ({
     agencyName,
     userRole,
+    user,
     showSettings,
     setShowSettings,
     isFullscreen,
@@ -41,6 +48,7 @@ const CommandBar: React.FC<CommandBarProps> = ({
     setShowUserMenu,
     activeView,
     onNavigate,
+    onLogout,
 }) => {
     const navigateTo = (view: string) => {
         if (onNavigate) {
@@ -157,12 +165,20 @@ const CommandBar: React.FC<CommandBarProps> = ({
                             >
                                 CYBER
                             </button>
-                            <button
-                                onClick={() => navigateTo("tactical")}
-                                className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'tactical' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
-                            >
-                                TACTICAL
-                            </button>
+                            <div className="flex items-center gap-1 group relative">
+                                <button
+                                    onClick={() => navigateTo("tactical")}
+                                    className={`px-3 py-1.5 rounded-l-full text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'tactical' ? 'bg-amber-500/20 text-amber-500 border-y border-l border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                                >
+                                    TACTICAL
+                                </button>
+                                {activeView === 'tactical' && (
+                                    <div className="flex items-center gap-2 bg-amber-500/10 border-y border-r border-amber-500/30 px-3 py-1.5 rounded-r-full border-l border-l-amber-500/50">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-[9px] font-black tracking-[0.2em] text-white/80 uppercase">Tactical View</span>
+                                    </div>
+                                )}
+                            </div>
                             <button
                                 onClick={() => navigateTo("strategic")}
                                 className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'strategic' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
@@ -206,9 +222,45 @@ const CommandBar: React.FC<CommandBarProps> = ({
                     <User className="h-4 w-4" />
                     <ChevronDown className="h-3 w-3" />
                 </button>
+
+                {/* User Menu Dropdown - Wrapped in Portal for foreground visibility */}
+                <AnimatePresence>
+                    {showUserMenu && onLogout && (
+                        <Portal>
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="fixed top-14 right-4 w-64 bg-black/95 border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-xl z-[9999]"
+                            >
+                                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                                    <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30">
+                                        <User className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-white uppercase tracking-wider">{user?.full_name || 'SYSTEM USER'}</p>
+                                        <p className="text-[8px] font-bold text-blue-400/80 uppercase tracking-widest">{user?.role || 'GUEST'}</p>
+                                    </div>
+                                </div>
+                                <div className="pt-3">
+                                    <button
+                                        onClick={() => {
+                                            onLogout();
+                                            setShowUserMenu(false);
+                                        }}
+                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 hover:text-red-500 hover:bg-white/5 transition-all"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                        <span className="text-xs font-bold uppercase">Sign Out</span>
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </Portal>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
-};
+};;
 
 export default CommandBar;

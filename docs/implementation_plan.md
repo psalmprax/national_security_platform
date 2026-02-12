@@ -74,6 +74,22 @@ The goal is to provide a consistent visual experience mapping across all dashboa
 - Resolves the layout shift where opening the modal would displace the header/toolbar.
 
 ## Database Stability (Session Update)
-#### [NEW] [029_recovery_schema.sql](file:///home/psalmprax/national_security_platform/platform/schema/029_recovery_schema.sql)
 - Define `mock_data_points` table to fix broken simulation data seeding.
 - Standardize all timestamps to `TIMESTAMPTZ` for PostgreSQL/CockroachDB compatibility.
+
+## Dashboard Monolith Refactoring (Phase 3)
+Decompose large dashboard components into modular, manageable sub-components to improve maintainability and testability.
+
+### Strategic Dashboard
+- **StrategicKPIs**: Top-level performance indicators.
+- **StrategicOverview**: situational awareness charts and logs.
+- **StrategicAnalytics**: Deep-dive data processing.
+- **StrategicRegistry**: Agency identity nodes.
+- **StrategicProfile**: User profile and settings.
+- **IncidentTraceModal**: Detailed record exploration.
+
+### Cyber Dashboard
+- **CyberHUD**: Real-time operational overlay.
+- **CyberTriage**: Intelligent alert processing.
+- **CyberAuditLog**: Immutable action ledger.
+- **CyberCompliance**: Regulatory status monitoring.

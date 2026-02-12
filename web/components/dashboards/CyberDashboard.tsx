@@ -20,7 +20,14 @@ import {
 import MapboxMap from '../MapboxMap';
 import TriageSidebar from '../TriageSidebar';
 import AnonymousTipFeed from '../cyber/AnonymousTipFeed';
-import { Alert, SecurityScan, fetchSecurityScans, TriangulatedAsset, fetchTriangulatedAssets, dispatchAsset, verifyAlert, API_BASE_URL, SystemStatus } from '../../lib/api';
+import Portal from '../../components/Portal';
+import CyberSidebar from './cyber/CyberSidebar';
+import CyberHUD from './cyber/CyberHUD';
+import CyberAlertTriage from './cyber/CyberAlertTriage';
+import CyberAuditLog from './cyber/CyberAuditLog';
+import CyberCompliance from './cyber/CyberCompliance';
+
+import { Alert, SecurityScan, fetchSecurityScans, TriangulatedAsset, fetchTriangulatedAssets, dispatchAsset, verifyAlert, API_BASE_URL, SystemStatus, formatLabel } from '../../lib/api';
 import { useAuth, User as UserType } from '../../lib/AuthContext';
 import { motion } from 'framer-motion';
 
@@ -42,7 +49,6 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
     const [filterMode, setFilterMode] = useState<'all' | 'secure' | 'active' | 'signal'>('all');
     const [operationMode, setOperationMode] = useState<'NOMINAL' | 'SURGICAL' | 'TACTICAL' | 'DARK_OPS'>('NOMINAL');
     const [showNotifications, setShowNotifications] = useState(false);
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
     const [showSatellite, setShowSatellite] = useState(false);
     const [securityScans, setSecurityScans] = useState<SecurityScan[]>([]);
@@ -185,14 +191,22 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
         eventSource.onmessage = (event) => {
             try {
-                // Parse raw NATS message -> Alert
                 // Assuming NATS sends raw JSON of Alert model
                 const newData = JSON.parse(event.data);
 
-                // Determine type of event? For now assuming it's an Alert
-                // Ideally backend wraps it: { type: "alert", payload: ... }
-                // But current backend sends raw `msg` from `alerts.new` which is `alert` JSON.
-                const newAlert = newData as Alert;
+                // Map raw data similarly to fetchAlerts
+                const newAlert: Alert = {
+                    ...newData,
+                    id: newData.id || '',
+                    latitude: Number(newData.latitude || 0),
+                    longitude: Number(newData.longitude || 0),
+                    type: formatLabel(newData.alert_type || newData.type || 'Unknown'),
+                    content: newData.content_text || newData.content || 'No description available.',
+                    location: `${Number(newData.latitude || 0).toFixed(4)}, ${Number(newData.longitude || 0).toFixed(4)}`,
+                    timestamp: newData.created_at || newData.timestamp || new Date().toISOString(),
+                    isTrusted: (newData.verification_count || 0) > 0,
+                    severity: newData.severity || 0.5,
+                };
 
                 setLiveAlerts((prev: Alert[]) => {
                     // Avoid duplicates
@@ -200,7 +214,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
                     // Add Notification
                     setNotifications((prevNotifs: Notification[]) => [
-                        { message: `New Alert Detected: ${newAlert.alert_type.replace(/_/g, ' ')} - ${newAlert.location || 'Unknown Location'}`, timestamp: new Date(), type: 'alert' },
+                        { message: `New Alert Detected: ${newAlert.type} - ${newAlert.location || 'Unknown Location'}`, timestamp: new Date(), type: 'alert' },
                         ...prevNotifs
                     ]);
                     // Show notification badge/toast if panel is closed (optional enhancement later)
@@ -323,8 +337,8 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
             <style jsx global>{`
                 @keyframes gridMove {
-                    0% { transform: translateY(0); }
-                    100% { transform: translateY(50px); }
+                    0% { background-position: 0 0; }
+                    100% { background-position: 0 50px; }
                 }
                 @keyframes glow {
                     0%, 100% { box-shadow: 0 0 10px ${currentTheme.glow}, 0 0 20px ${currentTheme.secondary}; }
@@ -339,175 +353,36 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                 }
             `}</style>
 
-            <div className="relative z-10 w-full h-full">
-                <div className="flex w-full h-full bg-transparent text-zinc-100 font-mono overflow-hidden cyber-grid cyber-grid-animate" data-theme={displayMode}>
+            <div className="flex h-full relative z-10">
+                {/* Extracted Sidebar */}
+                <CyberSidebar
+                    activeView={activeView}
+                    setActiveView={setActiveView}
+                    showNotifications={showNotifications}
+                    setShowNotifications={setShowNotifications}
+                    user={user}
+                    currentTheme={currentTheme}
+                />
+
+                <div className="flex-1 flex relative h-full overflow-hidden cyber-grid cyber-grid-animate" data-theme={displayMode}>
                     {/* Aesthetic Scanline Overlay */}
                     <div className="absolute inset-0 pointer-events-none cyber-scanline z-50 opacity-20" />
-                    {/* Left Utility Bar */}
-                    <aside className="w-16 border-r border-white/5 flex flex-col items-center py-8 gap-10 bg-black/40 backdrop-blur-md z-40">
-                        <div className="p-2 rounded-xl bg-white/[0.03] border border-white/10 relative group transition-all" style={{
-                            borderColor: currentTheme.primary + '33',
-                            backgroundColor: currentTheme.primary + '1a'
-                        }}>
-                            <Shield className="w-6 h-6" style={{ color: currentTheme.primary }} />
-                            <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-white/10 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                Security Platform
-                            </div>
-                        </div>
-                        <nav className="flex flex-col gap-8">
-                            <div
-                                onClick={() => setActiveView('map')}
-                                className={`p-2 rounded-lg cursor-pointer transition-all relative group ${activeView === 'map'
-                                    ? 'bg-white/10 border border-white/20'
-                                    : 'bg-white/[0.03] text-zinc-600 hover:text-white'
-                                    }`}
-                                style={activeView === 'map' ? { color: currentTheme.primary, borderColor: currentTheme.primary + '4d', backgroundColor: currentTheme.primary + '1a' } : {}}
-                            >
-                                <MapIcon className="w-5 h-5" />
-                                <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Map View
-                                </div>
-                            </div>
-                            {(user?.role === 'ADMIN' || user?.role === 'CYBER_ANALYST') && (
-                                <div className="relative group">
-                                    <AlertTriangle
-                                        onClick={() => setActiveView('alerts')}
-                                        className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'alerts' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
-                                            }`}
-                                    />
-                                    <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                        Alert Triage
-                                    </div>
-                                </div>
-                            )}
-                            {(user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN') && (
-                                <div className="relative group">
-                                    <Database
-                                        onClick={() => setActiveView('data')}
-                                        className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'data' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
-                                            }`}
-                                    />
-                                    <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                        Audit Logs
-                                    </div>
-                                </div>
-                            )}
-                            <div className="relative group">
-                                <Cpu
-                                    onClick={() => setActiveView('analytics')}
-                                    className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'analytics' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
-                                        }`}
-                                />
-                                <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Analytics
-                                </div>
-                            </div>
-                            {(user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN') && (
-                                <div className="relative group">
-                                    <Activity
-                                        onClick={() => setActiveView('compliance')}
-                                        className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'compliance' ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
-                                            }`}
-                                    />
-                                    <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                        Security Compliance
-                                    </div>
-                                </div>
-                            )}
-                        </nav>
-                        <div className="mt-auto flex flex-col gap-8 items-center pb-4">
-                            <div className="relative group">
-                                <Bell
-                                    onClick={() => setShowNotifications(!showNotifications)}
-                                    className={`w-5 h-5 transition-colors cursor-pointer ${showNotifications ? 'text-[#00FF95]' : 'text-zinc-600 hover:text-white'
-                                        }`}
-                                />
-                                <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Notifications
-                                </div>
-                            </div>
-                            <div className="relative group">
-                                <div
-                                    onClick={() => setShowUserMenu(!showUserMenu)}
-                                    className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center p-0.5 cursor-pointer hover:border-[#00FF95]/50 transition-colors"
-                                >
-                                    <User className={`w-4 h-4 transition-colors ${showUserMenu ? 'text-[#00FF95]' : 'text-zinc-500'
-                                        }`} />
-                                </div>
-                                <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-[#00FF95]/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    User Menu
-                                </div>
-                            </div>
-                        </div>
-                    </aside>
 
-                    {/* Main Interactive Map Area */}
-                    <main className="flex-1 relative overflow-hidden bg-transparent">
-                        {/* HUD Overlays */}
-                        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 flex flex-col gap-3 pointer-events-none items-center">
-                            <div className="flex items-center gap-3">
-                                <Radio className="w-4 h-4 animate-pulse" style={{ color: currentTheme.primary }} />
-                                <h1 className="text-sm font-black tracking-[0.4em] text-white uppercase">SITUATIONAL AWARENESS CENTER</h1>
-                            </div>
+                    {/* Extracted HUD */}
+                    <CyberHUD
+                        operationMode={operationMode}
+                        setOperationMode={setOperationMode}
+                        securityStatus={securityStatus}
+                        currentTime={currentTime}
+                        userRole={user?.role}
+                        currentTheme={currentTheme}
+                        themes={themes}
+                    />
 
-                            {/* Mode Selector HUB (NEW) - System Admin Only */}
-                            {user?.role === 'ADMIN' && (
-                                <motion.div
-                                    drag
-                                    dragMomentum={false}
-                                    className="flex items-center gap-1 p-1 bg-black/40 backdrop-blur-xl border border-white/5 rounded-full pointer-events-auto cursor-grab active:cursor-grabbing shadow-2xl z-50"
-                                >
-                                    {(['NOMINAL', 'SURGICAL', 'TACTICAL', 'DARK_OPS'] as const).map((mode) => (
-                                        <button
-                                            key={mode}
-                                            onClick={() => setOperationMode(mode)}
-                                            className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${operationMode === mode
-                                                ? 'bg-white/10 shadow-[0_0_10px_rgba(255,255,255,0.1)]'
-                                                : 'text-white/20 hover:text-white/40'
-                                                }`}
-                                            style={operationMode === mode ? { color: themes[mode].primary } : {}}
-                                        >
-                                            {mode}
-                                        </button>
-                                    ))}
-                                </motion.div>
-                            )}
-
-                            <div className="flex items-center gap-4 text-[10px] text-white/30 font-mono">
-                                <span className="tracking-widest flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: currentTheme.primary }} />
-                                    SEC_STATUS: ENCRYPTED_CHANNEL
-                                </span>
-                                <span className="tracking-widest">GRID: NGR-01-DELTA</span>
-                                <span className="tracking-widest" style={{ color: currentTheme.primary + 'cc' }}>TRUSTED_NODES: {securityStatus.trustedDevices}</span>
-                            </div>
-                        </div>
-
-                        <div className="absolute top-8 right-8 z-30 pointer-events-none">
-                            <div className="glass-card px-6 py-3 border border-white/5 bg-black/20 font-mono text-right min-w-[140px]" style={{ borderColor: currentTheme.primary + '1a' }}>
-                                {currentTime ? (
-                                    <>
-                                        <div className="text-xs font-bold tabular-nums" style={{ color: currentTheme.primary }}>
-                                            {currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                                        </div>
-                                        <div className="text-[9px] text-white/20 tracking-[0.2em] font-black uppercase">
-                                            {currentTime.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).replace(',', '')}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="animate-pulse h-8 flex items-center justify-end">
-                                        <span className="text-[10px] text-white/10 uppercase tracking-widest">CALIBRATING...</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Scanning Animation */}
-                        <div className="scanning-line" />
-
-                        {/* Conditional View Rendering */}
+                    <main className="flex-1 relative overflow-hidden flex flex-col pointer-events-none">
+                        {/* VIEW: Map */}
                         {activeView === 'map' && (
-                            <div className="w-full h-full opacity-80 relative">
+                            <div className="absolute inset-0 z-0 pointer-events-auto">
                                 <MapboxMap
                                     alerts={filteredAlerts}
                                     selectedAlert={selectedAlert}
@@ -516,367 +391,41 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     showSatellite={showSatellite}
                                     primaryColor={currentTheme.primary}
                                 />
-
-                                {/* LAYER CONTROLS */}
-                                <div className="absolute top-24 right-8 z-20 flex flex-col gap-2">
-                                    <button
-                                        onClick={() => setShowSatellite(!showSatellite)}
-                                        className={`px-4 py-2 border backdrop-blur-md transition-all flex items-center gap-2 group ${showSatellite ? 'bg-white/10' : 'border-white/10 bg-black/40 text-white/40 hover:border-white/30'
-                                            }`}
-                                        style={showSatellite ? { borderColor: currentTheme.primary, color: currentTheme.primary } : {}}
-                                    >
-                                        <div className={`w-2 h-2 rounded-full ${showSatellite ? 'animate-pulse' : 'bg-white/20'}`} style={showSatellite ? { backgroundColor: currentTheme.primary } : {}} />
-                                        <span className="text-[10px] font-black tracking-widest uppercase">
-                                            {showSatellite ? 'Visual Stream: Satellite' : 'Visual Stream: Vector'}
-                                        </span>
-                                    </button>
-                                </div>
                             </div>
                         )}
 
-                        {activeView === 'alerts' && (
-                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
-                                <div className="w-full max-w-6xl mx-auto p-8">
-                                    <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Alert Triage {filterMode !== 'all' && <span className="text-[#00FF95] text-sm ml-2">[{filterMode.toUpperCase()}_FILTER]</span>}</h2>
-                                    <div className="grid gap-4">
-                                        {(filteredAlerts || []).length === 0 ? (
-                                            <div className="glass-card p-8 text-center border border-white/5">
-                                                <p className="text-white/40 text-sm">No alerts match the current filter</p>
-                                            </div>
-                                        ) : (
-                                            (filteredAlerts || []).map((alert) => (
-                                                <div
-                                                    key={alert.id}
-                                                    onClick={() => {
-                                                        handleAlertSelect(alert);
-                                                        setActiveView('map');
-                                                    }}
-                                                    className="glass-card p-6 border border-white/5 hover:border-[#00FF95]/20 hover:bg-white/5 transition-all cursor-pointer group"
-                                                >
-                                                    <div className="flex items-start justify-between mb-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`w-3 h-3 rounded-full ${alert.severity > 0.8 ? 'bg-red-500 animate-pulse' : alert.severity > 0.6 ? 'bg-orange-500' : 'bg-yellow-500'}`} />
-                                                            <h3 className="text-white font-bold text-lg uppercase tracking-wide group-hover:text-[#00FF95] transition-colors">{alert.type.replace(/_/g, ' ')}</h3>
-                                                        </div>
-                                                        <span className="text-xs text-white/40 font-mono">{new Date(alert.timestamp).toLocaleString()}</span>
-                                                    </div>
-                                                    {isAlertRedacted(alert) ? (
-                                                        <div className="bg-red-500/10 border border-red-500/20 p-2 rounded-lg mb-3 inline-flex flex-col gap-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <ShieldAlert className="w-3 h-3 text-red-500" />
-                                                                <span className="text-[9px] font-black uppercase tracking-widest text-red-500 italic">Description Redacted [Clearance Required]</span>
-                                                            </div>
-                                                            <div className="space-y-1 opacity-20 blur-[2px] select-none pointer-events-none">
-                                                                <div className="h-1.5 bg-red-500/20 rounded w-48" />
-                                                                <div className="h-1.5 bg-red-500/20 rounded w-40" />
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <p className="text-white/70 mb-3 line-clamp-2">{alert.content}</p>
-                                                    )}
-                                                    <div className="flex items-center gap-4 text-xs text-white/40 font-mono">
-                                                        <span className="group-hover:text-white transition-colors">
-                                                            📍 {(alert.lga_name && alert.lga_name !== 'Unknown') ? `${alert.lga_name}, ${alert.state_name}` : alert.location}
-                                                        </span>
-                                                        {alert.isTrusted && <span className="text-[#00FF95]">✓ VERIFIED</span>}
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        <div className="flex-1 relative z-20 pointer-events-auto overflow-hidden">
+                            {/* VIEW: Alert Triage */}
+                            {activeView === 'alerts' && (
+                                <CyberAlertTriage
+                                    alerts={filteredAlerts}
+                                    onSelect={handleAlertSelect}
+                                    filterMode={filterMode}
+                                    setActiveView={setActiveView}
+                                    isAlertRedacted={isAlertRedacted}
+                                />
+                            )}
 
-                        {activeView === 'data' && (
-                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
-                                <div className="w-full max-w-6xl mx-auto p-8">
-                                    <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Audit Logs & Data</h2>
-                                    <div className="glass-card p-8 border border-white/5">
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <Database className="w-6 h-6 text-[#00FF95]" />
-                                            <h3 className="text-white font-bold text-lg">System Database Access</h3>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div className="bg-white/5 p-4 rounded border border-white/10 font-mono text-sm">
-                                                <p className="text-white/60">Total Alerts Logged: <span className="text-[#00FF95] font-bold">{(alerts || []).length}</span></p>
-                                                <p className="text-white/60">Trusted Devices: <span className="text-[#00FF95] font-bold">{securityStatus.trustedDevices}</span></p>
-                                                <p className="text-white/60">Security Status: <span className="text-[#00FF95] font-bold">ENCRYPTED</span></p>
-                                            </div>
-                                            <div className="overflow-x-auto scrollbar-cyber rounded border border-white/10">
-                                                <table className="w-full text-left text-sm text-white/70">
-                                                    <thead className="bg-white/5 uppercase text-xs font-bold text-white/50">
-                                                        <tr>
-                                                            <th className="px-4 py-3">Timestamp</th>
-                                                            <th className="px-4 py-3">Event ID</th>
-                                                            <th className="px-4 py-3">Type</th>
-                                                            <th className="px-4 py-3">Location</th>
-                                                            <th className="px-4 py-3">Integrity</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-white/5 font-mono">
-                                                        {(alerts || []).map((alert) => {
-                                                            const redacted = isAlertRedacted(alert);
-                                                            return (
-                                                                <tr key={alert.id} className={`hover:bg-white/5 transition-colors ${redacted ? 'bg-red-500/5' : ''}`}>
-                                                                    <td className="px-4 py-2">{new Date(alert.timestamp).toISOString()}</td>
-                                                                    <td className="px-4 py-2 text-[#00FF95]">{alert.id.substring(0, 8)}...</td>
-                                                                    <td className="px-4 py-2">
-                                                                        {redacted ? (
-                                                                            <span className="text-red-500 font-bold opacity-50">[CLASSIFIED_VECTOR]</span>
-                                                                        ) : (
-                                                                            alert.type.replace(/_/g, ' ')
-                                                                        )}
-                                                                    </td>
-                                                                    <td className="px-4 py-2">
-                                                                        {redacted ? (
-                                                                            <span className="text-red-500/40 italic text-[10px]">COORDS_MASKED_BY_PROTOCOL</span>
-                                                                        ) : (
-                                                                            alert.location
-                                                                        )}
-                                                                    </td>
-                                                                    <td className="px-4 py-2">
-                                                                        {alert.isTrusted ? (
-                                                                            <span className="text-[#00FF95] text-xs px-2 py-0.5 rounded bg-[#00FF95]/10 border border-[#00FF95]/20">VERIFIED</span>
-                                                                        ) : (
-                                                                            <span className="text-orange-400 text-xs px-2 py-0.5 rounded bg-orange-400/10 border border-orange-400/20">UNVERIFIED</span>
-                                                                        )}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                                {(alerts || []).length === 0 && (
-                                                    <div className="p-8 text-center text-white/30 italic">No audit records found.</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                            {/* VIEW: Audit Logs */}
+                            {activeView === 'data' && (
+                                <CyberAuditLog
+                                    alerts={filteredAlerts}
+                                    securityStatus={securityStatus}
+                                    isAlertRedacted={isAlertRedacted}
+                                />
+                            )}
 
-                        {activeView === 'analytics' && (
-                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
-                                <div className="w-full max-w-6xl mx-auto p-8">
-                                    <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">System Analytics</h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="glass-card p-6 border border-white/5">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <Cpu className="w-5 h-5 text-[#00FF95]" />
-                                                <h3 className="text-white font-bold uppercase tracking-wide">Threat Analysis</h3>
-                                            </div>
-                                            <p className="text-white/60 text-sm mb-4">AI-powered threat classification and severity analysis</p>
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/60">Critical Alerts</span>
-                                                    <span className="text-red-500 font-bold">{(alerts || []).filter(a => a.severity > 0.8).length}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/60">Urgent Alerts</span>
-                                                    <span className="text-orange-500 font-bold">{(alerts || []).filter(a => a.severity > 0.6 && a.severity <= 0.8).length}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/60">Medium Priority</span>
-                                                    <span className="text-yellow-500 font-bold">{(alerts || []).filter(a => a.severity <= 0.6).length}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="glass-card p-6 border border-white/5">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <Radio className="w-5 h-5 text-[#00FF95]" />
-                                                <h3 className="text-white font-bold uppercase tracking-wide">Real-Time Stats</h3>
-                                            </div>
-                                            <p className="text-white/60 text-sm mb-4">Live system performance metrics</p>
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/60">Active Connections</span>
-                                                    <span className="text-[#00FF95] font-bold">{securityStatus.trustedDevices}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/60">Avg Response Time</span>
-                                                    <span className="text-[#00FF95] font-bold tabular-nums">14ms</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-white/60">System Uptime</span>
-                                                    <span className="text-[#00FF95] font-bold">99.99%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeView === 'profile' && (
-                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
-                                <div className="w-full max-w-4xl mx-auto p-8">
-                                    <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Administrator Profile</h2>
-                                    <div className="glass-card p-10 border border-white/5 bg-white/[0.02]">
-                                        <div className="flex items-center gap-6 mb-10 pb-10 border-b border-white/10">
-                                            <div className="w-24 h-24 rounded-2xl bg-[#00FF95]/10 border border-[#00FF95]/20 flex items-center justify-center">
-                                                <User className="w-12 h-12 text-[#00FF95]" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-3xl font-black text-white mb-1 uppercase tracking-tight">{user?.full_name || 'Anonymous Administrator'}</h3>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-[#00FF95] text-xs font-bold tracking-widest uppercase bg-[#00FF95]/10 px-3 py-1 rounded-full border border-[#00FF95]/20">
-                                                        Role: {user?.role || 'System Operator'}
-                                                    </span>
-                                                    <span className="text-white/40 text-[10px] font-mono">UUID: {user?.id || 'AUTH_ENTITY_000'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            <div className="space-y-6">
-                                                <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Access Permissions</h4>
-                                                <div className="space-y-3">
-                                                    {['SITUATIONAL_AWARENESS_FULL', 'GEOSPATIAL_INTEL_READ', 'THREAT_VECTOR_CONTROL', 'AUDIT_LEDGER_WRITE'].map((perm, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 text-xs text-white/70">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-[#00FF95]" />
-                                                            <span className="font-mono">{perm}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="bg-black/40 p-6 rounded-xl border border-white/5">
-                                                <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-4">Session Entropy</h4>
-                                                <div className="flex justify-between items-end gap-2 h-20 px-2">
-                                                    {[40, 70, 45, 90, 65, 80, 50, 95].map((h, i) => (
-                                                        <div key={i} className="flex-1 bg-[#00FF95]/20 rounded-t border-x border-t border-[#00FF95]/20" style={{ height: `${h}%` }} />
-                                                    ))}
-                                                </div>
-                                                <p className="text-[10px] text-white/40 mt-4 text-center font-mono">SECURE_SESSION_STABILITY: OPTIMAL (98.2%)</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeView === 'compliance' && (
-                            <div className="w-full h-full overflow-y-auto scrollbar-cyber">
-                                <div className="w-full max-w-6xl mx-auto p-8">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <div>
-                                            <h2 className="text-3xl font-black tracking-wider text-white uppercase">Security Sentinel</h2>
-                                            <p className="text-white/40 text-xs font-mono mt-1 uppercase tracking-widest">Continuous Compliance Monitoring</p>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="glass-card px-4 py-2 border border-[#00FF95]/20 bg-[#00FF95]/5">
-                                                <span className="text-[10px] text-white/40 uppercase font-black block mb-0.5">Global Status</span>
-                                                <span className="text-[#00FF95] text-sm font-black uppercase">Operationally Sound</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                        <div className="glass-card p-6 border border-white/5 bg-white/[0.01]">
-                                            <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4 border-b border-white/5 pb-2">Vulnerability Scan Pulse</h3>
-                                            <div className="space-y-4">
-                                                {(securityScans || []).length === 0 ? (
-                                                    <p className="text-white/30 italic text-sm py-4">Awaiting initial telemetry stream...</p>
-                                                ) : (
-                                                    (securityScans || []).slice(0, 5).map((scan: SecurityScan) => (
-                                                        <div key={scan.id} className="flex items-center justify-between p-3 rounded bg-black/40 border border-white/5">
-                                                            <div>
-                                                                <p className="text-xs text-white/80 font-bold uppercase">{scan.target_service}</p>
-                                                                <p className="text-[10px] text-white/40 font-mono mt-0.5">{new Date(scan.scan_time).toLocaleString()}</p>
-                                                            </div>
-                                                            <span className={`text-[9px] font-black px-2 py-1 rounded`} style={{ backgroundColor: scan.status === 'PASSED' ? currentTheme.primary + '33' : 'rgba(239, 68, 68, 0.2)', color: scan.status === 'PASSED' ? currentTheme.primary : 'rgb(239, 68, 68)' }}>
-                                                                {scan.status}
-                                                            </span>
-                                                        </div>
-                                                    ))
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="glass-card p-6 border border-white/5 bg-white/[0.01]">
-                                            <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4 border-b border-white/5 pb-2">Active Hardening (GuardDog)</h3>
-                                            <div className="space-y-3">
-                                                {[
-                                                    { name: 'JWT Secret Hardening', status: 'Fail-Closed Active' },
-                                                    { name: 'CORS Strict Mode', status: 'Authorized Origins Only' },
-                                                    { name: 'RBAC Enforcement', status: 'Global Active' },
-                                                    { name: 'HSTS/CSP Headers', status: 'Enforced' }
-                                                ].map((item, i) => (
-                                                    <div key={i} className="flex items-center justify-between text-xs py-1">
-                                                        <span className="text-white/60">{item.name}</span>
-                                                        <span className="font-mono font-bold tracking-tight" style={{ color: currentTheme.primary }}>{item.status}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="glass-card border border-white/5 overflow-hidden">
-                                        <div className="bg-white/5 px-6 py-3 border-b border-white/5">
-                                            <h3 className="text-white text-xs font-black uppercase tracking-widest">Sentinel Audit Ledger</h3>
-                                        </div>
-                                        <div className="overflow-x-auto scrollbar-cyber">
-                                            <table className="w-full text-left font-mono text-xs">
-                                                <thead>
-                                                    <tr className="bg-white/[0.02] text-white/30 text-[10px] uppercase">
-                                                        <th className="px-6 py-3">Scan ID</th>
-                                                        <th className="px-6 py-3">Timestamp</th>
-                                                        <th className="px-6 py-3">Findings</th>
-                                                        <th className="px-6 py-3 text-right">Integrity Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-white/5 text-white/70">
-                                                    {(securityScans || []).map((scan) => (
-                                                        <tr key={scan.id} className="hover:bg-white/[0.02] transition-colors">
-                                                            <td className="px-6 py-3" style={{ color: currentTheme.primary }}>{scan.id.substring(0, 8)}</td>
-                                                            <td className="px-6 py-3">{new Date(scan.scan_time).toISOString()}</td>
-                                                            <td className="px-6 py-3">
-                                                                {(scan.findings || []).length > 0 ? (
-                                                                    <span className="text-red-400">{(scan.findings || []).length} issue(s) detected</span>
-                                                                ) : (
-                                                                    <span style={{ color: currentTheme.primary + '99' }}>Nominal - No issues detected</span>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-6 py-3 text-right font-black">
-                                                                <span className={scan.status === 'PASSED' ? '' : 'text-red-500'} style={scan.status === 'PASSED' ? { color: currentTheme.primary } : {}}>{scan.status}</span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    {(securityScans || []).length === 0 && (
-                                                        <tr>
-                                                            <td colSpan={4} className="px-6 py-8 text-center text-white/20 italic">No audit records available in the secure buffer.</td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <div className="bg-white/5 px-6 py-4 border-t border-white/5 flex items-center justify-between">
-                                            <div className="text-[10px] text-white/40 font-mono uppercase tracking-widest">
-                                                Page {currentPage} • Ledger Buffer
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                                                    disabled={currentPage === 1}
-                                                    className="px-4 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                                >
-                                                    Previous
-                                                </button>
-                                                <button
-                                                    onClick={() => setCurrentPage(currentPage + 1)}
-                                                    disabled={(securityScans || []).length < itemsPerPage}
-                                                    className="px-4 py-1.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
-                                                    style={{ '&:hover': { backgroundColor: currentTheme.primary + '1a', borderColor: currentTheme.primary + '4d', color: currentTheme.primary } } as any}
-                                                >
-                                                    Next
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                            {/* VIEW: Compliance */}
+                            {activeView === 'compliance' && (
+                                <CyberCompliance
+                                    securityScans={securityScans}
+                                    currentTheme={currentTheme}
+                                    currentPage={currentPage}
+                                    setCurrentPage={setCurrentPage}
+                                    itemsPerPage={itemsPerPage}
+                                />
+                            )}
+                        </div>
 
                         {/* Floating Map Controls */}
                         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 glass-card px-8 py-4 flex gap-8 border-white/5 shadow-2xl pointer-events-auto" style={{ borderColor: currentTheme.primary + '1a' }}>
@@ -912,15 +461,15 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         <div className="p-2 flex gap-1 bg-black/40 border-b border-white/5 shrink-0">
                             <button
                                 onClick={() => setSidebarMode('triage')}
-                                className={`flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all ${sidebarMode === 'triage' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+                                className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${sidebarMode === 'triage' ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
                             >
-                                Intelligence Triage
+                                Intelligence
                             </button>
                             <button
                                 onClick={() => setSidebarMode('tips')}
-                                className={`flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all ${sidebarMode === 'tips' ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'text-white/40 hover:text-white'}`}
+                                className={`flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${sidebarMode === 'tips' ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'text-white/40 hover:text-white'}`}
                             >
-                                Secret Tips
+                                Tips
                             </button>
                         </div>
 
@@ -1115,54 +664,43 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
             )}
 
             {/* Notifications Panel */}
-
-
-            {/* User Menu */}
             {
-                showUserMenu && (
-                    <div className="fixed bottom-24 left-20 z-50">
-                        <div className="w-64 glass-card border border-white/10 p-4 shadow-2xl">
-                            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
-                                <div className="p-2 rounded-lg" style={{ backgroundColor: currentTheme.primary + '1a', color: currentTheme.primary }}>
-                                    <User className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-white font-bold text-sm tracking-tight">{user?.full_name || 'Anonymous'}</p>
-                                    <p className="text-white/40 text-[10px] uppercase font-bold">{user?.role || 'Guest'}</p>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <button
-                                    onClick={() => {
-                                        setActiveView('profile');
-                                        setShowUserMenu(false);
-                                    }}
-                                    className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'profile' ? 'bg-white/5' : 'text-white/60 hover:bg-white/5'}`}
-                                    style={activeView === 'profile' ? { color: currentTheme.primary } : {}}
-                                >
-                                    Profile
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setActiveView('registry');
-                                        setShowUserMenu(false);
-                                    }}
-                                    className={`w-full text-left text-xs px-3 py-2 rounded transition-all cursor-pointer ${activeView === 'registry' ? 'bg-white/5' : 'text-white/60 hover:bg-white/5'}`}
-                                    style={activeView === 'registry' ? { color: currentTheme.primary } : {}}
-                                >
-                                    Identity Registry
-                                </button>
-                                <button
-                                    onClick={logout}
-                                    className="w-full text-left text-xs text-red-500 hover:bg-red-500/10 px-3 py-2 rounded transition-all cursor-pointer"
-                                >
-                                    Sign Out / Disconnect
+                showNotifications && (
+                    <Portal>
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="fixed top-20 left-20 z-[9000] w-96 max-h-[calc(100vh-8rem)] overflow-y-auto glass-card border border-white/10 p-6 shadow-2xl"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-white font-bold uppercase tracking-wider flex items-center gap-2">
+                                    <Bell className="w-4 h-4 text-[#00FF95]" />
+                                    System Notifications
+                                </h3>
+                                <button onClick={() => setShowNotifications(false)} className="text-white/40 hover:text-white">
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
-                        </div>
-                    </div>
+                            <div className="space-y-4">
+                                {notifications.map((note, idx) => (
+                                    <div key={idx} className="bg-white/5 border border-white/5 p-3 rounded-lg flex gap-3">
+                                        <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${note.type === 'alert' ? 'bg-red-500 animate-pulse' : 'bg-[#00FF95]'}`} />
+                                        <div>
+                                            <p className="text-xs text-white/80 font-mono">{note.message}</p>
+                                            <p className="text-[10px] text-white/30 mt-1">{note.timestamp.toLocaleTimeString()}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {notifications.length === 0 && (
+                                    <p className="text-white/20 text-xs italic text-center py-4">No new notifications.</p>
+                                )}
+                            </div>
+                        </motion.div>
+                    </Portal>
                 )
             }
-        </div >
+
+        </div>
     );
 }

@@ -2,8 +2,12 @@
 FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
+
+# Install git for go mod download
+RUN apk add --no-cache git
+
 COPY go.mod go.sum ./
-RUN go mod download
+RUN GOPROXY=direct go mod download
 
 COPY . .
 

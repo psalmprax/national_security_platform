@@ -36,6 +36,8 @@ FILES=(
     "platform/schema/026_notification_support.sql" # Notification and spatial tracking support
     "platform/schema/027_dynamic_access_control.sql" # Dynamic Access Control
     "platform/schema/028_sovereign_identity.sql" # Sovereign Identity
+    "platform/schema/029_recovery_schema.sql" # Recovery Schema
+    "platform/schema/030_emergency_sos.sql" # Emergency SOS
 )
 
 for file in "${FILES[@]}"; do

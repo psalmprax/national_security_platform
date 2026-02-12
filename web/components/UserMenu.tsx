@@ -21,8 +21,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, showMenu }) => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="fixed z-[9999] w-64 bg-black/95 border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-xl"
-                style={{ top: '80px', right: '24px' }}
+                className="fixed top-20 right-6 z-[9999] w-64 max-w-[calc(100vw-2rem)] bg-black/95 border border-white/10 rounded-xl p-4 shadow-2xl backdrop-blur-xl"
             >
                 <div className="flex items-center gap-3 pb-3 border-b border-white/10">
                     <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30">
@@ -30,7 +29,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, showMenu }) => {
                     </div>
                     <div>
                         <p className="text-[10px] font-black text-white uppercase tracking-wider">{user?.full_name || 'SYSTEM USER'}</p>
-                        <p className="text-[8px] font-bold text-blue-400/80 uppercase tracking-widest">{user?.role.replace(/_/g, ' ')}</p>
+                        <p className="text-[8px] font-bold text-blue-400/80 uppercase tracking-widest">{user?.role}</p>
                     </div>
                 </div>
                 <div className="pt-3">

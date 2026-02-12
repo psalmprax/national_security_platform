@@ -1,7 +1,10 @@
 import './globals.css'
+import './styles/accessibility.css'
 import type { Metadata } from 'next'
 import React from 'react'
 import { AuthProvider } from '@/lib/AuthContext'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { SessionProvider } from '@/components/SessionProvider'
 
 export const metadata: Metadata = {
     title: 'National Security Platform - Dashboard',
@@ -19,9 +22,13 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className="bg-black text-white">
-                <AuthProvider>
-                    {children}
-                </AuthProvider>
+                <ErrorBoundary>
+                    <AuthProvider>
+                        <SessionProvider>
+                            {children}
+                        </SessionProvider>
+                    </AuthProvider>
+                </ErrorBoundary>
             </body>
         </html>
     )

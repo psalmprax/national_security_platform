@@ -8,13 +8,15 @@ export default function MissionSidebar({
     onSelect,
     selectedId,
     themeColor = '#00FF95',
-    onRefresh
+    onRefresh,
+    hideHeader = false
 }: {
     missions: Mission[],
     onSelect?: (mission: Mission) => void,
     selectedId?: string | null,
     themeColor?: string,
-    onRefresh?: () => void
+    onRefresh?: () => void,
+    hideHeader?: boolean
 }) {
     const [isUpdating, setIsUpdating] = React.useState<string | null>(null);
 
@@ -42,18 +44,20 @@ export default function MissionSidebar({
     };
 
     return (
-        <aside className="w-80 glass-surface flex flex-col z-30 border-l border-white/5 h-full">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                <div className="flex items-center gap-3">
-                    <Navigation className="w-5 h-5" style={{ color: themeColor }} />
-                    <h2 className="text-sm font-black tracking-[0.2em] text-white/90 uppercase">ACTIVE MISSIONS</h2>
+        <aside className={`${hideHeader ? 'w-full' : 'w-80'} glass-surface flex flex-col z-30 ${hideHeader ? '' : 'border-l border-white/5'} h-full`}>
+            {!hideHeader && (
+                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                    <div className="flex items-center gap-3">
+                        <Navigation className="w-5 h-5" style={{ color: themeColor }} />
+                        <h2 className="text-sm font-black tracking-[0.2em] text-white/90 uppercase">ACTIVE MISSIONS</h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">
+                            {(missions || []).length} Active
+                        </span>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-white/40 tracking-widest uppercase">
-                        {(missions || []).length} Active
-                    </span>
-                </div>
-            </div>
+            )}
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-cyber">
                 {(missions || []).length === 0 ? (
@@ -73,7 +77,7 @@ export default function MissionSidebar({
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-[10px] font-black tracking-widest uppercase" style={{ color: getStatusColor(mission.status) }}>
-                                            {mission.status.replace(/_/g, ' ')}
+                                            {mission.status}
                                         </span>
                                         <span className="text-[8px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded font-mono">
                                             {mission.priority}

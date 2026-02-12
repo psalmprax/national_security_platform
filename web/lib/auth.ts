@@ -5,11 +5,12 @@ export interface Session {
     exp: number;
 }
 
-export type AgencyView = 'cyber' | 'tactical' | 'strategic' | 'access';
+export type AgencyView = 'cyber' | 'tactical' | 'strategic' | 'access' | 'portal';
 
 export type UserRole = 'CYBER_ANALYST' | 'TACTICAL_COMMAND' | 'STRATEGIC_PLANNER' | 'ADMIN' | 'SYSTEM_ADMIN' | 'SECURITY_OFFICER' | 'AGENCY_OFFICER';
 
-export function hasAccess(role: UserRole, view: AgencyView): boolean {
+export function hasAccess(role: string | undefined, view: AgencyView): boolean {
+    if (!role) return false;
     if (role === 'ADMIN') return true;
 
     switch (role) {
@@ -23,7 +24,7 @@ export function hasAccess(role: UserRole, view: AgencyView): boolean {
         case 'SECURITY_OFFICER':
             return view === 'access';
         case 'AGENCY_OFFICER':
-            return false;
+            return view === 'portal';
         default:
             return false;
     }

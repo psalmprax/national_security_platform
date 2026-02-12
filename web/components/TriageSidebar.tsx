@@ -110,11 +110,17 @@ export default function TriageSidebar({
                                 <div className="flex flex-col gap-1">
                                     <div className="flex items-center gap-2">
                                         <span className={`text-[10px] font-black tracking-widest uppercase`} style={{ color: alert.severity > 0.8 ? '#FF003C' : themeColor }}>
-                                            {alert.type.replace(/_/g, ' ')}
+                                            {alert.type}
                                         </span>
                                         {alert.isDuress && (
                                             <span className="bg-[#FF003C]/20 text-[#FF003C] text-[8px] px-1.5 py-0.5 rounded-sm font-bold border border-[#FF003C]/30 tracking-tighter">
                                                 DURESS SIGNAL
+                                            </span>
+                                        )}
+                                        {alert.severity_score !== undefined && (
+                                            <span className="bg-white/5 text-white/60 text-[8px] px-1.5 py-0.5 rounded-sm font-black border border-white/10 tracking-widest flex items-center gap-1">
+                                                <Activity className="w-2.5 h-2.5" style={{ color: alert.severity_score > 0.7 ? '#FF003C' : themeColor }} />
+                                                AI SCORE: {Math.round(alert.severity_score * 100)}
                                             </span>
                                         )}
                                         {alert.isTrusted ? (
@@ -126,9 +132,20 @@ export default function TriageSidebar({
                                     <span className="text-[12px] text-white font-bold tracking-tight uppercase">
                                         {(alert.lga_name && alert.lga_name !== 'Unknown') ? `${alert.lga_name}, ${alert.state_name}` : `GRID: ${(alert.location || '').split(',').map(c => Number(c).toFixed(2)).join(', ')}`}
                                     </span>
-                                    <span className="text-[9px] text-white/40 font-mono tracking-tighter uppercase">
-                                        COORDS: {alert.location}
-                                    </span>
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-[9px] text-white/40 font-mono tracking-tighter uppercase">
+                                            COORDS: {alert.location}
+                                        </span>
+                                        {alert.risk_keywords && alert.risk_keywords.length > 0 && (
+                                            <div className="flex gap-1.5">
+                                                {alert.risk_keywords.slice(0, 3).map(kw => (
+                                                    <span key={kw} className="text-[7px] text-white/30 px-1 py-0.5 bg-white/[0.03] border border-white/10 rounded uppercase font-bold tracking-tighter">
+                                                        #{kw}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <span className="text-[10px] text-white/30 flex items-center gap-1 font-mono min-w-[80px] justify-end">
                                     <Clock className="w-3 h-3" />
@@ -264,7 +281,7 @@ export default function TriageSidebar({
                                     />
                                 </div>
                                 <p className="text-[9px] text-white/40 italic">
-                                    Last known vector: <span className="text-white font-bold uppercase">{report.last_incident_type.replace(/_/g, ' ')}</span>
+                                    Last known vector: <span className="text-white font-bold uppercase">{report.last_incident_type}</span>
                                 </p>
                             </div>
 
@@ -275,7 +292,7 @@ export default function TriageSidebar({
                                         const url = URL.createObjectURL(blob);
                                         const a = document.createElement('a');
                                         a.href = url;
-                                        a.download = `sector-report-${report.sector_id.toLowerCase()}.json`;
+                                        a.download = `sector-report-${(report.sector_id || 'unknown').toLowerCase()}.json`;
                                         a.click();
                                     }}
                                     className="flex-1 h-12 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2"

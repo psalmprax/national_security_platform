@@ -199,6 +199,10 @@ func main() {
 	// Server-Sent Events Pattern
 	r.Get("/api/v1/events/stream", sse.Stream.HandleEvents)
 
+	// Logging & telemetry
+	r.Post("/api/v1/logs", handlers.HandleLog)
+	r.Post("/api/v1/logs/batch", handlers.HandleLogBatch)
+
 	// --- PROTECTED ROUTES ---
 	r.Group(func(r chi.Router) {
 		// All routes here require a valid token
@@ -214,6 +218,7 @@ func main() {
 		handlers.RegisterPublicAlertRoutes(r, h)
 		handlers.RegisterSafetyScoreRoutes(r, h)
 		handlers.RegisterAdminTipRoutes(r, h)
+		handlers.RegisterSOSRoutes(r, h)
 
 		// Agency & Asset Management (Agency/Tactical Roles)
 		r.Group(func(r chi.Router) {
@@ -251,6 +256,7 @@ func main() {
 		r.Get("/api/v1/system/status", handleSystemStatus)
 		r.Get("/api/v1/system/nodes", handleSystemNodes)
 		r.Get("/api/v1/system/security-scans", handleGetSecurityScans)
+		r.Get("/api/v1/system/telemetry/satcom", handlers.HandleSatcomTelemetry)
 	})
 
 	// --- SECURITY OFFICER ROUTES (Access & Classification) ---
@@ -261,6 +267,9 @@ func main() {
 		r.Get("/api/v1/admin/users", handleGetAllUsers)
 		r.Post("/api/v1/admin/users/{id}/clearance", handleUpdateUserClearance)
 		r.Post("/api/v1/admin/alerts/{id}/classify", handleUpdateAlertClassification)
+		r.Get("/api/v1/admin/audit-logs", handleGetAuditLogs)
+		r.Get("/api/v1/admin/roles", handleGetRoles)
+		r.Get("/api/v1/admin/permissions", handleGetPermissions)
 	})
 
 	// --- AGENCY & ASSET MANAGEMENT (Shared Admin/Operations) ---
@@ -981,4 +990,61 @@ func handleUpdateAlertClassification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, Response{Success: true, Message: "Alert classification updated"})
+}
+
+func handleGetAuditLogs(w http.ResponseWriter, r *http.Request) {
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page := 1
+	limit := 20
+
+	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		page = p
+	}
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+		limit = l
+	}
+
+	offset := (page - 1) * limit
+
+	logs, err := db.GetAuditLogs(r.Context(), limit, offset)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, Response{Success: false, Message: "Failed to retrieve audit logs"})
+		return
+	}
+	respondJSON(w, http.StatusOK, logs)
+}
+
+func handleGetRoles(w http.ResponseWriter, r *http.Request) {
+	roles := []string{
+		"ADMIN",
+		"SYSTEM_ADMIN",
+		"SECURITY_OFFICER",
+		"CYBER_ANALYST",
+		"STRATEGIC_PLANNER",
+		"TACTICAL_COMMAND",
+		"AGENCY_OFFICER",
+		"TRADITIONAL_RULER",
+		"GOVT_OFFICIAL",
+		"CITIZEN",
+	}
+	respondJSON(w, http.StatusOK, roles)
+}
+
+func handleGetPermissions(w http.ResponseWriter, r *http.Request) {
+	permissions := []string{
+		"READ_ALERTS_UNCLASSIFIED",
+		"READ_ALERTS_RESTRICTED",
+		"READ_ALERTS_CONFIDENTIAL",
+		"READ_ALERTS_SECRET",
+		"READ_ALERTS_TOP_SECRET",
+		"PROPOSER_ACCESS",
+		"APPROVER_ACCESS",
+		"DISPATCH_RESOURCES",
+		"MANAGE_USERS",
+		"AUDIT_VIEWER",
+		"SYSTEM_CONFIGURATION",
+	}
+	respondJSON(w, http.StatusOK, permissions)
 }

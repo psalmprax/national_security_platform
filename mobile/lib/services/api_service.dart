@@ -160,4 +160,26 @@ class ApiService {
       return null;
     }
   }
+
+  Future<bool> triggerSOS(double latitude, double longitude, String token) async {
+    try {
+      final url = Uri.parse('$_baseUrl/api/v1/sos');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'latitude': latitude,
+          'longitude': longitude,
+        }),
+      );
+
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('❌ SOS trigger error: $e');
+      return false;
+    }
+  }
 }

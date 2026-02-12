@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:location/location.dart';
 import 'package:uuid/uuid.dart';
 import '../models/alert_model.dart';
+import '../services/api_service.dart';
 import '../services/persistence_service.dart';
 import '../services/sync_service.dart';
 import '../services/auth_service.dart';
@@ -197,9 +198,117 @@ class _PanicScreenState extends State<PanicScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          _buildSOSButton(),
         ],
       ),
     );
+  }
+
+  Widget _buildSOSButton() {
+    return GestureDetector(
+      onLongPress: _triggerSOS,
+      child: Container(
+        width: double.infinity,
+        height: 80,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF003C), Color(0xFF8A0020)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF003C).withOpacity(0.5),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'HOLD FOR SOS',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              Text(
+                '3 SECONDS',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _triggerSOS() async {
+    // Haptic feedback would go here (requires package)
+    setState(() => _isPanicActive = true);
+    
+    // Get location
+    double lat = 9.0820;
+    double lng = 7.4913;
+    try {
+      final loc = await _location.getLocation();
+      lat = loc.latitude ?? lat;
+      lng = loc.longitude ?? lng;
+    } catch (e) {
+      print('Location error: $e');
+    }
+
+    final api = context.read<ApiService>();
+    final auth = context.read<AuthService>();
+    
+    // Optimistic UI update
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('SENDING SOS SIGNAL...'),
+        backgroundColor: Color(0xFFFF003C),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    final success = await api.triggerSOS(lat, lng, auth.token ?? '');
+    
+    if (success) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: Colors.black,
+            title: const Text('SOS BROADCASTED', style: TextStyle(color: Color(0xFF00FF95))),
+            content: const Text('Security forces and nearby users have been alerted.', style: TextStyle(color: Colors.white)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK', style: TextStyle(color: Color(0xFF00FF95))),
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('SOS FAILED - CHECK CONNECTION')),
+        );
+      }
+    }
+
+    setState(() => _isPanicActive = false);
   }
 
   Widget _buildPanicButton(String label, Color color, IconData icon) {

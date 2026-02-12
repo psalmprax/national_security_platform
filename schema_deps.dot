@@ -1,0 +1,29 @@
+digraph SchemaDependencies {
+    rankdir=TB;
+    node [shape=box, style=rounded];
+    // Tables created
+    "users" [label="users\n(001_initial_schema)"];
+    "alerts" [label="alerts\n(001_initial_schema)"];
+    "audit_logs" [label="audit_logs\n(001_initial_schema)"];
+    "states" [label="states\n(003_extended_schema)"];
+    "lgas" [label="lgas\n(003_extended_schema)"];
+    "villages" [label="villages\n(003_extended_schema)"];
+    "devices" [label="devices\n(003_extended_schema)"];
+    "media_attachments" [label="media_attachments\n(003_extended_schema)"];
+    "corroborations" [label="corroborations\n(003_extended_schema)"];
+    "agencies" [label="agencies\n(007_agency_schema)"];
+    "assets" [label="assets\n(007_agency_schema)"];
+    "agency_personnel" [label="agency_personnel\n(007_agency_schema)"];
+    "security_scans" [label="security_scans\n(008_security_sentinel_schema)"];
+    "missions" [label="missions\n(018_mission_schema)"];
+    "public_alerts" [label="public_alerts\n(020_public_alerts)"];
+    "anonymous_tips" [label="anonymous_tips\n(022_anonymous_tips)"];
+    "incident_clusters" [label="incident_clusters\n(023_advanced_features)"];
+    "missing_persons" [label="missing_persons\n(023_advanced_features)"];
+    "incident_tasks" [label="incident_tasks\n(023_advanced_features)"];
+    "incident_updates" [label="incident_updates\n(023_advanced_features)"];
+    "chat_rooms" [label="chat_rooms\n(023_advanced_features)"];
+    "chat_messages" [label="chat_messages\n(023_advanced_features)"];
+    "identity_verification_logs" [label="identity_verification_logs\n(028_sovereign_identity)"];
+
+    // Dependencies (INSERT INTO requires table to exist)

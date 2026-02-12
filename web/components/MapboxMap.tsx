@@ -91,6 +91,23 @@ export default function MapboxMap({
         };
     }, []);
 
+    // Handle Auto-Resize on container size change
+    useEffect(() => {
+        if (!mapContainerRef.current) return;
+
+        const resizeObserver = new ResizeObserver(() => {
+            if (mapRef.current) {
+                mapRef.current.resize();
+            }
+        });
+
+        resizeObserver.observe(mapContainerRef.current);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, []);
+
     // Handle Style and Pitch Changes
     useEffect(() => {
         if (!isMapSupported || !mapRef.current) return;
@@ -143,16 +160,35 @@ export default function MapboxMap({
                 if (pulseCircle) {
                     pulseCircle.style.borderColor = color;
                 }
+
+                // Update SOS class if needed
+                if (alert.type === 'SOS') {
+                    el.classList.add('sos-marker');
+                } else {
+                    el.classList.remove('sos-marker');
+                }
             } else {
                 const el = document.createElement('div');
                 el.className = 'custom-marker';
 
-                el.innerHTML = `
-                    <div style="position: relative; display: flex; align-items: center; justify-content: center;">
-                        <div style="position: absolute; width: 30px; height: 30px; border: 2px solid ${color}; border-radius: 50%; opacity: 0.4; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-                        <div style="width: 12px; height: 12px; background: ${color}; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px ${color};"></div>
-                    </div>
-                `;
+                if (alert.type === 'SOS') {
+                    el.classList.add('sos-marker');
+                    el.innerHTML = `
+                        <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+                            <div style="position: absolute; width: 60px; height: 60px; border: 4px solid #FFFFFF; border-radius: 50%; opacity: 0; animation: sos-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                            <div style="position: absolute; width: 40px; height: 40px; background: #FF0000; border-radius: 50%; opacity: 0.5; animation: sos-flash 0.5s ease-in-out infinite alternate;"></div>
+                            <div style="width: 20px; height: 20px; background: #FFFFFF; border: 3px solid #FF0000; border-radius: 50%; box-shadow: 0 0 20px #FF0000; z-index: 10;"></div>
+                            <div style="position: absolute; top: -25px; background: #FF0000; color: white; font-weight: 900; font-size: 10px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5);">SOS</div>
+                        </div>
+                    `;
+                } else {
+                    el.innerHTML = `
+                        <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+                            <div style="position: absolute; width: 30px; height: 30px; border: 2px solid ${color}; border-radius: 50%; opacity: 0.4; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                            <div style="width: 12px; height: 12px; background: ${color}; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px ${color};"></div>
+                        </div>
+                    `;
+                }
 
                 el.addEventListener('click', () => {
                     onSelect?.(alert);
@@ -485,7 +521,7 @@ export default function MapboxMap({
                             </div>
                             <div className="col-span-2 pt-2 border-t border-white/5">
                                 <p className="text-[8px] opacity-40 uppercase font-black">Classification</p>
-                                <p className="text-xs font-bold uppercase">{selectedAlert.type.replace(/_/g, ' ')}</p>
+                                <p className="text-xs font-bold uppercase">{selectedAlert.type}</p>
                             </div>
                         </div>
                     </div>
@@ -496,6 +532,14 @@ export default function MapboxMap({
                 @keyframes ping {
                     0% { transform: scale(1); opacity: 0.8; }
                     100% { transform: scale(2.5); opacity: 0; }
+                }
+                @keyframes sos-ping {
+                    0% { transform: scale(0.5); opacity: 0.8; border-width: 4px; }
+                    100% { transform: scale(3.5); opacity: 0; border-width: 0px; }
+                }
+                @keyframes sos-flash {
+                    0% { opacity: 0.3; transform: scale(0.9); }
+                    100% { opacity: 0.8; transform: scale(1.1); }
                 }
                 @keyframes blink {
                     0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 10px #06b6d4; }

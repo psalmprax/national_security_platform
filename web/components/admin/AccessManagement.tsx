@@ -168,25 +168,25 @@ export default function AccessManagement({
     };
 
     const filteredUsers = users.filter(u =>
-        (u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.phone_number.includes(searchTerm)) &&
+        ((u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (u.phone_number || '').includes(searchTerm)) &&
         (roleFilter ? u.role === roleFilter : true) &&
         (clearanceFilter ? u.clearance_level === clearanceFilter : true)
     );
 
     const filteredAlerts = alerts.filter(a =>
-        (a.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            a.content.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        ((a.type || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (a.content || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
         (classificationFilter ? a.classification_level === classificationFilter : true)
     );
 
     const filteredAuditLogs = auditLogs.filter(log =>
-        log.actor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.action.toLowerCase().includes(searchTerm.toLowerCase())
+        (log.actor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (log.action || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const filteredRoles = roles.filter(role =>
-        role.name.toLowerCase().includes(searchTerm.toLowerCase())
+        (role.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -290,7 +290,7 @@ export default function AccessManagement({
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 transition-colors group-focus-within:text-[#00FF95]" />
                     <input
                         type="text"
-                        placeholder={activeTab === 'users' ? "Search peronnel by name or NIN..." : activeTab === 'alerts' ? "Search alerts by type or content..." : activeTab === 'audit' ? "Search audit log by actor or action..." : "Search roles by name..."}
+                        placeholder={activeTab === 'users' ? "Search personnel by name or NIN..." : activeTab === 'alerts' ? "Search alerts by type or content..." : activeTab === 'audit' ? "Search audit log by actor or action..." : "Search roles by name..."}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-[#00FF95]/50 focus:bg-white/[0.05] transition-all"
@@ -550,7 +550,7 @@ function AlertRow({ alert, index, updating, readOnly, onUpdate }: { alert: Alert
                     <AlertCircle className={`w-5 h-5 ${alert.severity > 0.8 ? 'text-[#FF003C]' : 'text-white/40'}`} />
                 </div>
                 <div className="min-w-0">
-                    <h3 className="text-sm font-black text-white tracking-tight uppercase truncate">{alert.type.replace(/_/g, ' ')}</h3>
+                    <h3 className="text-sm font-black text-white tracking-tight uppercase truncate">{alert.type}</h3>
                     <div className="flex items-center gap-3 mt-1">
                         <span className="flex items-center gap-1 text-[10px] text-white/30 font-mono italic truncate">
                             {alert.content.substring(0, 60)}...
