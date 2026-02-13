@@ -28,12 +28,27 @@ export async function middleware(request: NextRequest) {
     const session = await verifySession(authToken || '')
 
     const { pathname } = request.nextUrl;
+    const response = NextResponse.next()
+
+    // 0. Static Asset Protection (Internal assets and public files)
+    // Ensures that images, scripts, and non-page assets never trigger redirects.
+    const isAsset = pathname.includes('.') ||
+        pathname.startsWith('/_next') ||
+        pathname.startsWith('/icons/') ||
+        pathname.startsWith('/screenshots/') ||
+        pathname.startsWith('/map-assets/');
+
+    if (isAsset) {
+        return response;
+    }
 
     // 1. Define public paths
-    const isPublicPath = pathname === '/login' || pathname === '/request-access'
+    const isPublicPath = pathname === '/login' ||
+        pathname === '/request-access' ||
+        pathname === '/manifest.json' ||
+        pathname === '/sw.js';
 
     // 2. Handle protected routes
-    const response = NextResponse.next()
 
     if (session) {
         if (isPublicPath) {
@@ -96,8 +111,9 @@ export const config = {
          * - api (API routes)
          * - _next/static (static files)
          * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
+         * - favicon.ico, manifest.json, sw.js, etc.
+         * - Any path with a common file extension (static assets)
          */
-        '/((?!api|_next/static|_next/image|favicon.ico).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sw.js|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|js|css|woff2|woff|ttf|otf|mp4|webm|json)).*)',
     ],
 }

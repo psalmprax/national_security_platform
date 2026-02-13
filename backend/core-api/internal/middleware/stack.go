@@ -21,14 +21,14 @@ func SecurityStack(r *chi.Mux) {
 			// Optimized CSP: Added frame-ancestors and explicit frame-src to prevent fallbacks
 			csp := []string{
 				"default-src 'self'",
-				"script-src 'self' 'unsafe-eval' 'unsafe-inline' https://api.mapbox.com",
+				"script-src 'self' https://api.mapbox.com",
 				"connect-src 'self' https://api.mapbox.com https://events.mapbox.com ws://localhost:8085",
 				"img-src 'self' data: blob: https://api.mapbox.com",
 				"worker-src 'self' blob:",
 				"child-src 'self' blob:",
 				"frame-src 'self' blob:",
 				"frame-ancestors 'self'",
-				"style-src 'self' 'unsafe-inline' https://api.mapbox.com",
+				"style-src 'self' https://api.mapbox.com",
 				"font-src 'self' data:",
 			}
 			w.Header().Set("Content-Security-Policy", strings.Join(csp, "; "))
@@ -49,7 +49,7 @@ func SecurityStack(r *chi.Mux) {
 	r.Use(middleware.Recoverer)
 
 	// 3. Rate Limiting (IP-based) - Now sees the Real IP
-	limiter := NewRateLimiter(50, 100) // 50 req/s, burst 100
+	limiter := NewRateLimiter(5, 10) // 5 req/s, burst 10 (Strict for audit compliance)
 	r.Use(limiter.Handler)
 
 	// 3. CORS Configuration (Dynamic)

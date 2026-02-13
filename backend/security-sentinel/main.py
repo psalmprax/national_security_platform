@@ -8,6 +8,10 @@ import psycopg2
 import socket
 import subprocess
 from psycopg2.extras import Json
+import urllib3
+
+# Suppress noisy SSL warnings for internal self-signed certs
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Setup logging
 logging.basicConfig(

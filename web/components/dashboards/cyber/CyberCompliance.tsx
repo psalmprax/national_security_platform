@@ -23,7 +23,7 @@ export default function CyberCompliance({
     itemsPerPage
 }: CyberComplianceProps) {
     return (
-        <div className="w-full h-full overflow-y-auto scrollbar-cyber">
+        <div className="w-full h-full overflow-y-auto scrollbar-cyber pointer-events-auto">
             <div className="w-full max-w-6xl mx-auto p-8">
                 <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">Security Compliance</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

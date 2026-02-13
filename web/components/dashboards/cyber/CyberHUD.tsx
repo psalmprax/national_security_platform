@@ -16,6 +16,7 @@ interface CyberHUDProps {
         text: string;
     };
     themes: any;
+    showSatellite: boolean;
 }
 
 export default function CyberHUD({
@@ -25,7 +26,8 @@ export default function CyberHUD({
     currentTime,
     userRole,
     currentTheme,
-    themes
+    themes,
+    showSatellite
 }: CyberHUDProps) {
     return (
         <>
@@ -66,10 +68,16 @@ export default function CyberHUD({
                     </span>
                     <span className="tracking-widest">GRID: NGR-01-DELTA</span>
                     <span className="tracking-widest" style={{ color: currentTheme.primary + 'cc' }}>TRUSTED_NODES: {securityStatus.trustedDevices}</span>
+                    {showSatellite && (
+                        <span className="tracking-widest flex items-center gap-1.5 animate-pulse" style={{ color: '#06b6d4' }}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                            SATCOM_UPLINK: ACTIVE_STREAM
+                        </span>
+                    )}
                 </div>
             </div>
 
-            <div className="absolute top-4 right-8 z-30 pointer-events-none">
+            <div className="absolute top-4 right-[416px] z-30 pointer-events-none">
                 <div className="glass-card px-6 py-3 border border-white/5 bg-black/20 font-mono text-right min-w-[140px]" style={{ borderColor: currentTheme.primary + '1a' }}>
                     {currentTime ? (
                         <>

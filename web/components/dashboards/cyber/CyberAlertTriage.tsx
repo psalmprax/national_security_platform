@@ -18,7 +18,7 @@ export default function CyberAlertTriage({
     isAlertRedacted
 }: CyberAlertTriageProps) {
     return (
-        <div className="w-full h-full overflow-y-auto scrollbar-cyber">
+        <div className="w-full h-full overflow-y-auto scrollbar-cyber pointer-events-auto">
             <div className="w-full max-w-6xl mx-auto p-8">
                 <h2 className="text-2xl font-black tracking-wider text-white mb-6 uppercase">
                     Alert Triage {filterMode !== 'all' && <span className="text-[#00FF95] text-sm ml-2">[{filterMode.toUpperCase()}_FILTER]</span>}

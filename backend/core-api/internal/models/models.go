@@ -220,3 +220,17 @@ type AuditLog struct {
 	Changes             []byte    `json:"changes,omitempty"`
 	ClassificationLevel string    `json:"classification_level"`
 }
+type MissingPerson struct {
+	ID            uuid.UUID `json:"id"`
+	FullName      string    `json:"full_name"`
+	Age           int       `json:"age"`
+	Gender        string    `json:"gender"`
+	LastSeen      time.Time `json:"last_seen"`
+	Status        string    `json:"status"` // MISSING, FOUND, DECEASED
+	Description   string    `json:"description"`
+	PhotoURL      *string   `json:"photo_url,omitempty"`
+	ReportedByID  uuid.UUID `json:"reported_by_id"`
+	ContactNumber string    `json:"contact_number"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}

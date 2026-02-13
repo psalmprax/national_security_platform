@@ -89,7 +89,20 @@ Decompose large dashboard components into modular, manageable sub-components to 
 - **IncidentTraceModal**: Detailed record exploration.
 
 ### Cyber Dashboard
-- **CyberHUD**: Real-time operational overlay.
-- **CyberTriage**: Intelligent alert processing.
-- **CyberAuditLog**: Immutable action ledger.
 - **CyberCompliance**: Regulatory status monitoring.
+- **CyberAnalytics**: Mock-driven intelligence forecasting.
+
+## Feature 28: Intelligence Satellite Layer
+Implementation of a "Ground Truth" visual layer for high-priority border monitoring.
+
+- **Mapbox Integration**: Added `satellite-v9` style and `mapbox-terrain-dem-v1` source.
+- **Animation Hull**: Custom CSS-based "Scanning Uplink" overlay during style transitions.
+- **Autonomous Triggers**: Severity-based switching (`severity > 0.8`) for automated focus on critical incidents.
+
+## Security Hardening (Sentinel Resolution)
+Mitigation of high-impact vulnerabilities discovered during the Phase 3 audit.
+
+- **DoS Mitigation**: Precise tuning of Go middleware rate limits.
+- **CSP Hardening**: Full elimination of `'unsafe-inline'` and `'unsafe-eval'` to prevent XSS.
+- **Static Asset Exemption**: Middleware logic update to prevent MIME errors on static files.
+- **Indentation & Logic Fixes**: Resolution of syntax errors in the Python gRPC server to ensure 100% service uptime.

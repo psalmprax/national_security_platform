@@ -26,6 +26,7 @@ import CyberHUD from './cyber/CyberHUD';
 import CyberAlertTriage from './cyber/CyberAlertTriage';
 import CyberAuditLog from './cyber/CyberAuditLog';
 import CyberCompliance from './cyber/CyberCompliance';
+import CyberAnalytics from './cyber/CyberAnalytics';
 
 import { Alert, SecurityScan, fetchSecurityScans, TriangulatedAsset, fetchTriangulatedAssets, dispatchAsset, verifyAlert, API_BASE_URL, SystemStatus, formatLabel } from '../../lib/api';
 import { useAuth, User as UserType } from '../../lib/AuthContext';
@@ -277,6 +278,12 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
     const handleAlertSelect = (alert: Alert) => {
         setSelectedAlert(alert);
         fetchTriangulatedAssets(alert.id).then(setTriangulatedAssets).catch(console.error);
+
+        // Feature 28: Autonomous Intelligence Zoom
+        // Automatically switch to satellite for high-severity/critical alerts
+        if (alert.severity > 0.8) {
+            setShowSatellite(true);
+        }
     };
 
     // Auto-trigger triangulation when in Tactical mode and an alert is selected
@@ -377,6 +384,7 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                         userRole={user?.role}
                         currentTheme={currentTheme}
                         themes={themes}
+                        showSatellite={showSatellite}
                     />
 
                     <main className="flex-1 relative overflow-hidden flex flex-col pointer-events-none">
@@ -389,12 +397,13 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     triangulatedAssets={triangulatedAssets}
                                     onSelect={handleAlertSelect}
                                     showSatellite={showSatellite}
+                                    onToggleSatellite={setShowSatellite}
                                     primaryColor={currentTheme.primary}
                                 />
                             </div>
                         )}
 
-                        <div className="flex-1 relative z-20 pointer-events-auto overflow-hidden">
+                        <div className="flex-1 relative z-20 pointer-events-none overflow-hidden">
                             {/* VIEW: Alert Triage */}
                             {activeView === 'alerts' && (
                                 <CyberAlertTriage
@@ -424,6 +433,11 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                                     setCurrentPage={setCurrentPage}
                                     itemsPerPage={itemsPerPage}
                                 />
+                            )}
+
+                            {/* VIEW: Analytics */}
+                            {activeView === 'analytics' && (
+                                <CyberAnalytics />
                             )}
                         </div>
 

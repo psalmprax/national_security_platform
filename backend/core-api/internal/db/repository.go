@@ -441,6 +441,51 @@ func GetRecentAlerts(ctx context.Context, limit int, clearanceLevel string) ([]m
 	return alerts, nil
 }
 
+// GetRelatedAlerts finds alerts spatially and temporally close to a target alert
+func GetRelatedAlerts(ctx context.Context, alertID uuid.UUID, radiusMeters int, timeWindowHours int) ([]models.Alert, error) {
+	query := `
+		WITH target_alert AS (
+			SELECT location, created_at FROM alerts WHERE id = $1
+		)
+		SELECT 
+			a.id, a.user_id, a.status, a.priority_class,
+			ST_X(a.location::geometry) as longitude, 
+			ST_Y(a.location::geometry) as latitude,
+			a.impact_radius_meters, a.alert_type,
+			a.content_text, a.content_media_url, a.severity_score, a.risk_keywords, a.verification_count,
+			a.created_at, a.updated_at, a.classification_level
+		FROM alerts a, target_alert t
+		WHERE a.id != $1
+		AND ST_DWithin(a.location::geography, t.location::geography, $2)
+		AND a.created_at BETWEEN t.created_at - ($3 * INTERVAL '1 hour') AND t.created_at + ($3 * INTERVAL '1 hour')
+		ORDER BY a.created_at DESC
+		LIMIT 5
+	`
+
+	rows, err := Pool.Query(ctx, query, alertID, radiusMeters, timeWindowHours)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query related alerts: %w", err)
+	}
+	defer rows.Close()
+
+	var alerts []models.Alert
+	for rows.Next() {
+		var alert models.Alert
+		err := rows.Scan(
+			&alert.ID, &alert.UserID, &alert.Status, &alert.PriorityClass,
+			&alert.Longitude, &alert.Latitude, &alert.ImpactRadiusMeters, &alert.AlertType,
+			&alert.ContentText, &alert.ContentMediaURL, &alert.SeverityScore, &alert.RiskKeywords,
+			&alert.VerificationCount, &alert.CreatedAt, &alert.UpdatedAt, &alert.ClassificationLevel,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan related alert: %w", err)
+		}
+		alerts = append(alerts, alert)
+	}
+
+	return alerts, nil
+}
+
 // GetSystemStats retrieves high-level system statistics
 func GetSystemStats(ctx context.Context) (*models.SystemStats, error) {
 	stats := &models.SystemStats{}
@@ -961,4 +1006,53 @@ func CreateIdentityVerificationLog(ctx context.Context, log *models.IdentityVeri
 		log.VerificationStatus, log.FailureReason,
 	)
 	return err
+}
+
+// ReportMissingPerson inserts a new missing person record
+func ReportMissingPerson(ctx context.Context, person *models.MissingPerson) error {
+	query := `
+		INSERT INTO missing_persons (
+			id, full_name, age, gender, last_seen, status,
+			description, photo_url, reported_by_id, contact_number
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`
+	_, err := Pool.Exec(ctx, query,
+		person.ID, person.FullName, person.Age, person.Gender,
+		person.LastSeen, person.Status, person.Description,
+		person.PhotoURL, person.ReportedByID, person.ContactNumber,
+	)
+	return err
+}
+
+// GetMissingPersons retrieves missing person records
+func GetMissingPersons(ctx context.Context, limit int, offset int) ([]models.MissingPerson, error) {
+	query := `
+		SELECT 
+			id, full_name, age, gender, last_seen, status,
+			description, photo_url, reported_by_id, contact_number,
+			created_at, updated_at
+		FROM missing_persons
+		ORDER BY last_seen DESC
+		LIMIT $1 OFFSET $2
+	`
+	rows, err := Pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var persons []models.MissingPerson
+	for rows.Next() {
+		var p models.MissingPerson
+		err := rows.Scan(
+			&p.ID, &p.FullName, &p.Age, &p.Gender, &p.LastSeen, &p.Status,
+			&p.Description, &p.PhotoURL, &p.ReportedByID, &p.ContactNumber,
+			&p.CreatedAt, &p.UpdatedAt,
+		)
+		if err != nil {
+			continue
+		}
+		persons = append(persons, p)
+	}
+	return persons, nil
 }

@@ -210,6 +210,7 @@ func main() {
 
 		r.Get("/api/v1/auth/me", handleMe)
 		r.Get("/api/v1/alerts", handleGetAlerts)
+		r.Get("/api/v1/alerts/{alertID}/related", h.GetRelatedAlerts)
 		r.Post("/api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
 			handleSubmitAlert(w, r, alertService, intelClient)
 		})
@@ -246,6 +247,10 @@ func main() {
 		// Media & Evidence
 		r.Post("/api/v1/media/upload", h.HandleMediaUpload)
 		r.Get("/api/v1/media/access", h.HandleGetMediaDownloadURL)
+
+		// Missing Persons Registry
+		r.Get("/api/v1/missing-persons", h.GetMissingPersons)
+		r.Post("/api/v1/missing-persons", h.ReportMissingPerson)
 	})
 
 	// --- SYSTEM ADMIN ROUTES (Infrastructure & Health) ---

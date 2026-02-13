@@ -1,17 +1,19 @@
 "use client";
 
 import React from 'react';
-import { PieChart, Activity, Shield, User as UserIcon } from 'lucide-react';
+import { PieChart, Activity, Shield, User as UserIcon, Brain, Users } from 'lucide-react';
 import { getIncidentTrends, getThreatDistribution, Alert, SystemStatus, Mission, SafetyScore, fetchActiveMissions, fetchSafetyScores, fetchSystemStatus, SectorReport, fetchSectorReport } from '../../lib/api';
 import { User } from '../../lib/AuthContext';
 
 // Sub-components
 import StrategicKPIs from './strategic/StrategicKPIs';
+import StrategicIntelligence from './strategic/StrategicIntelligence';
 import StrategicOverview from './strategic/StrategicOverview';
 import StrategicAnalytics from './strategic/StrategicAnalytics';
 import StrategicRegistry from './strategic/StrategicRegistry';
 import StrategicProfile from './strategic/StrategicProfile';
 import IncidentTraceModal from './strategic/IncidentTraceModal';
+import MissingPersonsRegistry from './strategic/MissingPersonsRegistry';
 
 interface StrategicDashboardProps {
     alerts: Alert[];
@@ -25,7 +27,7 @@ interface StrategicDashboardProps {
 
 export default function StrategicDashboard({ alerts, currentTime, securityStatus, user, logout, displayMode, setDisplayMode }: StrategicDashboardProps) {
     const [selectedAlert, setSelectedAlert] = React.useState<Alert | null>(null);
-    const [activeView, setActiveView] = React.useState<'overview' | 'profile' | 'registry' | 'analytics'>('overview');
+    const [activeView, setActiveView] = React.useState<'overview' | 'profile' | 'registry' | 'analytics' | 'intelligence' | 'missing_persons'>('overview');
     const [showNotifications, setShowNotifications] = React.useState(false);
     const [notifications] = React.useState([
         { message: "Strategic intelligence systems active. Real-time telemetry established.", timestamp: new Date(), type: 'system' }
@@ -99,7 +101,9 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                         {[
                             { id: 'overview', label: 'Overview', icon: Activity },
                             { id: 'analytics', label: 'Analytics', icon: PieChart },
+                            { id: 'intelligence', label: 'Intelligence', icon: Brain },
                             { id: 'registry', label: 'Registry', icon: Shield },
+                            { id: 'missing_persons', label: 'Missing Persons', icon: Users },
                             { id: 'profile', label: 'Profile', icon: UserIcon }
                         ].map((tab) => (
                             <button
@@ -145,6 +149,14 @@ export default function StrategicDashboard({ alerts, currentTime, securityStatus
                         safetyScores={safetyScores}
                         liveStatus={liveStatus}
                     />
+                )}
+
+                {activeView === 'intelligence' && (
+                    <StrategicIntelligence />
+                )}
+
+                {activeView === 'missing_persons' && (
+                    <MissingPersonsRegistry />
                 )}
 
                 {activeView === 'analytics' && (

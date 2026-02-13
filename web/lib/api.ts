@@ -616,6 +616,24 @@ export async function fetchAnonymousTips(): Promise<AnonymousTip[]> {
     }
 }
 
+export async function fetchRelatedAlerts(alertId: string): Promise<Alert[]> {
+    try {
+        const response = await apiFetch(`/api/v1/alerts/${alertId}/related?radius=5000&window=24`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        const alerts = ensureArray(data.alerts);
+        return alerts.map((alert: any) => ({
+            ...alert,
+            alert_type: formatLabel(alert.alert_type),
+            priority_class: formatLabel(alert.priority_class),
+            status: formatLabel(alert.status)
+        }));
+    } catch (error) {
+        console.error('Failed to fetch related alerts:', error);
+        return [];
+    }
+}
+
 export async function verifyTip(tipId: string, status: 'verified' | 'rejected'): Promise<boolean> {
     try {
         const action = status === 'verified' ? 'verify' : 'reject';
@@ -627,6 +645,44 @@ export async function verifyTip(tipId: string, status: 'verified' | 'rejected'):
         return response.ok;
     } catch (error) {
         console.error('Failed to verify tip:', error);
+        return false;
+    }
+}
+export interface MissingPerson {
+    id: string;
+    full_name: string;
+    age: number;
+    gender: string;
+    last_seen: string;
+    status: 'MISSING' | 'FOUND' | 'DECEASED';
+    description: string;
+    photo_url?: string;
+    reported_by_id: string;
+    contact_number: string;
+    created_at: string;
+}
+
+export async function fetchMissingPersons(): Promise<MissingPerson[]> {
+    try {
+        const response = await apiFetch(`/api/v1/missing-persons`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return ensureArray(data.persons);
+    } catch (error) {
+        console.error('Failed to fetch missing persons:', error);
+        return [];
+    }
+}
+
+export async function reportMissingPerson(person: Omit<MissingPerson, 'id' | 'created_at' | 'status'>): Promise<boolean> {
+    try {
+        const response = await apiFetch(`/api/v1/missing-persons`, {
+            method: 'POST',
+            body: JSON.stringify(person)
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to report missing person:', error);
         return false;
     }
 }

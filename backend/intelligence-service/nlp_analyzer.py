@@ -17,7 +17,7 @@ except OSError:
 class NLPAnalyzer:
     """Extract structured intelligence from unstructured alert descriptions"""
     
-    def __int__(self):
+    def __init__(self):
         self.nlp = nlp
         
         # Nigerian-specific entity patterns

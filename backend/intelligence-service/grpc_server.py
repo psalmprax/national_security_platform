@@ -9,6 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 
 import national_security_pb2
 import national_security_pb2_grpc
+from nlp_analyzer import analyze_alert_description
 
 logger = logging.getLogger("intelligence-service-grpc")
 
@@ -19,36 +20,45 @@ class IntelligenceServiceServicer(national_security_pb2_grpc.IntelligenceService
     async def AnalyzeAlert(self, request, context):
         logger.info(f"Received gRPC AnalyzeAlert request for ID: {request.alert_id}")
         
-        # Simple analysis logic
-        content = request.content_text.lower()
-        keywords = []
+        content = request.content_text
+        if not content:
+            return national_security_pb2.AnalyzeResponse(
+                alert_id=request.alert_id,
+                severity_score=0.1,
+                risk_keywords=[],
+                english_translation="",
+                category="general"
+            )
+
+        # Use the advanced NLP analyzer
+        analysis = analyze_alert_description(content)
+        
         severity = 0.2
+        urgency_map = {'critical': 0.95, 'high': 0.75, 'medium': 0.5, 'low': 0.2}
+        if 'urgency_level' in analysis:
+            severity = urgency_map.get(analysis['urgency_level'], 0.2)
         
-        # Critical keywords
-        critical_terms = ['gunshot', 'bomb', 'explosion', 'fire', 'terrorist', 'attack', 'kidnap', 'emergency']
-        # High risk keywords
-        high_risk_terms = ['suspicious', 'threat', 'fighting', 'robbery', 'riot', 'protest']
+        # Flatten entities into prefixed risk_keywords
+        risk_keywords = analysis.get('keywords', [])
+        entities = analysis.get('entities', {})
         
-        for term in critical_terms:
-            if term in content:
-                severity = max(severity, 0.95)
-                keywords.append(term)
-                
-        for term in high_risk_terms:
-            if term in content:
-                severity = max(severity, 0.75)
-                keywords.append(term)
-                
-        if not keywords and content:
-            severity = 0.3
-            keywords = ["general_alert"]
+        for person in entities.get('people', []):
+            risk_keywords.append(f"PERSON:{person}")
+        for location in entities.get('locations', []):
+            risk_keywords.append(f"LOC:{location}")
+        for vehicle in entities.get('vehicles', []):
+            risk_keywords.append(f"VEHICLE:{vehicle}")
+        for weapon in entities.get('weapons', []):
+            risk_keywords.append(f"WEAPON:{weapon}")
+        for org in entities.get('organizations', []):
+            risk_keywords.append(f"ORG:{org}")
             
         response = national_security_pb2.AnalyzeResponse(
             alert_id=request.alert_id,
             severity_score=severity,
-            risk_keywords=keywords,
+            risk_keywords=risk_keywords,
             english_translation=request.content_text,
-            category="general"
+            category=analysis.get('urgency_level', 'general')
         )
         
         if severity > 0.7:
@@ -60,7 +70,7 @@ class IntelligenceServiceServicer(national_security_pb2_grpc.IntelligenceService
                 async with self.db_pool.acquire() as conn:
                     await conn.execute(
                         "UPDATE alerts SET severity_score = $1, risk_keywords = $2 WHERE id = $3",
-                        severity, keywords, request.alert_id
+                        severity, risk_keywords, request.alert_id
                     )
                     logger.info(f"💾 Persisted gRPC analysis for {request.alert_id} to database.")
             except Exception as e:

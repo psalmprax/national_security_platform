@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Target, Activity, Plus, Minus, Move, Shield, Briefcase } from 'lucide-react';
+import { Target, Activity, Plus, Minus, Move, Shield, Briefcase, Globe } from 'lucide-react';
 import { Alert, TriangulatedAsset, Asset, API_BASE_URL } from '../lib/api';
 
 const isValidCoordinate = (lng: number, lat: number) => {
@@ -20,6 +20,7 @@ interface MapboxMapProps {
     mode?: 'cyber' | 'tactical';
     onSelect?: (alert: Alert) => void;
     showSatellite?: boolean;
+    onToggleSatellite?: (show: boolean) => void;
     primaryColor?: string; // NEW PROP
 }
 
@@ -31,6 +32,7 @@ export default function MapboxMap({
     mode = 'cyber',
     onSelect,
     showSatellite = false,
+    onToggleSatellite,
     primaryColor = '#00FF95' // Default to Cyber Green
 }: MapboxMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -41,6 +43,7 @@ export default function MapboxMap({
     const [isMapSupported, setIsMapSupported] = useState(true);
     // If resources are passed via props, show them by default, otherwise wait for toggle
     const [showResources, setShowResources] = useState((resources || []).length > 0);
+    const [isSwitching, setIsSwitching] = useState(false);
     const [tokenError, setTokenError] = useState(false);
     const hasAttemptedInit = useRef(false);
     const isCyber = mode === 'cyber';
@@ -73,6 +76,16 @@ export default function MapboxMap({
                 mapRef.current = map;
                 setIsMapSupported(true);
                 setTokenError(false);
+
+                // Add Terrain support
+                map.addSource('mapbox-dem', {
+                    'type': 'raster-dem',
+                    'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                    'tileSize': 512
+                });
+                if (showSatellite) {
+                    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+                }
             });
 
             map.on('error', (e) => {
@@ -115,11 +128,27 @@ export default function MapboxMap({
         try {
             const currentStyle = mapRef.current.getStyle();
             if (currentStyle && currentStyle.sprite !== newStyle) {
+                setIsSwitching(true);
                 mapRef.current.setStyle(newStyle);
+
+                // Re-add terrain after style load if in satellite mode
+                mapRef.current.once('style.load', () => {
+                    if (showSatellite && mapRef.current) {
+                        if (!mapRef.current.getSource('mapbox-dem')) {
+                            mapRef.current.addSource('mapbox-dem', {
+                                'type': 'raster-dem',
+                                'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                                'tileSize': 512
+                            });
+                        }
+                        mapRef.current.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+                    }
+                    setTimeout(() => setIsSwitching(false), 800);
+                });
             }
-            mapRef.current.setPitch(isCyber ? 45 : 0);
+            mapRef.current.setPitch(showSatellite ? 60 : (isCyber ? 45 : 0));
         } catch (error) {
-            // Silently handle style update errors
+            setIsSwitching(false);
         }
     }, [showSatellite, isCyber, isMapSupported]);
 
@@ -449,6 +478,17 @@ export default function MapboxMap({
         <div className="w-full h-full relative group">
             <div ref={mapContainerRef} className="w-full h-full" />
 
+            {/* Scanning Overlay Effect */}
+            {isSwitching && (
+                <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-64 h-[1px] bg-cyan-500 animate-scanline-h" />
+                        <div className="text-[10px] font-black text-cyan-500 tracking-[0.5em] animate-pulse uppercase">Satellite Uplink Established</div>
+                        <div className="w-64 h-[1px] bg-cyan-500 animate-scanline-h-rev" />
+                    </div>
+                </div>
+            )}
+
             {/* Overlay Grid/Effects for Cyber Mode */}
             {isCyber && !showSatellite && (
                 <div className="absolute inset-0 pointer-events-none opacity-[0.05]" style={{
@@ -487,6 +527,17 @@ export default function MapboxMap({
                     <Move className="w-5 h-5" />
                 </button>
                 <div className="h-4"></div> {/* Spacer */}
+                <button
+                    onClick={() => onToggleSatellite?.(!showSatellite)}
+                    title="Toggle Satellite Intelligence"
+                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${showSatellite
+                        ? (isCyber ? '' : 'border-cyan-500 bg-cyan-500 text-white shadow-lg')
+                        : (isCyber ? 'bg-black/60' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm')
+                        }`}
+                    style={isCyber ? (showSatellite ? { borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.2)', color: '#06b6d4', boxShadow: '0 0 15px rgba(6, 182, 212, 0.3)' } : { borderColor: primaryColor + '66', color: primaryColor }) : {}}
+                >
+                    <Globe className="w-5 h-5" />
+                </button>
                 <button
                     onClick={() => setShowResources(!showResources)}
                     title="Toggle Critical Resources"
@@ -548,6 +599,22 @@ export default function MapboxMap({
                 @keyframes blink-generic {
                     0%, 100% { opacity: 1; transform: scale(1); }
                     50% { opacity: 0.6; transform: scale(0.92); }
+                }
+                @keyframes scanline-h {
+                    0% { transform: scaleX(0); opacity: 0; }
+                    50% { transform: scaleX(1.2); opacity: 1; }
+                    100% { transform: scaleX(0); opacity: 0; }
+                }
+                @keyframes scanline-h-rev {
+                    0% { transform: scaleX(1.2); opacity: 0; }
+                    50% { transform: scaleX(0); opacity: 1; }
+                    100% { transform: scaleX(1.2); opacity: 0; }
+                }
+                .animate-scanline-h {
+                    animation: scanline-h 1.5s ease-in-out infinite;
+                }
+                .animate-scanline-h-rev {
+                    animation: scanline-h-rev 1.5s ease-in-out infinite;
                 }
                 .mapboxgl-ctrl-bottom-right, .mapboxgl-ctrl-bottom-left {
                     display: none !important;

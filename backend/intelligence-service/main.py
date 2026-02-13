@@ -73,32 +73,58 @@ async def run_nats_listener():
     except Exception as e:
         logger.error(f"Failed to connect to NATS: {e}")
 
+from nlp_analyzer import analyze_alert_description
+
+# ... (rest of imports)
+
 async def analyze_alert(alert_data):
-    # AI Analysis logic
-    content = alert_data.get('content_text', "").lower()
+    # AI Analysis logic using spaCy NLP Analyzer
+    content = alert_data.get('content_text', "")
     alert_id = alert_data.get('id')
     
-    severity_score = 0.1
-    risk_keywords = []
+    if not content:
+        logger.warning(f"Empty content for alert {alert_id}, skipping detailed NLP.")
+        return
+
+    # Use the advanced NLP analyzer
+    analysis = analyze_alert_description(content)
     
-    # Critical keywords
-    critical_terms = ['gunshot', 'bomb', 'explosion', 'fire', 'terrorist', 'attack', 'kidnap', 'emergency']
-    # High risk keywords
-    high_risk_terms = ['suspicious', 'threat', 'fighting', 'robbery', 'riot', 'protest']
+    severity_score = analysis.get('urgency_level_score', 0.1)
+    # Map urgency string to score if needed
+    urgency_map = {'critical': 0.95, 'high': 0.75, 'medium': 0.5, 'low': 0.2}
+    if 'urgency_level' in analysis:
+        severity_score = urgency_map.get(analysis['urgency_level'], 0.1)
     
-    for term in critical_terms:
-        if term in content:
-            severity_score = max(severity_score, 0.95)
-            risk_keywords.append(term)
-            
-    for term in high_risk_terms:
-        if term in content:
-            severity_score = max(severity_score, 0.75)
-            risk_keywords.append(term)
-            
-    if not risk_keywords and content:
-        severity_score = 0.3 # Default for non-empty content
-        risk_keywords = ["general_alert"]
+    # Flatten entities into prefixed risk_keywords
+    risk_keywords = analysis.get('keywords', [])
+    entities = analysis.get('entities', {})
+    
+    for person in entities.get('people', []):
+        risk_keywords.append(f"PERSON:{person}")
+    for location in entities.get('locations', []):
+        risk_keywords.append(f"LOC:{location}")
+    for vehicle in entities.get('vehicles', []):
+        risk_keywords.append(f"VEHICLE:{vehicle}")
+    for weapon in entities.get('weapons', []):
+        risk_keywords.append(f"WEAPON:{weapon}")
+    for org in entities.get('organizations', []):
+        risk_keywords.append(f"ORG:{org}")
+
+    logger.info(f"✅ AI Analysis complete for Alert {alert_id}: Score={severity_score}, Keywords={len(risk_keywords)}")
+    
+    # Update database
+    if hasattr(app.state, 'db_pool'):
+        try:
+            async with app.state.db_pool.acquire() as conn:
+                await conn.execute(
+                    "UPDATE alerts SET severity_score = $1, risk_keywords = $2 WHERE id = $3",
+                    severity_score, risk_keywords, alert_id
+                )
+                logger.info(f"💾 Updated alert {alert_id} in database with enriched metadata.")
+        except Exception as e:
+            logger.error(f"❌ Failed to update alert in database: {e}")
+    else:
+        logger.warning("⚠️ Database pool not available, skipping update.")
 
     logger.info(f"✅ AI Analysis complete for Alert {alert_id}: Score={severity_score}, Keywords={risk_keywords}")
     
