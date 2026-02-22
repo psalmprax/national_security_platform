@@ -11,11 +11,7 @@ const nextConfig = {
                 headers: [
                     {
                         key: 'Content-Security-Policy',
-                        value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://api.mapbox.com; style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com; img-src 'self' blob: data: https://api.mapbox.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.mapbox.com https://events.mapbox.com; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' blob:; frame-ancestors 'self'; upgrade-insecure-requests;",
-                    },
-                    {
-                        key: 'Strict-Transport-Security',
-                        value: 'max-age=63072000; includeSubDomains; preload',
+                        value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://api.mapbox.com; style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com; img-src 'self' blob: data: https://api.mapbox.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.mapbox.com https://events.mapbox.com http://130.61.26.105:8086 https://130.61.26.105:8443; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' blob:; frame-ancestors 'self';",
                     },
                     {
                         key: 'X-Content-Type-Options',
