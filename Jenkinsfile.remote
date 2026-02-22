@@ -26,6 +26,10 @@ pipeline {
                         
                         // Sync files to remote via rsync
                         sh "rsync -avz -e 'ssh -i ${SSH_KEY_PATH} -o StrictHostKeyChecking=no' --exclude '.git' --exclude 'venv' --exclude '__pycache__' . ${REMOTE_USER}@${REMOTE_HOST}:${DEPLOY_DIR}"
+                        
+                        // Generate certificates on the remote host if they don't exist
+                        echo "Ensuring certificates are present on remote..."
+                        sh "ssh -i ${SSH_KEY_PATH} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} 'cd ${DEPLOY_DIR} && chmod +x scripts/generate_certs.sh && ./scripts/generate_certs.sh'"
                     }
                 }
             }
