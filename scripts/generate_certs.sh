@@ -73,11 +73,13 @@ if [ ! -f cockroach-certs/node.crt ]; then
     openssl genrsa -out cockroach-certs/client.root.key 2048
     openssl req -new -key cockroach-certs/client.root.key -out cockroach-certs/client.root.csr -subj "/CN=root"
     openssl x509 -req -in cockroach-certs/client.root.csr -CA cockroach-certs/ca.crt -CAkey cockroach-certs/ca.key -CAcreateserial -out cockroach-certs/client.root.crt -days 365 -sha256
-    
-    chmod 0600 cockroach-certs/*.key
 else
     echo "CockroachDB Certificates already exist."
 fi
+
+# 4. Enforce Strict Permissions (CRITICAL for CockroachDB)
+echo "Enforcing strict 0600 permissions on all private keys..."
+chmod 0600 certs/*.key gateway/certs/*.key cockroach-certs/*.key 2>/dev/null || true
 
 echo "✅ Certificates generated successfully."
 ls -l certs/ gateway/certs/ cockroach-certs/
