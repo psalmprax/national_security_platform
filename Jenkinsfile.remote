@@ -76,8 +76,8 @@ pipeline {
                 withCredentials([sshUserPrivateKey(credentialsId: 'OCI_SSH_KEY', keyFileVariable: 'SSH_KEY_PATH')]) {
                     script {
                         echo "Verifying service health..."
-                        // Check if Gateway is responding on port 8085
-                        sh "ssh -i ${SSH_KEY_PATH} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} 'curl -sk https://localhost:8443/health || (echo \"Health check failed\" && exit 1)'"
+                        // Check if Gateway is responding on port 8443
+                        sh "ssh -i ${SSH_KEY_PATH} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} 'curl -sk https://localhost:8443/health/core || (echo \"Health check failed\" && exit 1)'"
                     }
                 }
             }
