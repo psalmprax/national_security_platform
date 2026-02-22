@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-api
+  namespace: national-security
+  labels:
+    app: core-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: core-api
+  template:
+    metadata:
+      labels:
+        app: core-api
+    spec:
+      containers:
+      - name: core-api
+        image: national-security-platform-core-api:latest
+        ports:
+        - containerPort: 8080
+        - containerPort: 50051
+        envFrom:
+        - configMapRef:
+            name: core-api-config
+        - secretRef:
+            name: core-api-secrets # Would be injected by Vault Agent in real setup
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10

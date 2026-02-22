@@ -9,9 +9,12 @@ import re
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
-    # If model not found, download it
+    # Fallback if model not found (though it should be baked into Docker)
+    logger = logging.getLogger("nlp_analyzer")
+    logger.warning("spaCy model 'en_core_web_sm' not found, attempting last-resort download...")
     import subprocess
-    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+    import sys
+    subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
     nlp = spacy.load("en_core_web_sm")
 
 class NLPAnalyzer:
@@ -42,8 +45,9 @@ class NLPAnalyzer:
         if not description or len(description) < 10:
             return self._empty_result()
         
-        # Process with spaCy
-        doc = self.nlp(description.lower())
+        # Process with spaCy (using original case for better NER)
+        doc = self.nlp(description)
+        desc_lower = description.lower()
         
         # Extract entities
         entities = {
@@ -59,7 +63,7 @@ class NLPAnalyzer:
             if ent.label_ == 'PERSON':
                 entities['people'].append(ent.text)
             elif ent.label_ in ['GPE', 'LOC', 'FAC']:  # Geopolitical, Location, Facility
-                entities['locations'].append(ent.text)
+                entities['locations'].append(ent.text.lower())
             elif ent.label_ == 'ORG':
                 entities['organizations'].append(ent.text)
             else:
@@ -74,6 +78,11 @@ class NLPAnalyzer:
             matches = re.findall(pattern, description, re.IGNORECASE)
             entities['vehicles'].extend(matches)
         
+        # Extract location mentions from nigerian_locations list
+        for loc in self.nigerian_locations:
+            if re.search(r'\b' + re.escape(loc) + r'\b', desc_lower):
+                entities['locations'].append(loc)
+
         # Extract weapon mentions
         weapon_patterns = r'\b(gun|rifle|ak-47|pistol|machete|knife|weapon|grenade|bomb|explosive)\b'
         weapons = re.findall(weapon_patterns, description, re.IGNORECASE)
@@ -95,7 +104,18 @@ class NLPAnalyzer:
         
         # Deduplicate
         for key in entities:
-            entities[key] = list(set(entities[key]))
+            if key == 'other':
+                # Handle list of dicts for 'other'
+                seen = set()
+                deduped = []
+                for item in entities[key]:
+                    item_tuple = (item['text'], item['type'])
+                    if item_tuple not in seen:
+                        seen.add(item_tuple)
+                        deduped.append(item)
+                entities[key] = deduped
+            else:
+                entities[key] = list(set(entities[key]))
         keywords = list(set(keywords))[:20]  # Limit to top 20
         
         return {

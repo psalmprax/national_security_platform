@@ -95,12 +95,8 @@ func (s *AlertService) SubmitAlert(ctx context.Context, userID uuid.UUID, alertT
 		log.Printf("⚠️ Failed to log audit action: %v", err)
 	}
 
-	// Publish to NATS for async processing
-	err = mq.PublishAlert(ctx, "alerts.new", alert)
-	if err != nil {
-		log.Printf("⚠️ Failed to publish alert to NATS: %v", err)
-		// We don't fail the whole request because DB persistence succeeded
-	}
+	// Publish to NATS for async processing (using SafePublish for resilience)
+	mq.SafePublish(ctx, "alerts.new", alert)
 
 	// Trigger SMS for critical alerts (Resilient Communications Failover)
 	if alert.PriorityClass == "CRITICAL" && s.sms != nil {

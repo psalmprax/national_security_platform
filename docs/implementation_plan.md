@@ -106,3 +106,15 @@ Mitigation of high-impact vulnerabilities discovered during the Phase 3 audit.
 - **CSP Hardening**: Full elimination of `'unsafe-inline'` and `'unsafe-eval'` to prevent XSS.
 - **Static Asset Exemption**: Middleware logic update to prevent MIME errors on static files.
 - **Indentation & Logic Fixes**: Resolution of syntax errors in the Python gRPC server to ensure 100% service uptime.
+
+## Infrastructure Harmonization & CI/CD (Session Update)
+Resolution of cross-project resource conflicts and implementation of automated delivery for the Viral Forge component.
+
+### Port Shift (NSP)
+- **Redis**: 6379 -> **6380** (Avoids conflict with Viral Forge Redis).
+- **Grafana**: 3000 -> **5000** (Avoids conflict with Viral Forge Nginx).
+
+### Jenkins Pipeline (Viral Forge)
+- **File**: `viral_forge/Jenkinsfile.remote`.
+- **Auth**: SSH-key based authentication for `130.61.26.105`.
+- **Process**: Git checkout -> SSH rsync -> Docker Compose build/up -> Automated DB Seeding.

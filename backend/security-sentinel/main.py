@@ -9,6 +9,10 @@ import socket
 import subprocess
 from psycopg2.extras import Json
 import urllib3
+import threading
+from fastapi import FastAPI, Response
+import uvicorn
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Gauge
 
 # Suppress noisy SSL warnings for internal self-signed certs
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -22,6 +26,35 @@ logger = logging.getLogger(__name__)
 
 TARGET_URL = os.getenv("CORE_API_URL", "http://core-api:8080")
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+app = FastAPI(title="Security Sentinel Health API")
+
+@app.get("/health")
+def health_check():
+    status = "OPERATIONAL"
+    dependencies = {}
+    
+    # Check Database
+    if DATABASE_URL:
+        try:
+            conn = psycopg2.connect(DATABASE_URL, connect_timeout=2)
+            conn.close()
+            dependencies["database"] = "OPERATIONAL"
+        except Exception:
+            dependencies["database"] = "OFFLINE"
+            status = "DEGRADED"
+    else:
+        dependencies["database"] = "DISABLED"
+
+    return {
+        "status": status,
+        "service": "security-sentinel",
+        "dependencies": dependencies
+    }
+
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 ENDPOINTS_TO_SCAN = [
     {"path": "/", "expected_status": 200, "protected": False},
@@ -264,4 +297,13 @@ def run_scheduler():
 
 if __name__ == "__main__":
     logger.info("🚀 Security Sentinel v2.0 Active.")
+    
+    # Start FastAPI in a background thread
+    api_thread = threading.Thread(
+        target=lambda: uvicorn.run(app, host="0.0.0.0", port=8001),
+        daemon=True
+    )
+    api_thread.start()
+    logger.info("📡 Health API started on port 8001")
+    
     run_scheduler()

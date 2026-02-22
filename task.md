@@ -244,3 +244,15 @@
     - [x] Fix HUD overlap with right sidebar
     - [x] Fix map control interactivity (pointer-events-none bug)
     - [x] Implement missing CyberAnalytics view
+
+## Phase 5: Production Readiness Bridge
+- [x] **Testing Foundation** - COMPLETE
+    - [x] Implement `sms_service_test.go` (Go)
+    - [x] Implement `test_nlp_analyzer.py` (Python)
+    - [x] Fix critical entity deduplication bug in NLP pipeline
+    - [x] Fix missing `spacy` dependency in Intelligence Service container
+- [ ] **Monitoring & Health** (PENDING)
+    - [ ] Implement Health Check Endpoints
+    - [ ] Create Monitoring Status Page
+- [ ] **Deployment Automation** (PENDING)
+    - [ ] GitHub Actions CI setup

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiFetch } from '../lib/api';
 import { errorLogger, logUserAction, logSecurityEvent } from '../lib/errorLogger';
 
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -104,11 +105,8 @@ export function useSessionManager() {
       sessionStorage.clear();
 
       // Call logout API
-      await fetch('/api/v1/auth/logout', {
+      await apiFetch('/api/v1/auth/logout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
     } catch (error) {
       errorLogger.error('Failed to logout properly', error, 'SessionManager');
@@ -152,11 +150,8 @@ export function useSessionManager() {
 
     try {
       // Call logout API
-      await fetch('/api/v1/auth/logout', {
+      await apiFetch('/api/v1/auth/logout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ reason }),
       });
     } catch (error) {
@@ -194,7 +189,7 @@ export function useSessionManager() {
   const isSessionValid = useCallback(() => {
     const now = Date.now();
     const timeSinceActivity = now - sessionState.lastActivity;
-    
+
     return (
       sessionState.isActive &&
       timeSinceActivity < SESSION_TIMEOUT &&
@@ -207,7 +202,7 @@ export function useSessionManager() {
     const now = Date.now();
     const timeSinceActivity = now - sessionState.lastActivity;
     const remaining = Math.max(0, SESSION_TIMEOUT - timeSinceActivity);
-    
+
     return remaining;
   }, [sessionState.lastActivity]);
 
@@ -277,7 +272,7 @@ export function useSessionManager() {
       } else {
         // Tab is visible - check session validity
         updateLastActivity();
-        
+
         if (!isSessionValid()) {
           handleSessionExpiry();
         }
@@ -297,13 +292,13 @@ export function useSessionManager() {
     isWarning: sessionState.isWarning,
     timeRemaining: sessionState.timeRemaining,
     warningCount: sessionState.warningCount,
-    
+
     // Actions
     extendSession,
     logout,
     updateLastActivity,
     requireReauth,
-    
+
     // Utilities
     isSessionValid,
     getTimeRemaining: getTimeRemaining() / 1000, // Return in seconds

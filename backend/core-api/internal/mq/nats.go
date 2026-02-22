@@ -79,6 +79,30 @@ func PublishAlert(ctx context.Context, subject string, data interface{}) error {
 	return nil
 }
 
+// SafePublish attempts to publish to NATS, but falls back to secure logging if connection is lost.
+// This prevents the API from returning 500 errors during temporary NATS outages.
+func SafePublish(ctx context.Context, subject string, data interface{}) {
+	payload, err := json.Marshal(data)
+	if err != nil {
+		log.Printf("❌ CRITICAL: Failed to marshal alert for SafePublish: %v", err)
+		return
+	}
+
+	if JS != nil {
+		_, err = JS.Publish(ctx, subject, payload)
+		if err == nil {
+			log.Printf("📢 Event safely published to NATS: %s", subject)
+			return
+		}
+		log.Printf("⚠️ NATS Publish failed, falling back to secure audit log: %v", err)
+	} else {
+		log.Printf("⚠️ NATS JetStream not initialized, falling back to secure audit log")
+	}
+
+	// Fallback: Log the alert payload so it can be recovered from container logs
+	log.Printf("💾 FAILOVER_LOG [%s]: %s", subject, string(payload))
+}
+
 // PublishAudit publishes an audit entry to the audit stream
 func PublishAudit(ctx context.Context, entry interface{}) error {
 	payload, err := json.Marshal(entry)

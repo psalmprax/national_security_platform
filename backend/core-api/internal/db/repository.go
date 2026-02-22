@@ -661,7 +661,7 @@ func GetTriangulatedAssets(ctx context.Context, alertID uuid.UUID) ([]models.Tri
 	cacheKey := fmt.Sprintf("alert:%s:triangulation", alertID)
 
 	// Check Redis Cache
-	if RedisClient != nil {
+	if RedisClient != nil && !RedisDisabled {
 		val, err := RedisClient.Get(ctx, cacheKey).Result()
 		if err == nil {
 			var cachedResults []models.TriangulatedAsset
@@ -715,7 +715,7 @@ func GetTriangulatedAssets(ctx context.Context, alertID uuid.UUID) ([]models.Tri
 	}
 
 	// Update Redis Cache (Async)
-	if RedisClient != nil && len(results) > 0 {
+	if RedisClient != nil && !RedisDisabled && len(results) > 0 {
 		go func() {
 			data, err := json.Marshal(results)
 			if err == nil {

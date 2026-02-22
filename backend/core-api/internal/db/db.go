@@ -5,15 +5,19 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
-var Pool *pgxpool.Pool
-var RedisClient *redis.Client
+var (
+	Pool          *pgxpool.Pool
+	RedisClient   *redis.Client
+	RedisDisabled bool
+)
 
-// InitRedis initializes the Redis client
+// InitRedis initializes the Redis client with resilience
 func InitRedis() error {
 	redisAddr := os.Getenv("REDIS_URL")
 	if redisAddr == "" {
@@ -21,12 +25,18 @@ func InitRedis() error {
 	}
 
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr: redisAddr,
+		Addr:            redisAddr,
+		MaxRetries:      2,
+		MinIdleConns:    5,
+		ConnMaxIdleTime: 5 * time.Minute,
 	})
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
 	if err := RedisClient.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("unable to ping redis: %w", err)
+		RedisDisabled = true
+		return fmt.Errorf("unable to ping redis (marking DISBLED): %w", err)
 	}
 
 	log.Println("✅ Redis connection established")

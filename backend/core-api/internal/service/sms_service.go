@@ -36,17 +36,19 @@ func (s *MockSMSService) SendOTP(ctx context.Context, phone string, code string)
 type AfricasTalkingSMSService struct {
 	Username string
 	APIKey   string
+	BaseURL  string
 }
 
 func NewAfricasTalkingService(username, apiKey string) *AfricasTalkingSMSService {
 	return &AfricasTalkingSMSService{
 		Username: username,
 		APIKey:   apiKey,
+		BaseURL:  "https://api.africastalking.com/version1/messaging",
 	}
 }
 
 func (s *AfricasTalkingSMSService) SendSMS(ctx context.Context, phone string, message string) error {
-	apiUrl := "https://api.africastalking.com/version1/messaging"
+	apiUrl := s.BaseURL
 
 	data := url.Values{}
 	data.Set("username", s.Username)

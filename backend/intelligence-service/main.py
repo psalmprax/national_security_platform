@@ -3,15 +3,32 @@ import os
 import json
 import logging
 import asyncpg
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Gauge
 from nats.aio.client import Client as NATS
+import uvicorn
 import grpc_server
 
-# Setup logging
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+# Initialize Logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("intelligence-service")
+logger = logging.getLogger("INTELLIGENCE_SERVICE")
+
+# OpenTelemetry Setup
+resource = Resource.create({"service.name": "intelligence-service"})
+provider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger:4317"), insecure=True))
+provider.add_span_processor(processor)
+trace.set_tracer_provider(provider)
 
 app = FastAPI(title="National Security Intelligence Service")
+FastAPIInstrumentor.instrument_app(app)
 
 NATS_URL = os.getenv("NATS_URL", "nats://nats:4222")
 
@@ -147,5 +164,40 @@ def read_root():
     return {"status": "active", "service": "Intelligence Service (Python)"}
 
 @app.get("/health")
-def health_check():
-    return {"status": "ok"}
+async def health_check():
+    status = "OPERATIONAL"
+    dependencies = {}
+    
+    # 1. Check Database
+    if hasattr(app.state, 'db_pool'):
+        try:
+            async with app.state.db_pool.acquire() as conn:
+                await conn.execute("SELECT 1")
+                dependencies["database"] = "OPERATIONAL"
+        except Exception:
+            dependencies["database"] = "OFFLINE"
+            status = "DEGRADED"
+    else:
+        dependencies["database"] = "DISABLED"
+        status = "DEGRADED"
+
+    # 2. Check model (spaCy)
+    from nlp_analyzer import analyzer
+    if analyzer and analyzer.nlp:
+        dependencies["nlp_model"] = "LOADED"
+    else:
+        dependencies["nlp_model"] = "ERROR"
+        status = "DEGRADED"
+
+    return {
+        "status": status,
+        "service": "intelligence-service",
+        "dependencies": dependencies
+    }
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

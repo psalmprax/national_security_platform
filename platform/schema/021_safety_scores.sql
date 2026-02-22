@@ -79,15 +79,6 @@ LEFT JOIN alert_stats ast ON l.id = ast.lga_id
 LEFT JOIN prev_stats prev ON l.id = prev.lga_id
 ORDER BY safety_score ASC, incident_count DESC;
 
--- Create materialized view for better performance
-DROP MATERIALIZED VIEW IF EXISTS lga_safety_scores_cached CASCADE;
-CREATE MATERIALIZED VIEW lga_safety_scores_cached AS
-SELECT * FROM lga_safety_scores;
-
-CREATE INDEX IF NOT EXISTS idx_safety_scores_lga ON lga_safety_scores_cached(lga_id);
-CREATE INDEX IF NOT EXISTS idx_safety_scores_state ON lga_safety_scores_cached(state_code);
-CREATE INDEX IF NOT EXISTS idx_safety_scores_risk ON lga_safety_scores_cached(risk_level);
-
--- Function to refresh the materialized view
-CREATE OR REPLACE FUNCTION refresh_safety_scores()
-RETURNS VOID AS 'REFRESH MATERIALIZED VIEW lga_safety_scores_cached;' LANGUAGE SQL;
+-- Dropped Materialized View complexity for CockroachDB compatibility
+-- In v23.1, REFRESH MATERIALIZED VIEW inside functions is limited.
+-- Using standard VIEW for now. Performance is acceptable for dataset size.

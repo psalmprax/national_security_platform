@@ -646,3 +646,16 @@ Finalization of the Security Sentinel v2.0 integration and mitigation of all ide
 Introduction of the `CyberAnalytics` module for real-time statistical oversight.
 - **Regional Risk Profiling**: Automated aggregation of threat levels across high-conflict zones.
 - **Ingestion Telemetry**: Real-time throughput monitoring for national-scale signal ingestion.
+
+## 16. Infrastructure Portfolio Management (Cross-Project Harmony)
+The platform is designed to coexist within a broader sovereign software portfolio (including projects like **Viral Forge**). 
+
+### 16.1 Port Range Strategy
+To prevent resource contention on shared OCI nodes, a tiered port strategy is enforced:
+- **National Security Platform (NSP)**: 5000-5999 (Web), 6380+ (Data), 8000-8443 (API/Gateway).
+- **Viral Forge (VF)**: 3000-3999 (Web), 6379 (Redis/Hot Data), 6432+ (Primary SQL).
+
+### 16.2 Continuous Delivery Architecture
+The CI/CD layer leverages Jenkins with SSH-based remote orchestration:
+- **Symmetric Deployment**: Jenkins agents utilize specialized `Jenkinsfile.remote` patterns to manage container lifecycles across distinct OCI instances.
+- **Data Integrity Gates**: Automated seeding stages are integrated into the pipeline to ensure that intelligence databases are never in an uninitialized state following infrastructure rotations.

@@ -1,0 +1,42 @@
+name: Mobile App CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "mobile/**"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "mobile/**"
+
+defaults:
+  run:
+    working-directory: ./mobile
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run Tests
+        run: flutter test
+
+      - name: Build Android APK (Debug)
+        run: flutter build apk --debug

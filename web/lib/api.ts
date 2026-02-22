@@ -848,3 +848,30 @@ export async function fetchSatcomTelemetry(): Promise<SatcomTelemetry | null> {
         return null;
     }
 }
+export interface ServiceHealth {
+    status: 'OPERATIONAL' | 'DEGRADED' | 'OFFLINE';
+    service: string;
+    dependencies?: Record<string, string>;
+    timestamp?: string;
+}
+
+export async function fetchServiceHealth(service: 'core' | 'intelligence' | 'sentinel'): Promise<ServiceHealth | null> {
+    let url = '';
+    switch (service) {
+        case 'core': url = `/health/core`; break;
+        case 'intelligence': url = `/health/intelligence`; break;
+        case 'sentinel': url = `/health/sentinel`; break;
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) return { status: 'OFFLINE', service };
+        return await response.json();
+    } catch (error) {
+        console.error(`Failed to fetch health for ${service}:`, error);
+        return { status: 'OFFLINE', service };
+    }
+}

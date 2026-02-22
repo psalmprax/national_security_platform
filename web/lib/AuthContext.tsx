@@ -2,13 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
-function formatLabel(str: string | undefined | null): string {
-    if (!str) return '';
-    return str.replace(/_/g, ' ');
-}
+import { apiFetch, formatLabel } from './api';
 
 export interface User {
     id: string;
@@ -42,8 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
-        // We no longer read from localStorage. 
-        // We just attempt to fetch user info. If the auth_token cookie exists and is valid, 
+        // We no longer read from localStorage.
+        // We just attempt to fetch user info. If the auth_token cookie exists and is valid,
         // the backend will return the user data.
         fetchUserInfo();
     }, []);
@@ -51,25 +45,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const fetchUserInfo = async () => {
         try {
             // No need to pass token explicitly; browser sends HttpOnly cookie automatically
-            const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`);
+            // apiFetch handles the base URL and CSRF token automatically
+            const response = await apiFetch(`/api/v1/auth/me`);
 
             if (response.ok) {
                 const userData = await response.json();
                 if (userData) {
+                    // Assuming formatLabel is imported or globally available if not from ./api
                     userData.role = formatLabel(userData.role);
                     userData.clearance_level = formatLabel(userData.clearance_level);
                     userData.status = formatLabel(userData.status);
                 }
                 setUser(userData);
-            } else {
-                // If 401 or 404 (User not found/Zombie token), we must clear the cookie
-                // preventing the middleware redirect loop.
-                console.warn('Invalid session detected, clearing cookies...');
-                await logout();
+            } else if (response.status === 401 || response.status === 403) {
+                // Unauthorized or Forbidden: clear local state
+                console.warn('Session invalid or expired');
                 setUser(null);
+            } else {
+                console.error(`Failed to fetch user info: ${response.status}`);
             }
         } catch (error) {
-            console.error('Failed to fetch user info:', error);
+            console.error('Network error fetching user info:', error);
             setUser(null);
         } finally {
             setIsLoading(false);
@@ -85,11 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         try {
-            await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+            await apiFetch('/api/v1/auth/logout', {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-Token': getCsrfToken(),
-                },
             });
         } catch (error) {
             console.error('Logout API call failed:', error);

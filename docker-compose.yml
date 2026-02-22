@@ -10,7 +10,7 @@ services:
     environment:
       - PORT=8080
       - GRPC_PORT=50051
-      - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
+      - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=verify-ca&sslrootcert=/etc/ssl/certs/ca.crt&sslcert=/etc/ssl/certs/client.root.crt&sslkey=/etc/ssl/certs/client.root.key
       - NATS_URL=nats://${NATS_TOKEN:-nats_token_change_immediately}@nats:4222
       - INTELLIGENCE_SERVICE_URL=intelligence-service:50051
       - JWT_SECRET=${JWT_SECRET}
@@ -18,8 +18,19 @@ services:
       - TLS_CERT_FILE=/etc/nginx/certs/server.crt
       - TLS_KEY_FILE=/etc/nginx/certs/server.key
       - ALLOWED_ORIGINS=http://localhost:8085,http://localhost:3000
+      # Vault Integration (AppRole)
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_ROLE_ID=16296aec-baed-fee5-e859-21daf3afc67e
+      - VAULT_SECRET_ID=1a497874-91b0-79d2-89bc-add1621ebc74
+      - VAULT_SECRET_ID=1a497874-91b0-79d2-89bc-add1621ebc74
+      # Removed Root Token for better security demo
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_SERVICE_NAME=core-api
     volumes:
       - ./gateway/certs:/etc/nginx/certs:ro
+      - ./cockroach-certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+      - ./cockroach-certs/client.root.crt:/etc/ssl/certs/client.root.crt:ro
+      - ./cockroach-certs/client.root.key:/etc/ssl/certs/client.root.key:ro
     depends_on:
       intelligence-service:
         condition: service_started
@@ -36,30 +47,38 @@ services:
       context: ./backend/intelligence-service
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8002:8000"
     environment:
       - ENV=development
       - NATS_URL=nats://${NATS_TOKEN:-nats_token_change_immediately}@nats:4222
-      - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
+      - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=verify-ca&sslrootcert=/etc/ssl/certs/ca.crt&sslcert=/etc/ssl/certs/client.root.crt&sslkey=/etc/ssl/certs/client.root.key
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_SERVICE_NAME=intelligence-service
     depends_on:
       cockroachdb:
         condition: service_healthy
       nats:
         condition: service_started
+    volumes:
+      - ./backend/intelligence-service:/app
+      - ./cockroach-certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+      - ./cockroach-certs/client.root.crt:/etc/ssl/certs/client.root.crt:ro
+      - ./cockroach-certs/client.root.key:/etc/ssl/certs/client.root.key:ro
     networks:
       - national-security-net
 
   # CockroachDB (Distributed SQL Engine)
   cockroachdb:
     image: cockroachdb/cockroach:latest-v23.1
-    command: start-single-node --insecure
+    command: start-single-node --certs-dir=/cockroach/cockroach-data/certs --accept-sql-without-tls
     # Ports removed: Database only accessible through internal network
     # ports:
     #   - "26257:26257"
     #   - "8081:8080"
     volumes:
       - cockroach_data:/cockroach/cockroach-data
+      - ./cockroach-certs:/cockroach/cockroach-data/certs
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 5s
@@ -72,7 +91,7 @@ services:
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -128,7 +147,7 @@ services:
     environment:
       - NEXT_PUBLIC_MAPBOX_TOKEN=${NEXT_PUBLIC_MAPBOX_TOKEN:-pk.eyJ1IjoicHNhbG1wcmF4IiwiYSI6ImNta3lsdnNtajA4M2ozZXM2Mnd0cWF0OHMifQ.mI66qXgyqyh6kRVSoJYLhQ}
       - NEXT_PUBLIC_API_URL=
-      - JWT_SECRET=${JWT_SECRET:-insecure_default_secret_for_dev_only}
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - core-api
     networks:
@@ -157,15 +176,93 @@ services:
       dockerfile: Dockerfile
     environment:
       - CORE_API_URL=https://core-api:8080
-      - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable
+      - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=verify-ca&sslrootcert=/etc/ssl/certs/ca.crt&sslcert=/etc/ssl/certs/client.root.crt&sslkey=/etc/ssl/certs/client.root.key
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_SERVICE_NAME=security-sentinel
     depends_on:
       - core-api
     networks:
       - national-security-net
+    ports:
+      - "8001:8001"
     volumes:
       - ./backend/core-api:/usr/src/scan/core-api:ro
       - ./backend/intelligence-service:/usr/src/scan/intelligence-service:ro
       - ./backend/security-sentinel:/usr/src/scan/self:ro
+      - ./cockroach-certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+      - ./cockroach-certs/client.root.crt:/etc/ssl/certs/client.root.crt:ro
+      - ./cockroach-certs/client.root.key:/etc/ssl/certs/client.root.key:ro
+      - ./gateway/certs/server.crt:/usr/local/share/ca-certificates/gateway.crt:ro
+
+  # Vault (Secrets Management)
+  vault:
+    image: hashicorp/vault:1.13.3
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - national-security-net
+
+  # Backup Runner (Automated Disaster Recovery)
+  backup-runner:
+    image: ubuntu:latest
+    volumes:
+      - ./scripts:/scripts # Removed :ro to allow chmod if necessary, though host chmod is better
+      - ./scripts/backups:/scripts/backups
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: /scripts/backup_runner.sh
+    restart: always
+    networks:
+      - national-security-net
+    entrypoint: [ "/bin/bash", "-c", "apt-get update && apt-get install -y cron docker.io && chmod +x /scripts/*.sh && /scripts/backup_runner.sh" ]
+
+  # Prometheus (Metrics Collection)
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    networks:
+      - national-security-net
+
+  # Grafana (Visualization Dashboard)
+  grafana:
+    image: grafana/latest
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "5000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - national-security-net
+
+  # Jaeger (Distributed Tracing)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    networks:
+      - national-security-net
 
 # Note: In production, these volumes should be backed by encrypted storage (e.g., AWS EBS with KMS)
 volumes:
@@ -173,6 +270,8 @@ volumes:
   redis_data:
   minio_data:
   nats_data:
+  prometheus_data:
+  grafana_data:
 
 
 networks:

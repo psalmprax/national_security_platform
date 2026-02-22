@@ -56,6 +56,14 @@ ON CONFLICT (id) DO UPDATE SET
     severity_score = EXCLUDED.severity_score;
 
 -- 5. Scenario: Infrastructure (Strategic View)
+-- Infrastructure integrity data points
+CREATE TABLE IF NOT EXISTS mock_data_points (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    timestamp TIMESTAMP DEFAULT current_timestamp(),
+    value FLOAT,
+    location GEOMETRY(POINT, 4326)
+);
+
 -- Truncated for storage optimization
 INSERT INTO mock_data_points (id, timestamp, value, location) VALUES
   (gen_random_uuid(), NOW() - INTERVAL '1 hour', 42.5, ST_GeomFromText('POINT(7.4951 9.0579)', 4326)),

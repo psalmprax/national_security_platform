@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, FileText, TrendingUp } from 'lucide-react';
 import { Alert } from '../../../lib/api';
+import SystemHealth from './SystemHealth';
 
 interface StrategicOverviewProps {
     alerts: Alert[];
@@ -148,20 +149,7 @@ export default function StrategicOverview({
                     </div>
                 </div>
 
-                <div className="bg-blue-900 p-6 rounded-xl text-white shadow-lg">
-                    <h3 className="font-bold mb-2">System Status</h3>
-                    <p className="text-blue-200 text-sm mb-4">All systems operational. Network grid stability is optimal.</p>
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="opacity-70">Latency</span>
-                            <span className="font-mono font-bold">18ms</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="opacity-70">Uptime</span>
-                            <span className="font-mono font-bold">99.99%</span>
-                        </div>
-                    </div>
-                </div>
+                <SystemHealth />
             </div>
         </div>
     );

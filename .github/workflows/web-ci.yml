@@ -1,0 +1,77 @@
+name: Web Dashboard CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "web/**"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "web/**"
+
+defaults:
+  run:
+    working-directory: ./web
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+
+    - name: Install Dependencies
+      run: npm install --legacy-peer-deps
+
+    - name: Lint
+      run: npm run lint
+
+    - name: Unit Tests
+      run: npm run test:ci
+
+    - name: Build
+      run: npm run build
+      env:
+        # We allow building without these secrets present for CI checks, 
+        # but the app might need them at runtime. Next.js build might require 
+        # them if they are used in getStaticProps/getServerSideProps.
+        # Providing dummy values if variables are strictly required during build time.
+        NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.mock_token_for_ci_build' }}
+        NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8080' }}
+        JWT_SECRET: "ci-secret"
+
+  e2e-tests:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+
+    - name: Run Playwright tests
+      run: npm run test:e2e
+      env:
+        NEXT_PUBLIC_MAPBOX_TOKEN: 'pk.mock_token_for_ci_build'
+        NEXT_PUBLIC_API_URL: 'http://localhost:8080'

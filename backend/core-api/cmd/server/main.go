@@ -18,6 +18,7 @@ import (
 	"national_security_platform/backend/core-api/handlers"
 	"national_security_platform/backend/core-api/internal/agency"
 	"national_security_platform/backend/core-api/internal/audit"
+	"national_security_platform/backend/core-api/internal/config"
 	"national_security_platform/backend/core-api/internal/db"
 	igrpc "national_security_platform/backend/core-api/internal/grpc"
 	"national_security_platform/backend/core-api/internal/middleware"
@@ -27,10 +28,13 @@ import (
 	"national_security_platform/backend/core-api/internal/service"
 	"national_security_platform/backend/core-api/internal/sse"
 	"national_security_platform/backend/core-api/internal/storage"
+	"national_security_platform/backend/core-api/internal/telemetry"
 	proto "national_security_platform/backend/core-api/pkg"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/riandyrn/otelchi"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 )
@@ -85,6 +89,38 @@ type VerifyNINRequest struct {
 }
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Initialize Telemetry
+	shutdown, err := telemetry.InitTracer(ctx)
+	if err != nil {
+		log.Printf("⚠️  Telemetry initialization failed: %v", err)
+	} else {
+		defer shutdown(ctx)
+	}
+
+	// Initialize Vault and load secrets
+	if err := config.InitVault(); err != nil {
+		log.Printf("⚠️  Vault initialization failed: %v", err)
+	}
+
+	// Inject Vault secrets into Env for compatibility
+	if val := config.GetSecret("JWT_SECRET"); val != "" {
+		os.Setenv("JWT_SECRET", val)
+	}
+	if val := config.GetSecret("AT_API_KEY"); val != "" {
+		os.Setenv("AT_API_KEY", val)
+	}
+	if val := config.GetSecret("AT_USERNAME"); val != "" {
+		os.Setenv("AT_USERNAME", val)
+	}
+	// Reconstruct DATABASE_URL if password is provided
+	if pwd := config.GetSecret("DB_PASSWORD"); pwd != "" {
+		dbURL := fmt.Sprintf("postgresql://root:%s@cockroachdb:26257/defaultdb?sslmode=disable", pwd)
+		os.Setenv("DATABASE_URL", dbURL)
+	}
+
 	// Initialize database
 	if err := db.InitDB(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -176,16 +212,79 @@ func main() {
 
 	// Setup Router
 	r := chi.NewRouter()
+
+	// OpenTelemetry Middleware
+	r.Use(otelchi.Middleware("core-api", otelchi.WithChiRoutes(r)))
+
 	middleware.SecurityStack(r)
 
 	// --- PUBLIC ROUTES ---
+	r.Handle("/metrics", promhttp.Handler())
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("National Security Platform - Core API (Golang) is Running!"))
 	})
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		status := "OPERATIONAL"
+		dependencies := make(map[string]string)
+
+		// 1. Check CockroachDB
+		if err := db.Pool.Ping(r.Context()); err != nil {
+			dependencies["database"] = "OFFLINE"
+			status = "DEGRADED"
+		} else {
+			dependencies["database"] = "OPERATIONAL"
+		}
+
+		// 2. Check Redis
+		if db.RedisClient != nil {
+			if err := db.RedisClient.Ping(r.Context()).Err(); err != nil {
+				dependencies["redis"] = "OFFLINE"
+				if status == "OPERATIONAL" {
+					status = "DEGRADED"
+				}
+			} else {
+				dependencies["redis"] = "OPERATIONAL"
+			}
+		} else {
+			dependencies["redis"] = "DISABLED"
+		}
+
+		// 3. Check NATS
+		if mq.NC != nil && mq.NC.IsConnected() {
+			dependencies["nats"] = "OPERATIONAL"
+		} else {
+			dependencies["nats"] = "OFFLINE"
+			status = "DEGRADED"
+		}
+
+		// 4. Check Intelligence Service (gRPC)
+		// Since we don't have a simple Ping in IntelligenceClient yet, we'll check if connection is non-nil
+		// In a real scenario, we'd use gRPC health checking
+		if intelClient != nil {
+			dependencies["intelligence_service"] = "CONNECTED"
+		} else {
+			dependencies["intelligence_service"] = "DISCONNECTED"
+			if status == "OPERATIONAL" {
+				status = "DEGRADED"
+			}
+		}
+
+		resp := map[string]interface{}{
+			"status":       status,
+			"dependencies": dependencies,
+			"timestamp":    time.Now().Format(time.RFC3339),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if status == "OPERATIONAL" {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			// Still return 200 so the platform doesn't crash, but status indicates degradation
+			w.WriteHeader(http.StatusOK)
+		}
+		json.NewEncoder(w).Encode(resp)
 	})
 
 	r.Post("/api/v1/auth/login", handleLogin)
@@ -361,11 +460,11 @@ func main() {
 	<-quit
 
 	log.Println("Shutting down servers...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
 
 	grpcServer.GracefulStop()
-	if err := server.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
 

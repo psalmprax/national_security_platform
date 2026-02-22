@@ -1,0 +1,40 @@
+name: Python Intelligence Service CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/intelligence-service/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/intelligence-service/**'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          export PATH="$HOME/.local/bin:$PATH"
+
+      - name: Install dependencies
+        run: poetry install
+        working-directory: backend/intelligence-service
+
+      - name: Run Tests
+        run: poetry run python -m unittest discover
+        working-directory: backend/intelligence-service
+        env:
+          DATABASE_URL: postgresql://root@localhost:26257/defaultdb?sslmode=disable
+          NATS_URL: nats://localhost:4222
+          JWT_SECRET: ci_test_secret

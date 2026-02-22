@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Target, Activity, Plus, Minus, Move, Shield, Briefcase, Globe } from 'lucide-react';
-import { Alert, TriangulatedAsset, Asset, API_BASE_URL } from '../lib/api';
+import { Alert, TriangulatedAsset, Asset, API_BASE_URL, apiFetch } from '../lib/api';
 
 const isValidCoordinate = (lng: number, lat: number) => {
     return !isNaN(lng) && !isNaN(lat) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
@@ -45,6 +45,7 @@ export default function MapboxMap({
     const [showResources, setShowResources] = useState((resources || []).length > 0);
     const [isSwitching, setIsSwitching] = useState(false);
     const [tokenError, setTokenError] = useState(false);
+    const [isStyleLoaded, setIsStyleLoaded] = useState(false);
     const hasAttemptedInit = useRef(false);
     const isCyber = mode === 'cyber';
 
@@ -76,13 +77,16 @@ export default function MapboxMap({
                 mapRef.current = map;
                 setIsMapSupported(true);
                 setTokenError(false);
+                setIsStyleLoaded(true);
 
                 // Add Terrain support
-                map.addSource('mapbox-dem', {
-                    'type': 'raster-dem',
-                    'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-                    'tileSize': 512
-                });
+                if (!map.getSource('mapbox-dem')) {
+                    map.addSource('mapbox-dem', {
+                        'type': 'raster-dem',
+                        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                        'tileSize': 512
+                    });
+                }
                 if (showSatellite) {
                     map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
                 }
@@ -129,10 +133,12 @@ export default function MapboxMap({
             const currentStyle = mapRef.current.getStyle();
             if (currentStyle && currentStyle.sprite !== newStyle) {
                 setIsSwitching(true);
+                setIsStyleLoaded(false);
                 mapRef.current.setStyle(newStyle);
 
                 // Re-add terrain after style load if in satellite mode
                 mapRef.current.once('style.load', () => {
+                    setIsStyleLoaded(true);
                     if (showSatellite && mapRef.current) {
                         if (!mapRef.current.getSource('mapbox-dem')) {
                             mapRef.current.addSource('mapbox-dem', {
@@ -281,11 +287,9 @@ export default function MapboxMap({
 
         const fetchResources = async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/v1/assets`, {
-                    headers: {},
-                });
-                if (!res.ok) return;
-                const fetchedResources = await res.json();
+                const response = await apiFetch(`/api/v1/assets`);
+                if (!response.ok) return;
+                const fetchedResources = await response.json();
 
                 fetchedResources.forEach((res: any) => {
                     const el = document.createElement('div');
@@ -327,7 +331,7 @@ export default function MapboxMap({
 
     // Handle Triangulated Assets (ETA Lines)
     useEffect(() => {
-        if (!isMapSupported || !mapRef.current) return;
+        if (!isStyleLoaded || !mapRef.current) return;
 
         // Cleanup previous layers/markers
         triangulationLayersRef.current.forEach(id => {
@@ -401,7 +405,7 @@ export default function MapboxMap({
             triangulationLayersRef.current.push(lineId);
         });
 
-    }, [triangulatedAssets, selectedAlert, isMapSupported]);
+    }, [triangulatedAssets, selectedAlert, isStyleLoaded]);
 
     // Handle Selection Fly-To
     useEffect(() => {

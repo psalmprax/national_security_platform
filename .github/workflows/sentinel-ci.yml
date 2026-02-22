@@ -1,0 +1,35 @@
+name: Security Sentinel CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/security-sentinel/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/security-sentinel/**'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/security-sentinel/requirements.txt
+          pip install pytest httpx  # For testing FastAPI
+
+      - name: Run Tests
+        run: pytest backend/security-sentinel/test_sentinel.py
+        env:
+          DATABASE_URL: postgresql://root@localhost:26257/defaultdb?sslmode=disable
+          CORE_API_URL: http://localhost:8080
