@@ -13,9 +13,7 @@ services:
       - INTELLIGENCE_SERVICE_URL=intelligence-service:50051
       - JWT_SECRET=${JWT_SECRET}
       - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY}
-      - TLS_CERT_FILE=/etc/nginx/certs/server.crt
-      - TLS_KEY_FILE=/etc/nginx/certs/server.key
-      - ALLOWED_ORIGINS=http://localhost:8085,http://localhost:3000
+      - ALLOWED_ORIGINS=http://localhost:8085,http://localhost:3000,http://130.61.26.105:8086,http://130.61.26.105:3000,http://130.61.26.105:3001
       # Vault Integration (AppRole)
       - VAULT_ADDR=http://vault:8200
       - VAULT_ROLE_ID=16296aec-baed-fee5-e859-21daf3afc67e
