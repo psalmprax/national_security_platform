@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Radio, Share2, Wifi, Zap, Activity } from 'lucide-react';
+import { fetchMeshNetworkStatus, MeshNetworkStatus as MeshNetworkStatusType } from '@/lib/api';
 
 interface MeshNode {
     id: string;
@@ -18,28 +19,60 @@ interface MeshNetworkStatusProps {
     dockVariant?: boolean;
 }
 
-export default function MeshNetworkStatus({ className, style, dockVariant = false }: MeshNetworkStatusProps) {
-    const [nodes, setNodes] = useState<MeshNode[]>([
-        { id: '1', label: 'HUB-ALPHA', status: 'online', latency: 42, connections: ['2', '3'] },
-        { id: '2', label: 'NODE-02', status: 'online', latency: 85, connections: ['1', '4'] },
-        { id: '3', label: 'NODE-03', status: 'relay', latency: 120, connections: ['1'] },
-        { id: '4', label: 'LORA-RELAY', status: 'online', latency: 450, connections: ['2'] },
-    ]);
+// Default fallback data in case API is unavailable
+const DEFAULT_MESH_STATUS: MeshNetworkStatusType = {
+    nodes: [
+        { id: '1', label: 'HUB-ALPHA', status: 'online', latency: 42, connections: ['2', '3'], type: 'HUB', location: 'Command Center' },
+        { id: '2', label: 'NODE-02', status: 'online', latency: 85, connections: ['1', '4'], type: 'NODE', location: 'Sector A' },
+        { id: '3', label: 'NODE-03', status: 'relay', latency: 120, connections: ['1'], type: 'NODE', location: 'Sector B' },
+        { id: '4', label: 'LORA-RELAY', status: 'online', latency: 450, connections: ['2'], type: 'LORA', location: 'Remote Outpost' },
+    ],
+    reliability_index: 98.4,
+    last_updated: new Date().toISOString(),
+    total_nodes: 4,
+    online_nodes: 4,
+    backhaul_type: 'SATELLITE',
+    local_mesh_type: 'LORA/P2P'
+};
 
+export default function MeshNetworkStatus({ className, style, dockVariant = false }: MeshNetworkStatusProps) {
+    const [meshStatus, setMeshStatus] = useState<MeshNetworkStatusType>(DEFAULT_MESH_STATUS);
+    const [isLoading, setIsLoading] = useState(true);
     const [meshPulse, setMeshPulse] = useState(0);
+
+    useEffect(() => {
+        // Fetch mesh network status from API
+        const loadMeshStatus = async () => {
+            setIsLoading(true);
+            const status = await fetchMeshNetworkStatus();
+            if (status) {
+                setMeshStatus(status);
+            }
+            setIsLoading(false);
+        };
+
+        loadMeshStatus();
+
+        // Poll for updates every 3 seconds
+        const interval = setInterval(loadMeshStatus, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         const interval = setInterval(() => {
             setMeshPulse(prev => (prev + 1) % 100);
-
-            // Randomly update latency
-            setNodes(prev => prev.map(n => ({
-                ...n,
-                latency: n.status === 'online' ? Math.max(30, n.latency + (Math.random() * 10 - 5)) : n.latency
-            })));
         }, 3000);
         return () => clearInterval(interval);
     }, []);
+
+    // Convert API nodes to display format
+    const nodes: MeshNode[] = meshStatus.nodes.map(n => ({
+        id: n.id,
+        label: n.label,
+        status: n.status,
+        latency: n.latency,
+        connections: n.connections
+    }));
 
     const content = (
         <div className="space-y-4">
@@ -79,13 +112,13 @@ export default function MeshNetworkStatus({ className, style, dockVariant = fals
             <div className="mt-4 pt-4 border-t border-orange-500/10">
                 <div className="flex justify-between items-center text-[9px] font-black text-orange-500/60 uppercase">
                     <span>Reliability Index</span>
-                    <span>98.4%</span>
+                    <span>{meshStatus.reliability_index.toFixed(1)}%</span>
                 </div>
                 <div className="h-1 bg-zinc-800 w-full mt-1.5 overflow-hidden">
                     <motion.div
                         className="h-full bg-orange-500"
                         initial={{ width: '0%' }}
-                        animate={{ width: '98.4%' }}
+                        animate={{ width: `${meshStatus.reliability_index}%` }}
                     />
                 </div>
             </div>

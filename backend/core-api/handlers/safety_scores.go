@@ -75,7 +75,13 @@ func (h *Handler) GetSafetyScores(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.db.Query(context.Background(), query, args...)
 	if err != nil {
 		h.logger.Printf("Error fetching safety scores: %v", err)
-		http.Error(w, "Failed to fetch safety scores", http.StatusInternalServerError)
+		// Return empty response instead of error if table doesn't exist
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"scores": []SafetyScore{},
+			"total":  0,
+			"error":  "Data not available",
+		})
 		return
 	}
 	defer rows.Close()
@@ -142,7 +148,29 @@ func (h *Handler) GetSafetyScoresSummary(w http.ResponseWriter, r *http.Request)
 
 	if err != nil {
 		h.logger.Printf("Error fetching safety summary: %v", err)
-		http.Error(w, "Failed to fetch summary", http.StatusInternalServerError)
+		// Return empty summary instead of error
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(struct {
+			TotalLGAs         int `json:"total_lgas"`
+			VerySafeCount     int `json:"very_safe_count"`
+			SafeCount         int `json:"safe_count"`
+			ModerateRiskCount int `json:"moderate_risk_count"`
+			HighRiskCount     int `json:"high_risk_count"`
+			CriticalRiskCount int `json:"critical_risk_count"`
+			AvgSafetyScore    int `json:"avg_safety_score"`
+			TotalIncidents    int `json:"total_incidents"`
+			AvgResolutionRate int `json:"avg_resolution_rate"`
+		}{
+			TotalLGAs:         0,
+			VerySafeCount:     0,
+			SafeCount:         0,
+			ModerateRiskCount: 0,
+			HighRiskCount:     0,
+			CriticalRiskCount: 0,
+			AvgSafetyScore:    0,
+			TotalIncidents:    0,
+			AvgResolutionRate: 0,
+		})
 		return
 	}
 

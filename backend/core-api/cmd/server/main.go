@@ -208,6 +208,7 @@ func main() {
 		smsService = service.NewMockSMSService()
 	}
 	alertService := service.NewAlertService(smsService)
+	meshNetworkHandler := handlers.NewMeshNetworkHandler()
 	h := handlers.NewHandler(db.Pool, log.Default(), storageProvider)
 
 	// Setup Router
@@ -310,6 +311,8 @@ func main() {
 		r.Get("/api/v1/auth/me", handleMe)
 		r.Get("/api/v1/alerts", handleGetAlerts)
 		r.Get("/api/v1/alerts/{alertID}/related", h.GetRelatedAlerts)
+		// Mesh network status - available to authenticated users
+		r.Get("/api/v1/system/mesh-network", meshNetworkHandler.GetMeshNetworkStatus)
 		r.Post("/api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
 			handleSubmitAlert(w, r, alertService, intelClient)
 		})
@@ -359,6 +362,7 @@ func main() {
 
 		r.Get("/api/v1/system/status", handleSystemStatus)
 		r.Get("/api/v1/system/nodes", handleSystemNodes)
+		r.Get("/api/v1/system/mesh-network", meshNetworkHandler.GetMeshNetworkStatus)
 		r.Get("/api/v1/system/security-scans", handleGetSecurityScans)
 		r.Get("/api/v1/system/telemetry/satcom", handlers.HandleSatcomTelemetry)
 	})

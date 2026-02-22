@@ -200,6 +200,46 @@ export async function fetchSystemStatus(): Promise<SystemStatus | null> {
     }
 }
 
+export interface MeshNode {
+    id: string;
+    label: string;
+    status: 'online' | 'offline' | 'relay';
+    latency: number;
+    connections: string[];
+    type: string;
+    location: string;
+}
+
+export interface MeshNetworkStatus {
+    nodes: MeshNode[];
+    reliability_index: number;
+    last_updated: string;
+    total_nodes: number;
+    online_nodes: number;
+    backhaul_type: string;
+    local_mesh_type: string;
+}
+
+export async function fetchMeshNetworkStatus(): Promise<MeshNetworkStatus | null> {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/system/mesh-network`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        return (await response.json()) || null;
+    } catch (error) {
+        console.error('Failed to fetch mesh network status:', error);
+        return null;
+    }
+}
+
 export interface State {
     id: string;
     name: string;
