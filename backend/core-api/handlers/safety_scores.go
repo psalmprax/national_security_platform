@@ -41,7 +41,7 @@ func (h *Handler) GetSafetyScores(w http.ResponseWriter, r *http.Request) {
 			lga_code, lga_name, state_code, state_name,
 			incident_count, avg_severity, recent_incidents, resolved_count,
 			safety_score, trend_pct, risk_level, resolution_rate_pct, calculated_at
-		FROM lga_safety_scores_cached
+		FROM lga_safety_scores
 		WHERE 1=1
 	`
 
@@ -124,7 +124,7 @@ func (h *Handler) GetSafetyScoresSummary(w http.ResponseWriter, r *http.Request)
 			AVG(safety_score)::INTEGER as avg_safety_score,
 			SUM(incident_count) as total_incidents,
 			AVG(resolution_rate_pct)::INTEGER as avg_resolution_rate
-		FROM lga_safety_scores_cached
+		FROM lga_safety_scores
 	`
 
 	var summary struct {
