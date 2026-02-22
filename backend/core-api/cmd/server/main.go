@@ -518,7 +518,7 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Unix(0, 0),
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   true, // Should match the login cookie secure attribute (dynamic based on env ideally, but true is safer)
+		Secure:   false, // Set to false for HTTP debugging on port 8086
 		SameSite: http.SameSiteLaxMode,
 	})
 
@@ -566,7 +566,7 @@ func handleDashboardLogin(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,
-		Secure:   true, // Enforced by internal TLS and production usage
+		Secure:   false, // Set to false for HTTP debugging on port 8086
 		SameSite: http.SameSiteLaxMode,
 	})
 
