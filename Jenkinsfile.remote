@@ -58,12 +58,12 @@ pipeline {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: 'OCI_SSH_KEY', keyFileVariable: 'SSH_KEY_PATH')]) {
                     script {
-                        echo "Seeding database with test data..."
+                        echo "Seeding CockroachDB with platform data..."
                         sh """
                             ssh -i ${SSH_KEY_PATH} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
                                 cd ${DEPLOY_DIR}
-                                # Execute the test pipeline script inside the API container
-                                docker-compose exec -T api python scripts/test_pipeline.py
+                                chmod +x seed_database.sh
+                                ./seed_database.sh
                             '
                         """
                     }
@@ -76,8 +76,8 @@ pipeline {
                 withCredentials([sshUserPrivateKey(credentialsId: 'OCI_SSH_KEY', keyFileVariable: 'SSH_KEY_PATH')]) {
                     script {
                         echo "Verifying service health..."
-                        // Check if Nginx is responding on port 3000
-                        sh "ssh -i ${SSH_KEY_PATH} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} 'curl -sf http://localhost:3000/api/health || (echo \"Health check failed\" && exit 1)'"
+                        // Check if Gateway is responding on port 8085
+                        sh "ssh -i ${SSH_KEY_PATH} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} 'curl -sk https://localhost:8443/health || (echo \"Health check failed\" && exit 1)'"
                     }
                 }
             }
@@ -89,7 +89,7 @@ pipeline {
             echo "CI/CD Pipeline finished execution."
         }
         success {
-            echo "✅ Deployment Successful: Viral Forge is live and seeded."
+            echo "✅ Deployment Successful: National Security Platform is live."
         }
         failure {
             echo "❌ Deployment Failed: Please check the logs."
