@@ -131,6 +131,15 @@ A specialized Jenkins pipeline (`Jenkinsfile.remote`) has been deployed for Vira
 - **Atomic Database Seeding**: Automated execution of `scripts/test_pipeline.py` during deployment to ensure 100% data readiness.
 - **Service Orchestration**: Fully automated `docker-compose` build and lifecycle management.
 
+### Jenkins Pipeline Setup (Critical)
+To resolve the "Identity file not accessible" error, the pipeline now uses Jenkins **Credentials**:
+1. Go to **Manage Jenkins** > **Credentials**.
+2. Click **(global)** > **Add Credentials**.
+3. **Kind**: SSH Username with private key.
+4. **ID**: `OCI_SSH_KEY` (MUST match the ID in the Jenkinsfile).
+5. **Username**: `ubuntu`
+6. **Private Key**: Paste the content of your `.pem` file.
+
 ---
 **National Security Platform & Viral Forge // Infrastructure Harmonization Complete**
 **Scalable. Harmonized. Automated.**

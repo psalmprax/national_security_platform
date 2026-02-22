@@ -5,7 +5,7 @@ pipeline {
         REMOTE_USER = 'ubuntu'
         REMOTE_HOST = '130.61.26.105'
         // Using credentialsId 'OCI_SSH_KEY' instead of a local host path
-        DEPLOY_DIR = '/home/ubuntu/viral_forge'
+        DEPLOY_DIR = '/home/ubuntu/national_security_platform'
         // Host ports are unique
     }
 
