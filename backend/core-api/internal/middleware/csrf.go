@@ -23,7 +23,9 @@ func CSRFMiddleware(next http.Handler) http.Handler {
 		path := r.URL.Path
 		if path == "/api/v1/tips/submit" ||
 			(len(path) >= 13 && path[:13] == "/api/v1/auth/") ||
-			path == "/api/v1/events/stream" {
+			path == "/api/v1/events/stream" ||
+			path == "/api/v1/logs" ||
+			path == "/api/v1/logs/batch" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -58,7 +60,7 @@ func setCSRFCookie(w http.ResponseWriter) {
 		Value:    token,
 		Path:     "/",
 		HttpOnly: false, // Must be readable by frontend JS
-		Secure:   true,  // HTTPS is enforced
+		Secure:   false, // Set to false for HTTP debugging on port 8086
 		SameSite: http.SameSiteLaxMode,
 	})
 }
