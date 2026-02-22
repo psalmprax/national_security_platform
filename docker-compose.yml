@@ -140,11 +140,13 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_MAPBOX_TOKEN=${NEXT_PUBLIC_MAPBOX_TOKEN:-pk.eyJ1IjoicHNhbG1wcmF4IiwiYSI6ImNta3lsdnNtajA4M2ozZXM2Mnd0cWF0OHMifQ.mI66qXgyqyh6kRVSoJYLhQ}
-        - NEXT_PUBLIC_API_URL=
+        - NEXT_PUBLIC_API_URL=http://130.61.26.105:8086/api/v1
+        - NEXT_PUBLIC_BASE_URL=http://130.61.26.105:8086
     # Ports removed: Now accessible via gateway
     environment:
       - NEXT_PUBLIC_MAPBOX_TOKEN=${NEXT_PUBLIC_MAPBOX_TOKEN:-pk.eyJ1IjoicHNhbG1wcmF4IiwiYSI6ImNta3lsdnNtajA4M2ozZXM2Mnd0cWF0OHMifQ.mI66qXgyqyh6kRVSoJYLhQ}
-      - NEXT_PUBLIC_API_URL=
+      - NEXT_PUBLIC_API_URL=http://130.61.26.105:8086/api/v1
+      - NEXT_PUBLIC_BASE_URL=http://130.61.26.105:8086
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - core-api
