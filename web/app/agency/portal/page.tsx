@@ -663,20 +663,38 @@ export default function AgencyPortalPage() {
 
                 {/* View: MAP */}
                 {viewMode === 'map' && (
-                    <div className="glass-card-premium overflow-hidden h-full min-h-[500px] border-[#00D1FF]/20 relative">
-                        {/* Map Decorative Corner */}
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#00D1FF]/10 to-transparent pointer-events-none z-10" />
-                        <div className="absolute top-4 right-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10">
-                            <MapIcon className="w-3.5 h-3.5 text-[#00D1FF]" />
-                            <span className="text-[9px] font-black text-white uppercase tracking-widest">Tactical_Spatial_Overlay</span>
+                    <div className="glass-card-premium p-6 border-[#00D1FF]/20 relative overflow-hidden min-h-[500px]">
+                        {/* Left Color Bar */}
+                        <div className="absolute top-0 left-0 w-1 h-full bg-[#00D1FF]/20" />
+
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-[#00D1FF]/10 flex items-center justify-center border border-[#00D1FF]/20">
+                                    <MapIcon className="w-4 h-4 text-[#00D1FF]" />
+                                </div>
+                                <div>
+                                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Tactical_Spatial_Overlay</h2>
+                                    <p className="text-[7px] text-[#00D1FF]/60 uppercase font-black tracking-widest">Geographic Asset Visualization</p>
+                                </div>
+                            </div>
+                            <span className="bg-[#00D1FF]/10 text-[#00D1FF] text-[8px] font-black px-3 py-1 rounded-md border border-[#00D1FF]/20 tracking-widest uppercase">
+                                {assets.length} UNITS_MAPPED
+                            </span>
                         </div>
 
-                        <MapboxMap
-                            alerts={[]}
-                            resources={assets}
-                            mode="tactical"
-                            primaryColor="#00D1FF"
-                        />
+                        {/* Map Container */}
+                        <div className="glass-card-premium overflow-hidden h-[400px] border-[#00D1FF]/10 relative">
+                            {/* Map Decorative Corner */}
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#00D1FF]/10 to-transparent pointer-events-none z-10" />
+
+                            <MapboxMap
+                                alerts={[]}
+                                resources={assets}
+                                mode="tactical"
+                                primaryColor="#00D1FF"
+                            />
+                        </div>
                     </div>
                 )}
             </main>
