@@ -663,7 +663,7 @@ export default function AgencyPortalPage() {
 
                 {/* View: MAP */}
                 {viewMode === 'map' && (
-                    <div className="glass-card-premium p-6 border-[#00D1FF]/20 relative overflow-hidden min-h-[500px]">
+                    <div className="glass-card-premium p-6 border-[#00D1FF]/20 relative overflow-hidden h-full flex flex-col">
                         {/* Left Color Bar */}
                         <div className="absolute top-0 left-0 w-1 h-full bg-[#00D1FF]/20" />
 
@@ -684,7 +684,7 @@ export default function AgencyPortalPage() {
                         </div>
 
                         {/* Map Container */}
-                        <div className="glass-card-premium overflow-hidden h-[400px] border-[#00D1FF]/10 relative">
+                        <div className="glass-card-premium overflow-hidden flex-1 border-[#00D1FF]/10 relative">
                             {/* Map Decorative Corner */}
                             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#00D1FF]/10 to-transparent pointer-events-none z-10" />
 
