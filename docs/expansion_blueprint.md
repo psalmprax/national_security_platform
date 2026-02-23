@@ -111,6 +111,127 @@ Based on the **Architecture Design Document (Sections 5-11)**, the following tab
 
 ---
 
+## 8. Phase 3: Mobile Monetization & B2B Expansion
+
+*Implementation Timeline: Weeks 9-12*
+
+This section outlines the Phase 3 monetization strategy for the mobile app and B2B API services. Phases 1 & 2 have been implemented with geo-location intelligence and subscription tier support.
+
+### 8.1 Completed in Phases 1 & 2
+
+| Feature | Status | Implementation |
+|---------|--------|----------------|
+| Geo-location tracking service | ✅ DONE | [`mobile/lib/services/location_service.dart`](mobile/lib/services/location_service.dart) |
+| Subscription tier management | ✅ DONE | [`mobile/lib/services/subscription_service.dart`](mobile/lib/services/subscription_service.dart) |
+| Risk calculation endpoints | ✅ DONE | [`backend/core-api/handlers/risks.go`](backend/core-api/handlers/risks.go) |
+| Ad support for free tier | ✅ DONE | [`mobile/lib/services/ads_service.dart`](mobile/lib/services/ads_service.dart) |
+
+### 8.2 Phase 3: Full Subscription Implementation (ROADMAP)
+
+**Objective**: Complete the end-to-end monetization pipeline with in-app purchases and subscription management.
+
+#### Required Features:
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| IAP Integration | Flutter IAP (In-App Purchase) wrapper for Apple App Store & Google Play | P0 |
+| Subscription Restore | Allow users to restore purchases on new devices | P0 |
+| Paywall UI | Beautiful paywall screens for upgrade prompts | P0 |
+| Premium Features Lock | Gate advanced features based on subscription tier | P0 |
+| Billing Portal | User-facing subscription management (cancel, upgrade, downgrade) | P1 |
+| Usage Analytics | Track feature usage to optimize tier offerings | P1 |
+| Promo Codes | Support for promotional/discount codes | P2 |
+| Family Sharing | Allow Guardian tier users to add family members | P2 |
+
+#### Technical Implementation:
+
+```dart
+// Required pubspec.yaml additions
+dependencies:
+  flutter_iap: ^3.0.0      # In-app purchases
+  purchases_flutter: ^5.0.0  # RevenueCat alternative
+  in_app_purchase: ^3.1.0   # Official Flutter plugin
+```
+
+#### Backend Requirements:
+
+- [ ] Subscription status sync endpoint (`GET /api/v1/subscriptions/status`)
+- [ ] Webhook handler for purchase notifications
+- [ ] Subscription expiration tracking
+- [ ] Usage-based feature flags
+
+### 8.3 Phase 3: B2B API Endpoints (ROADMAP)
+
+**Objective**: Enable enterprise customers to integrate with the platform via APIs.
+
+#### Required Features:
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| RESTful API for Alerts | CRUD operations on alerts for enterprise users | P0 |
+| Webhook Subscriptions | Real-time alert delivery to external systems | P0 |
+| API Key Management | Enterprise API key generation and rotation | P0 |
+| Rate Limiting | Tiered rate limits based on subscription | P1 |
+| Bulk Export | Export historical alerts (CSV/JSON) | P1 |
+| SSO Integration | SAML/OAuth for enterprise auth | P1 |
+| Usage Dashboard | API usage metrics and billing | P2 |
+
+#### API Endpoints to Implement:
+
+```
+# Enterprise Alert API
+GET    /api/v1/enterprise/alerts        # List alerts with filters
+POST   /api/v1/enterprise/alerts        # Create alert
+GET    /api/v1/enterprise/alerts/{id}  # Get alert details
+PUT    /api/v1/enterprise/alerts/{id}  # Update alert
+DELETE /api/v1/enterprise/alerts/{id}  # Delete alert
+
+# Webhook Management
+GET    /api/v1/enterprise/webhooks
+POST   /api/v1/enterprise/webhooks
+DELETE /api/v1/enterprise/webhooks/{id}
+
+# API Keys
+GET    /api/v1/enterprise/api-keys
+POST   /api/v1/enterprise/api-keys
+DELETE /api/v1/enterprise/api-keys/{id}
+
+# Analytics
+GET    /api/v1/enterprise/analytics/summary
+GET    /api/v1/enterprise/analytics/alerts
+```
+
+### 8.4 Phase 3: Analytics Dashboard (ROADMAP)
+
+**Objective**: Provide administrators with insights into platform usage and revenue.
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| Revenue Dashboard | MRR, ARR, churn metrics | P0 |
+| User Analytics | DAU/MAU, feature adoption | P1 |
+| Alert Metrics | Alert volume, response times | P1 |
+| Geographic Insights | Usage by region/LGA | P2 |
+
+### 8.5 Phase 3 Dependencies & Prerequisites
+
+- [ ] App Store & Play Store developer accounts
+- [ ] Payment processor setup (Stripe/PayPal)
+- [ ] Legal review of subscription terms
+- [ ] Tax compliance (VAT/GST for digital goods)
+- [ ] Privacy policy updates for location tracking
+- [ ] B2B sales team or partnership program
+
+### 8.6 Estimated Timeline
+
+| Task | Duration | Dependencies |
+|------|----------|--------------|
+| IAP Integration | 2 weeks | App Store approval |
+| Backend subscription APIs | 2 weeks | None |
+| B2B API development | 3 weeks | API design review |
+| Analytics dashboard | 2 weeks | Data pipeline |
+| Testing & QA | 1 week | All features |
+| **Total** | **10 weeks** | |
+
 ## 7. Advanced Features Roadmap (V2.0+)
 
 The following features require significant R&D, partnerships, or infrastructure investment and are planned for future phases.

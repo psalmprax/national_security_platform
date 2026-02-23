@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/panic_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/consent_screen.dart';
 import 'services/persistence_service.dart';
 import 'services/api_service.dart';
 import 'services/sync_service.dart';
@@ -80,5 +81,76 @@ class CommunityAlertApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Wrapper that shows consent screen if needed
+class ConsentWrapper extends StatefulWidget {
+  final Widget child;
+  
+  const ConsentWrapper({super.key, required this.child});
+
+  @override
+  State<ConsentWrapper> createState() => _ConsentWrapperState();
+}
+
+class _ConsentWrapperState extends State<ConsentWrapper> {
+  bool _showConsent = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConsent();
+  }
+
+  Future<void> _checkConsent() async {
+    final hasConsent = await hasGivenConsent();
+    setState(() {
+      _showConsent = !hasConsent;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_showConsent) {
+      return ConsentScreen(
+        onConsentGiven: () {
+          setState(() => _showConsent = false);
+        },
+        onDecline: () {
+          // User declined - show limited functionality message
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text('Limited Access'),
+              content: const Text(
+                'Without providing consent, some features may be limited. '
+                'You can change your preferences anytime in Settings.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState(() => _showConsent = false);
+                  },
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    return widget.child;
   }
 }

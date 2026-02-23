@@ -442,6 +442,60 @@ export async function verifyAlert(alertId: string): Promise<boolean> {
     }
 }
 
+export async function dispatchEmergencyResponse(alertId: string, priority: string = 'HIGH'): Promise<boolean> {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/alerts/${alertId}/dispatch`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
+            body: JSON.stringify({ priority }),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to dispatch emergency response:', error);
+        return false;
+    }
+}
+
+export async function triggerPanic(location?: { lat: number; lng: number }): Promise<boolean> {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/emergency/panic`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
+            body: JSON.stringify({ location: location || { lat: 0, lng: 0 }, timestamp: new Date().toISOString() }),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to trigger panic:', error);
+        return false;
+    }
+}
+
+export async function engageTacticalProtocols(alertIds: string[]): Promise<boolean> {
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/api/v1/tactical/protocols/engage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
+            body: JSON.stringify({ alert_ids: alertIds }),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to engage tactical protocols:', error);
+        return false;
+    }
+}
+
 export async function fetchAssets(): Promise<Asset[]> {
     try {
         const response = await apiFetch(`/api/v1/assets`);
@@ -913,5 +967,157 @@ export async function fetchServiceHealth(service: 'core' | 'intelligence' | 'sen
     } catch (error) {
         console.error(`Failed to fetch health for ${service}:`, error);
         return { status: 'OFFLINE', service };
+    }
+}
+
+// ============ Agency Management APIs ============
+
+export interface Agency {
+    id: string;
+    name: string;
+    acronym: string;
+    type: string;
+    jurisdiction_scope: string;
+    alert_types: string[];
+}
+
+export interface AgencyMember {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+}
+
+export async function fetchAgencies(): Promise<Agency[]> {
+    try {
+        const response = await apiFetch('/api/v1/agencies');
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch agencies:', error);
+        return [];
+    }
+}
+
+export async function fetchAgency(agencyId: string): Promise<Agency | null> {
+    try {
+        const response = await apiFetch(`/api/v1/agencies/${agencyId}`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch agency:', error);
+        return null;
+    }
+}
+
+export async function createAgency(agency: Partial<Agency>): Promise<Agency | null> {
+    try {
+        const response = await apiFetch('/api/v1/agencies', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
+            body: JSON.stringify(agency),
+        });
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to create agency:', error);
+        return null;
+    }
+}
+
+export async function updateAgency(agencyId: string, agency: Partial<Agency>): Promise<boolean> {
+    try {
+        const response = await apiFetch(`/api/v1/agencies/${agencyId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
+            body: JSON.stringify(agency),
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to update agency:', error);
+        return false;
+    }
+}
+
+export async function deleteAgency(agencyId: string): Promise<boolean> {
+    try {
+        const response = await apiFetch(`/api/v1/agencies/${agencyId}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-Token': getCsrfToken() },
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to delete agency:', error);
+        return false;
+    }
+}
+
+export async function fetchAgencyMembers(agencyId: string): Promise<AgencyMember[]> {
+    try {
+        const response = await apiFetch(`/api/v1/agencies/${agencyId}/members`);
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch agency members:', error);
+        return [];
+    }
+}
+
+export async function addAgencyMember(agencyId: string, userId: string, role: string): Promise<boolean> {
+    try {
+        const response = await apiFetch(`/api/v1/agencies/${agencyId}/members`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken()
+            },
+            body: JSON.stringify({ user_id: userId, role }),
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to add agency member:', error);
+        return false;
+    }
+}
+
+export async function removeAgencyMember(agencyId: string, userId: string): Promise<boolean> {
+    try {
+        const response = await apiFetch(`/api/v1/agencies/${agencyId}/members/${userId}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-Token': getCsrfToken() },
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Failed to remove agency member:', error);
+        return false;
+    }
+}
+
+export async function fetchAgencyAlerts(agencyId: string): Promise<any[]> {
+    try {
+        const response = await apiFetch(`/api/v1/agencies/${agencyId}/alerts`);
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch agency alerts:', error);
+        return [];
+    }
+}
+
+export async function fetchAgencyAssets(agencyId: string): Promise<any[]> {
+    try {
+        const response = await apiFetch(`/api/v1/agencies/${agencyId}/assets`);
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch agency assets:', error);
+        return [];
     }
 }

@@ -29,8 +29,6 @@ export default function TriageSidebar({
 
     const handleGenerateReport = async () => {
         setIsGenerating(true);
-        // Artificial delay for "premium" feel
-        await new Promise(resolve => setTimeout(resolve, 1500));
         try {
             const data = await fetchSectorReport();
             setReport(data);

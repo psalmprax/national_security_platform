@@ -281,9 +281,12 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
 
         // Feature 28: Autonomous Intelligence Zoom
         // Automatically switch to satellite for high-severity/critical alerts
+        // [DEACTIVATED] - Causes user frustration when map style shifts unexpectedly
+        /*
         if (alert.severity > 0.8) {
             setShowSatellite(true);
         }
+        */
     };
 
     // Auto-trigger triangulation when in Tactical mode and an alert is selected

@@ -346,7 +346,7 @@ export default function AgencyPortalPage() {
                         <div className="flex bg-white/5 dark:bg-black/40 rounded-xl p-1 gap-1">
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'list'
+                                className={`flex items-center justify-center gap-2 w-28 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'list'
                                     ? 'bg-[#00D1FF] text-black shadow-lg shadow-[#00D1FF]/20'
                                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                                     }`}
@@ -356,7 +356,7 @@ export default function AgencyPortalPage() {
                             </button>
                             <button
                                 onClick={() => setViewMode('map')}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'map'
+                                className={`flex items-center justify-center gap-2 w-28 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'map'
                                     ? 'bg-[#00D1FF] text-black shadow-lg shadow-[#00D1FF]/20'
                                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                                     }`}
@@ -373,7 +373,7 @@ export default function AgencyPortalPage() {
                         <div className="flex items-center gap-3 pr-2">
                             <button
                                 onClick={() => setShowAssetForm(!showAssetForm)}
-                                className={`px-6 py-2 rounded-lg flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all border ${showAssetForm
+                                className={`w-48 justify-center px-6 py-2 rounded-lg flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all border ${showAssetForm
                                     ? 'bg-[#00D1FF]/20 text-[#00D1FF] border-[#00D1FF]/50 shadow-[0_0_15px_rgba(0,209,255,0.3)]'
                                     : 'bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border-emerald-500/30'}`}
                             >
@@ -383,7 +383,7 @@ export default function AgencyPortalPage() {
 
                             <button
                                 onClick={togglePanicMode}
-                                className={`px-6 py-2 rounded-lg flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all border ${isPanicMode
+                                className={`w-40 justify-center px-6 py-2 rounded-lg flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] transition-all border ${isPanicMode
                                     ? 'bg-red-600 text-white border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.6)] animate-pulse'
                                     : 'bg-white/5 text-slate-400 hover:text-red-400 border-transparent hover:border-red-500/30 hover:bg-red-500/10'
                                     }`}

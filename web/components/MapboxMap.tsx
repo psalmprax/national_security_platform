@@ -423,7 +423,7 @@ export default function MapboxMap({
             essential: true,
             pitch: 60,
         });
-    }, [selectedAlert, isMapSupported]);
+    }, [selectedAlert, isMapSupported, isStyleLoaded]);
 
     const handleZoomIn = () => mapRef.current?.zoomIn();
     const handleZoomOut = () => mapRef.current?.zoomOut();

@@ -322,6 +322,9 @@ func main() {
 		handlers.RegisterSafetyScoreRoutes(r, h)
 		handlers.RegisterAdminTipRoutes(r, h)
 		handlers.RegisterSOSRoutes(r, h)
+		handlers.RegisterTacticalRoutes(r, h)
+		handlers.RegisterRiskRoutes(r, db.Pool)
+		handlers.RegisterAgencyRoutes(r, db.Pool)
 
 		// Agency & Asset Management (Agency/Tactical Roles)
 		r.Group(func(r chi.Router) {
