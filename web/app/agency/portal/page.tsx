@@ -505,7 +505,7 @@ export default function AgencyPortalPage() {
                 <div className="lg:col-span-4 space-y-6 h-full overflow-y-auto pr-2 scrollbar-cyber">
                     {/* Mission Control Section */}
                     {viewMode === 'list' && (
-                        <div className="glass-card-premium p-6 border-emerald-500/20 relative overflow-hidden">
+                        <div className="glass-card-premium p-6 border-emerald-500/20 relative overflow-hidden min-h-[200px]">
                             <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/20" />
 
                             <div className="flex items-center justify-between mb-6">
@@ -594,7 +594,7 @@ export default function AgencyPortalPage() {
 
                     {/* View: LIST */}
                     {viewMode === 'list' && (
-                        <div className="glass-card-premium p-6 border-[#00D1FF]/20 relative overflow-hidden">
+                        <div className="glass-card-premium p-6 border-[#00D1FF]/20 relative overflow-hidden min-h-[300px]">
                             <div className="absolute top-0 left-0 w-1 h-full bg-[#00D1FF]/20" />
 
                             <div className="flex items-center justify-between mb-8">
@@ -663,7 +663,7 @@ export default function AgencyPortalPage() {
 
                 {/* View: MAP */}
                 {viewMode === 'map' && (
-                    <div className="lg:col-span-4 glass-card-premium overflow-hidden h-full min-h-[600px] border-[#00D1FF]/20 relative">
+                    <div className="glass-card-premium overflow-hidden h-full min-h-[500px] border-[#00D1FF]/20 relative">
                         {/* Map Decorative Corner */}
                         <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#00D1FF]/10 to-transparent pointer-events-none z-10" />
                         <div className="absolute top-4 right-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10">
