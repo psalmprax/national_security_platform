@@ -37,6 +37,7 @@ export default function AgentSystemStatus() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expanded, setExpanded] = useState(true);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
         fetchAgentStatus();
@@ -103,13 +104,18 @@ export default function AgentSystemStatus() {
     return (
         <motion.div
             initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 overflow-hidden"
+            animate={{ opacity: 1, y: 0, x: position.x, y: position.y }}
+            drag
+            dragMomentum={false}
+            onDragEnd={(_: any, info: any) => {
+                setPosition({ x: position.x + info.offset.x, y: position.y + info.offset.y });
+            }}
+            className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 overflow-hidden w-80"
         >
-            {/* Header */}
+            {/* Header - Drag Handle */}
             <motion.div
                 onClick={() => setExpanded(!expanded)}
-                className="bg-gradient-to-r from-cyan-900/60 via-blue-900/60 to-cyan-900/60 px-5 py-4 cursor-pointer border-b border-cyan-500/10"
+                className="bg-gradient-to-r from-cyan-900/60 via-blue-900/60 to-cyan-900/60 px-5 py-4 cursor-grab active:cursor-grabbing border-b border-cyan-500/10"
                 whileHover={{ backgroundColor: 'rgba(8, 145, 178, 0.3)' }}
             >
                 <div className="flex items-center justify-between">
