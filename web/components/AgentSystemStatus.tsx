@@ -46,7 +46,7 @@ export default function AgentSystemStatus() {
 
     const fetchAgentStatus = async () => {
         try {
-            const response = await fetch('http://localhost:8000/hybrid-status');
+            const response = await fetch('http://localhost:8002/hybrid-status');
             if (!response.ok) throw new Error('Failed to fetch agent status');
             const data = await response.json();
             setStatus(data);
