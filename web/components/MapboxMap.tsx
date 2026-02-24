@@ -21,6 +21,8 @@ interface MapboxMapProps {
     onSelect?: (alert: Alert) => void;
     mapLayer?: 'street' | 'satellite' | 'terrain';
     primaryColor?: string;
+    showSatellite?: boolean;
+    onToggleSatellite?: (show: boolean) => void;
 }
 
 export default function MapboxMap({
@@ -31,7 +33,9 @@ export default function MapboxMap({
     mode = 'cyber',
     onSelect,
     mapLayer = 'street',
-    primaryColor = '#00FF95'
+    primaryColor = '#00FF95',
+    showSatellite = false,
+    onToggleSatellite
 }: MapboxMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
