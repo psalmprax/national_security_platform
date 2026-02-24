@@ -3,6 +3,7 @@ import os
 import json
 import logging
 import asyncpg
+from typing import Dict
 from fastapi import FastAPI, Response
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Gauge
 from nats.aio.client import Client as NATS
