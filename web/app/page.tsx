@@ -23,6 +23,7 @@ import CyberDashboard from '@/components/dashboards/CyberDashboard';
 import TacticalDashboard from '@/components/dashboards/TacticalDashboard';
 import StrategicDashboard from '@/components/dashboards/StrategicDashboard';
 import AccessManagement from '@/components/admin/AccessManagement';
+import AgentSystemStatus from '@/components/AgentSystemStatus';
 
 export default function Home() {
     const router = useRouter();
@@ -246,6 +247,10 @@ export default function Home() {
                             displayMode={displayMode}
                             setDisplayMode={updateDisplayMode}
                         />
+                        {/* Agent System Status Overlay */}
+                        <div className="absolute top-4 right-4 z-50 w-96">
+                            <AgentSystemStatus />
+                        </div>
                     </div>
                 )}
 

@@ -12,6 +12,7 @@ import Portal from '../../../components/Portal';
 
 import UserMenu from '@/components/UserMenu';
 import CommandBar from '@/components/CommandBar';
+import AgentSystemStatus from '@/components/AgentSystemStatus';
 
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -759,7 +760,12 @@ export default function AgencyPortalPage() {
                                 </div>
 
                                 {/* Right Side: Expanded Map Viewport */}
-                                <div className="lg:col-span-3">
+                                <div className="lg:col-span-3 relative">
+                                    {/* Agent System Status - Float Above Map */}
+                                    <div className="absolute top-0 right-0 z-50 w-96 -mt-2 -mr-2">
+                                        <AgentSystemStatus />
+                                    </div>
+
                                     <div className="relative h-[850px] w-full bg-slate-900/40 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-[0_60px_100px_-20px_rgba(0,0,0,0.8)] group ring-1 ring-white/5">
                                         {/* The Map Core */}
                                         <MapboxMap

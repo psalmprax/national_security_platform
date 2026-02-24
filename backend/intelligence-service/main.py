@@ -45,6 +45,35 @@ async def startup_event():
         except Exception as e:
             logger.error(f"❌ Failed to connect to database: {e}")
 
+    # Initialize Hybrid Agent System (OpenClaw + Agent Zero)
+    if HYBRID_SYSTEM_AVAILABLE:
+        try:
+            from nlp_analyzer import analyzer
+            app.state.hybrid_system = create_hybrid_system(
+                llm_provider=llm,
+                nlp_analyzer=analyzer if analyzer else None,
+                db_pool=getattr(app.state, 'db_pool', None),
+                nats_client=None
+            )
+            logger.info("✅ Hybrid Agent System initialized (OpenClaw + Agent Zero)")
+            
+            # Initialize Ultimate Hybrid System (LangChain + CrewAI + Actions)
+            app.state.ultimate_system = create_ultimate_hybrid_system(
+                llm_provider=llm,
+                nlp_analyzer=analyzer if analyzer else None,
+                db_pool=getattr(app.state, 'db_pool', None),
+                nats_client=None
+            )
+            logger.info("✅ Ultimate Hybrid System initialized (LangChain + CrewAI + Actions)")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize hybrid system: {e}")
+            app.state.hybrid_system = None
+            app.state.ultimate_system = None
+    else:
+        app.state.hybrid_system = None
+        app.state.ultimate_system = None
+
     # Start NATS listener in the background
     asyncio.create_task(run_nats_listener())
     # Start gRPC server
@@ -94,6 +123,15 @@ from nlp_analyzer import analyze_alert_description, deep_analyze
 from llm_provider import get_llm_provider
 from agents import CrisisAgent, DispatchAgent, SentinelAnalyst, SysAdminSentinel
 
+# Import Hybrid Agent System
+try:
+    from hybrid_agent_system import create_hybrid_system, HybridAgentManager
+    from enhanced_hybrid_system import create_ultimate_hybrid_system, UltimateHybridSystem
+    HYBRID_SYSTEM_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Hybrid system not available: {e}")
+    HYBRID_SYSTEM_AVAILABLE = False
+
 # ... (rest of imports)
 
 # Initialize Agent Stacks
@@ -132,9 +170,68 @@ async def analyze_alert(alert_data):
     # Initial Database Update (Fast Path)
     await update_alert_metadata(alert_id, severity_score, risk_keywords)
 
+    # NEW: Process with Hybrid Agent System (OpenClaw + Agent Zero)
+    # This runs alongside existing agent processing for enhanced capabilities
+    hybrid_system = getattr(app.state, 'hybrid_system', None)
+    if hybrid_system and len(content) > 100:
+        # Only use hybrid for substantial alerts
+        asyncio.create_task(process_with_hybrid(alert_data, analysis))
+
+    # NEW: Process with Ultimate Hybrid System (LangChain + CrewAI + Actions)
+    # For critical/high urgency alerts
+    ultimate_system = getattr(app.state, 'ultimate_system', None)
+    if ultimate_system and urgency in ['critical', 'high']:
+        asyncio.create_task(process_with_ultimate(alert_data, analysis))
+
     # Tier 2 & 3: Specialized Agent Review (Background/Async)
     if llm:
         asyncio.create_task(run_agent_review(alert_data, analysis))
+
+async def process_with_hybrid(alert_data: Dict, tier1_analysis: Dict):
+    """Process alert using hybrid OpenClaw + Agent Zero system"""
+    try:
+        hybrid_system = getattr(app.state, 'hybrid_system', None)
+        if not hybrid_system:
+            return
+        
+        # Process with auto-selected framework
+        result = await hybrid_system.process_alert(alert_data)
+        
+        logger.info(f"🔀 Hybrid analysis for {alert_data.get('id')}: "
+                   f"framework={result.get('framework')}, "
+                   f"recommendation={result.get('recommendation')}")
+        
+        # Update alert with hybrid recommendation if higher confidence
+        recommendation = result.get('recommendation')
+        if recommendation in ['ESCALATE', 'PRIORITY']:
+            logger.warning(f"⚠️ HYBRID SYSTEM RECOMMENDS: {recommendation}")
+            
+    except Exception as e:
+        logger.error(f"Hybrid processing error: {e}")
+
+async def process_with_ultimate(alert_data: Dict, tier1_analysis: Dict):
+    """Process alert using Ultimate Hybrid System (LangChain + CrewAI + Actions)"""
+    try:
+        ultimate_system = getattr(app.state, 'ultimate_system', None)
+        if not ultimate_system:
+            return
+        
+        # Full pipeline for critical alerts
+        alert_id = alert_data.get('id')
+        urgency = tier1_analysis.get('urgency_level', 'low')
+        
+        if urgency in ['critical', 'high']:
+            logger.info(f"🚀 Running ULTIMATE pipeline for {alert_id} (urgency: {urgency})")
+            
+            result = await ultimate_system.process_alert_full(alert_data)
+            
+            logger.info(f"✅ Ultimate pipeline complete for {alert_id}")
+            logger.info(f"   - RAG: {result.get('stages', {}).get('rag', {}).get('historical_matches', 0)} historical matches")
+            logger.info(f"   - Crew: {result.get('stages', {}).get('crew', {}).get('agent_count', 0)} agents deployed")
+            logger.info(f"   - Report: {'generated' if 'report' in result.get('stages', {}) else 'skipped'}")
+            
+    except Exception as e:
+        logger.error(f"Ultimate processing error: {e}")
 
 async def run_agent_review(alert_data: Dict, tier1_analysis: Dict):
     """Run specialized agents in the background to avoid blocking the NATS listener"""
@@ -222,6 +319,40 @@ async def health_check():
 @app.get("/metrics")
 def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+@app.get("/hybrid-status")
+async def hybrid_status():
+    """Get status of Hybrid Agent System (OpenClaw + Agent Zero + LangChain + CrewAI)"""
+    hybrid_system = getattr(app.state, 'hybrid_system', None)
+    ultimate_system = getattr(app.state, 'ultimate_system', None)
+    
+    response = {
+        "basic_hybrid": {
+            "status": "initialized" if hybrid_system else "not_initialized"
+        },
+        "ultimate_hybrid": {
+            "status": "initialized" if ultimate_system else "not_initialized"
+        }
+    }
+    
+    if hybrid_system:
+        response["basic_hybrid"] = hybrid_system.get_status()
+    
+    if ultimate_system:
+        response["ultimate_hybrid"] = ultimate_system.get_system_status()
+    
+    return response
+
+@app.post("/run-intelligence-campaign")
+async def run_intelligence_campaign(topic: str):
+    """Trigger an intelligence gathering campaign"""
+    ultimate_system = getattr(app.state, 'ultimate_system', None)
+    
+    if not ultimate_system:
+        return {"error": "Ultimate system not initialized"}
+    
+    result = await ultimate_system.run_intelligence_campaign(topic)
+    return result
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
