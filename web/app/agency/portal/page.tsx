@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save, Loader2, AlertTriangle, User, LogOut, Layout, Map as MapIcon, List, Settings, Maximize, Minimize, ChevronDown } from 'lucide-react';
+import { Shield, Truck, Navigation, Plus, Building2, MapPin, Activity, Save, Loader2, AlertTriangle, User, LogOut, Layout, Map as MapIcon, List, Settings, Maximize, Minimize, ChevronDown, Layers, ZoomIn, ZoomOut, Compass, Eye, EyeOff, Target, Radio, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
 import { UserRole } from '@/lib/auth';
@@ -48,6 +48,10 @@ export default function AgencyPortalPage() {
     const [isMissionsLoading, setIsMissionsLoading] = useState(false);
     const [isPanicMode, setIsPanicMode] = useState(false);
     const [isFramed, setIsFramed] = useState(false);
+    // Map Controls
+    const [mapLayer, setMapLayer] = useState<'street' | 'satellite' | 'terrain'>('satellite');
+    const [showLegend, setShowLegend] = useState(true);
+    const [mapZoom, setMapZoom] = useState(12);
 
     useEffect(() => {
         setIsFramed(window !== window.parent);
@@ -661,41 +665,178 @@ export default function AgencyPortalPage() {
                     )}
                 </div>
 
-                {/* View: MAP */}
+                {/* View: MAP - Enhanced Spatial Overlay */}
                 {viewMode === 'map' && (
-                    <div className="glass-card-premium p-6 border-[#00D1FF]/20 relative overflow-hidden min-h-[500px]">
-                        {/* Left Color Bar */}
-                        <div className="absolute top-0 left-0 w-1 h-full bg-[#00D1FF]/20" />
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        className="glass-card-premium p-6 border-[#00D1FF]/20 relative overflow-hidden min-h-[500px]"
+                    >
+                        {/* Left Color Bar with Gradient */}
+                        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#00D1FF]/40 via-[#00D1FF]/20 to-[#00D1FF]/5" />
 
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-[#00D1FF]/10 flex items-center justify-center border border-[#00D1FF]/20">
-                                    <MapIcon className="w-4 h-4 text-[#00D1FF]" />
+                        {/* Enhanced Header */}
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00D1FF]/20 to-[#00D1FF]/5 flex items-center justify-center border border-[#00D1FF]/30 shadow-lg shadow-[#00D1FF]/10">
+                                    <MapIcon className="w-5 h-5 text-[#00D1FF]" />
                                 </div>
                                 <div>
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Tactical_Spatial_Overlay</h2>
-                                    <p className="text-[7px] text-[#00D1FF]/60 uppercase font-black tracking-widest">Geographic Asset Visualization</p>
+                                    <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white">Tactical Spatial Overlay</h2>
+                                    <p className="text-[8px] text-[#00D1FF]/70 uppercase font-bold tracking-widest flex items-center gap-2">
+                                        <Radio className="w-3 h-3 animate-pulse" />
+                                        Geographic Asset Visualization
+                                    </p>
                                 </div>
                             </div>
-                            <span className="bg-[#00D1FF]/10 text-[#00D1FF] text-[8px] font-black px-3 py-1 rounded-md border border-[#00D1FF]/20 tracking-widest uppercase">
-                                {assets.length} UNITS_MAPPED
-                            </span>
+
+                            {/* Map Controls */}
+                            <div className="flex items-center gap-2">
+                                {/* Layer Selector */}
+                                <div className="flex bg-black/30 rounded-lg p-1 border border-white/10">
+                                    {(['street', 'satellite', 'terrain'] as const).map((layer) => (
+                                        <button
+                                            key={layer}
+                                            onClick={() => setMapLayer(layer)}
+                                            className={`px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider rounded-md transition-all ${mapLayer === layer
+                                                    ? 'bg-[#00D1FF] text-black shadow-lg'
+                                                    : 'text-white/50 hover:text-white hover:bg-white/10'
+                                                }`}
+                                        >
+                                            {layer}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Zoom Controls */}
+                                <div className="flex bg-black/30 rounded-lg border border-white/10">
+                                    <button
+                                        onClick={() => setMapZoom(Math.max(1, mapZoom - 1))}
+                                        className="p-2 text-white/70 hover:text-[#00D1FF] hover:bg-white/10 rounded-l-lg transition-all"
+                                    >
+                                        <ZoomOut className="w-4 h-4" />
+                                    </button>
+                                    <div className="px-3 py-2 text-[9px] font-mono text-[#00D1FF] border-x border-white/10 min-w-[50px] text-center">
+                                        {mapZoom}x
+                                    </div>
+                                    <button
+                                        onClick={() => setMapZoom(Math.min(20, mapZoom + 1))}
+                                        className="p-2 text-white/70 hover:text-[#00D1FF] hover:bg-white/10 rounded-r-lg transition-all"
+                                    >
+                                        <ZoomIn className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Legend Toggle */}
+                                <button
+                                    onClick={() => setShowLegend(!showLegend)}
+                                    className={`p-2 rounded-lg border transition-all ${showLegend
+                                            ? 'bg-[#00D1FF]/20 border-[#00D1FF]/50 text-[#00D1FF]'
+                                            : 'bg-black/30 border-white/10 text-white/50 hover:text-white'
+                                        }`}
+                                >
+                                    <Layers className="w-4 h-4" />
+                                </button>
+
+                                {/* Fullscreen Toggle */}
+                                <button
+                                    onClick={() => setIsFullscreen(!isFullscreen)}
+                                    className="p-2 rounded-lg bg-black/30 border border-white/10 text-white/50 hover:text-[#00D1FF] hover:border-[#00D1FF]/30 transition-all"
+                                >
+                                    {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Map Container */}
-                        <div className="glass-card-premium overflow-hidden min-h-[400px] border-[#00D1FF]/10 relative">
-                            {/* Map Decorative Corner */}
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#00D1FF]/10 to-transparent pointer-events-none z-10" />
-
-                            <MapboxMap
-                                alerts={[]}
-                                resources={assets}
-                                mode="tactical"
-                                primaryColor="#00D1FF"
-                            />
+                        {/* Stats Bar */}
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="flex items-center gap-2 px-4 py-2 bg-[#00D1FF]/10 rounded-lg border border-[#00D1FF]/20">
+                                <Target className="w-4 h-4 text-[#00D1FF]" />
+                                <span className="text-[10px] font-bold text-[#00D1FF] uppercase tracking-wider">
+                                    {assets.length} Assets Tracked
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
+                                    Live Tracking
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                                <Clock className="w-4 h-4 text-amber-500" />
+                                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">
+                                    Last Update: Just now
+                                </span>
+                            </div>
                         </div>
-                    </div>
+
+                        {/* Map Container with Legend */}
+                        <div className="relative">
+                            {/* Map Container */}
+                            <motion.div
+                                initial={{ scale: 0.98, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: 0.1, duration: 0.3 }}
+                                className="glass-card-premium overflow-hidden min-h-[380px] border-[#00D1FF]/10 relative rounded-xl"
+                            >
+                                {/* Corner Decorations */}
+                                <div className="absolute top-0 left-0 w-16 h-16 bg-gradient-to-br from-[#00D1FF]/20 to-transparent pointer-events-none z-10" />
+                                <div className="absolute bottom-0 right-0 w-16 h-16 bg-gradient-to-tl from-[#00D1FF]/10 to-transparent pointer-events-none z-10" />
+
+                                {/* Scan Line Effect */}
+                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#00D1FF]/5 to-transparent bg-[length:100%_4px] animate-scan pointer-events-none z-10" />
+
+                                <MapboxMap
+                                    alerts={[]}
+                                    resources={assets}
+                                    mode="tactical"
+                                    primaryColor="#00D1FF"
+                                />
+                            </motion.div>
+
+                            {/* Legend Panel */}
+                            <AnimatePresence>
+                                {showLegend && (
+                                    <motion.div
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 20 }}
+                                        className="absolute top-4 right-4 bg-black/80 backdrop-blur-xl rounded-xl border border-[#00D1FF]/30 p-4 z-20 min-w-[180px]"
+                                    >
+                                        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-white/10">
+                                            <Compass className="w-4 h-4 text-[#00D1FF]" />
+                                            <span className="text-[10px] font-bold text-white uppercase tracking-wider">Asset Legend</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50" />
+                                                <span className="text-[9px] text-white/70">Patrol Vehicle</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50" />
+                                                <span className="text-[9px] text-white/70">Station</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50" />
+                                                <span className="text-[9px] text-white/70">Checkpoint</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full bg-red-500 shadow-lg shadow-red-500/50 animate-pulse" />
+                                                <span className="text-[9px] text-white/70">Active Incident</span>
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 pt-2 border-t border-white/10">
+                                            <div className="flex items-center justify-between text-[8px]">
+                                                <span className="text-white/40">Coverage</span>
+                                                <span className="text-[#00D1FF] font-bold">Abuja Metro</span>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </motion.div>
                 )}
             </main>
         </div>
