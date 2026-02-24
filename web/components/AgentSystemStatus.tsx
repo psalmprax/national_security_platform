@@ -104,13 +104,13 @@ export default function AgentSystemStatus() {
     return (
         <motion.div
             initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0, x: position.x, y: position.y }}
+            animate={{ opacity: 1, x: position.x, y: position.y }}
             drag
             dragMomentum={false}
             onDragEnd={(_: any, info: any) => {
                 setPosition({ x: position.x + info.offset.x, y: position.y + info.offset.y });
             }}
-            className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 overflow-hidden w-80"
+            className="fixed top-20 right-4 z-50 w-80 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 overflow-hidden"
         >
             {/* Header - Drag Handle */}
             <motion.div

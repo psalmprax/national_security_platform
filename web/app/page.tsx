@@ -248,9 +248,7 @@ export default function Home() {
                             setDisplayMode={updateDisplayMode}
                         />
                         {/* Agent System Status Overlay */}
-                        <div className="absolute top-4 right-4 z-50 w-96">
-                            <AgentSystemStatus />
-                        </div>
+                        <AgentSystemStatus />
                     </div>
                 )}
 
