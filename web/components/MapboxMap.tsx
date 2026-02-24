@@ -15,25 +15,23 @@ const isValidCoordinate = (lng: number, lat: number) => {
 interface MapboxMapProps {
     alerts: Alert[];
     selectedAlert?: Alert | null;
-    triangulatedAssets?: TriangulatedAsset[]; // NEW PROP
-    resources?: Asset[]; // NEW PROP: External resources (e.g. Agency Portal)
+    triangulatedAssets?: TriangulatedAsset[];
+    resources?: Asset[];
     mode?: 'cyber' | 'tactical';
     onSelect?: (alert: Alert) => void;
-    showSatellite?: boolean;
-    onToggleSatellite?: (show: boolean) => void;
-    primaryColor?: string; // NEW PROP
+    mapLayer?: 'street' | 'satellite' | 'terrain';
+    primaryColor?: string;
 }
 
 export default function MapboxMap({
     alerts,
     selectedAlert,
     triangulatedAssets = [],
-    resources = [], // Default to empty if not provided, but logic below handles fetch if empty AND toggle used
+    resources = [],
     mode = 'cyber',
     onSelect,
-    showSatellite = false,
-    onToggleSatellite,
-    primaryColor = '#00FF95' // Default to Cyber Green
+    mapLayer = 'street',
+    primaryColor = '#00FF95'
 }: MapboxMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -63,13 +61,21 @@ export default function MapboxMap({
 
         mapboxgl.accessToken = token;
 
+        const getMapStyle = (layer: string) => {
+            switch (layer) {
+                case 'satellite': return 'mapbox://styles/mapbox/satellite-v9';
+                case 'terrain': return 'mapbox://styles/mapbox/outdoors-v12';
+                default: return (isCyber || mode === 'tactical') ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11';
+            }
+        };
+
         try {
             const map = new mapboxgl.Map({
                 container: mapContainerRef.current,
-                style: showSatellite ? 'mapbox://styles/mapbox/satellite-v9' : (isCyber ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/outdoors-v12'),
+                style: getMapStyle(mapLayer),
                 center: [8.6753, 9.0820], // Nigeria center
                 zoom: 5.5,
-                pitch: isCyber ? 45 : 0,
+                pitch: isCyber ? 45 : (mapLayer === 'satellite' ? 60 : 0),
                 antialias: true
             });
 
@@ -87,7 +93,7 @@ export default function MapboxMap({
                         'tileSize': 512
                     });
                 }
-                if (showSatellite) {
+                if (mapLayer === 'satellite' || mapLayer === 'terrain') {
                     map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
                 }
             });
@@ -128,7 +134,17 @@ export default function MapboxMap({
     // Handle Style and Pitch Changes
     useEffect(() => {
         if (!isMapSupported || !mapRef.current) return;
-        const newStyle = showSatellite ? 'mapbox://styles/mapbox/satellite-v9' : (isCyber ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/outdoors-v12');
+
+        const getMapStyle = (layer: string) => {
+            switch (layer) {
+                case 'satellite': return 'mapbox://styles/mapbox/satellite-v9';
+                case 'terrain': return 'mapbox://styles/mapbox/outdoors-v12';
+                default: return (isCyber || mode === 'tactical') ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11';
+            }
+        };
+
+        const newStyle = getMapStyle(mapLayer);
+
         try {
             const currentStyle = mapRef.current.getStyle();
             if (currentStyle && currentStyle.sprite !== newStyle) {
@@ -136,10 +152,10 @@ export default function MapboxMap({
                 setIsStyleLoaded(false);
                 mapRef.current.setStyle(newStyle);
 
-                // Re-add terrain after style load if in satellite mode
+                // Re-add terrain after style load if in satellite or terrain mode
                 mapRef.current.once('style.load', () => {
                     setIsStyleLoaded(true);
-                    if (showSatellite && mapRef.current) {
+                    if (mapRef.current) {
                         if (!mapRef.current.getSource('mapbox-dem')) {
                             mapRef.current.addSource('mapbox-dem', {
                                 'type': 'raster-dem',
@@ -147,16 +163,20 @@ export default function MapboxMap({
                                 'tileSize': 512
                             });
                         }
-                        mapRef.current.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+                        if (mapLayer === 'satellite' || mapLayer === 'terrain') {
+                            mapRef.current.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+                        } else {
+                            mapRef.current.setTerrain(null);
+                        }
                     }
                     setTimeout(() => setIsSwitching(false), 800);
                 });
             }
-            mapRef.current.setPitch(showSatellite ? 60 : (isCyber ? 45 : 0));
+            mapRef.current.setPitch(mapLayer === 'satellite' || mapLayer === 'terrain' ? 60 : (isCyber ? 45 : 0));
         } catch (error) {
             setIsSwitching(false);
         }
-    }, [showSatellite, isCyber, isMapSupported]);
+    }, [mapLayer, isCyber, isMapSupported]);
 
     // Handle Alert Markers
     useEffect(() => {
@@ -494,7 +514,7 @@ export default function MapboxMap({
             )}
 
             {/* Overlay Grid/Effects for Cyber Mode */}
-            {isCyber && !showSatellite && (
+            {isCyber && mapLayer !== 'satellite' && (
                 <div className="absolute inset-0 pointer-events-none opacity-[0.05]" style={{
                     backgroundImage: `
                         linear-gradient(to right, ${primaryColor} 1px, transparent 1px),
@@ -532,13 +552,13 @@ export default function MapboxMap({
                 </button>
                 <div className="h-4"></div> {/* Spacer */}
                 <button
-                    onClick={() => onToggleSatellite?.(!showSatellite)}
-                    title="Toggle Satellite Intelligence"
-                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${showSatellite
+                    onClick={() => { }}
+                    title="Toggle Map Layers"
+                    className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${mapLayer === 'satellite' || mapLayer === 'terrain'
                         ? (isCyber ? '' : 'border-cyan-500 bg-cyan-500 text-white shadow-lg')
                         : (isCyber ? 'bg-black/60' : 'border-slate-300 bg-white/90 text-slate-700 shadow-sm')
                         }`}
-                    style={isCyber ? (showSatellite ? { borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.2)', color: '#06b6d4', boxShadow: '0 0 15px rgba(6, 182, 212, 0.3)' } : { borderColor: primaryColor + '66', color: primaryColor }) : {}}
+                    style={isCyber ? (mapLayer === 'satellite' || mapLayer === 'terrain' ? { borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.2)', color: '#06b6d4', boxShadow: '0 0 15px rgba(6, 182, 212, 0.3)' } : { borderColor: primaryColor + '66', color: primaryColor }) : {}}
                 >
                     <Globe className="w-5 h-5" />
                 </button>

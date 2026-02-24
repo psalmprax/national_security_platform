@@ -5,7 +5,7 @@ import { Map as MapIcon, List, LayoutGrid, Plus, AlertTriangle, Search, Filter, 
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
 import { UserRole } from '@/lib/auth';
-import { fetchAssets, createAsset, deleteAsset, updateAsset, Asset, fetchMissions, updateMissionStatus, Mission } from '../../../lib/api';
+import { fetchAssets, Asset, updateMissionStatus, Mission, fetchActiveMissions, fetchSectorReport } from '../../../lib/api';
 import MapboxMap from '../../../components/MapboxMap';
 import SatelliteDetails from '../../../components/SatelliteDetails';
 import Portal from '../../../components/Portal';
@@ -507,244 +507,292 @@ export default function AgencyPortalPage() {
                 </AnimatePresence>
 
                 {/* Main Content Area */}
-                <div className="lg:col-span-4 space-y-6 h-full overflow-y-auto pr-2 scrollbar-cyber">
-                    {/* Mission Control Section */}
-                    {viewMode === 'list' && (
-                        <div className="glass-card-premium p-6 border-emerald-500/20 relative overflow-hidden min-h-[200px]">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/20" />
+                <div className="lg:col-span-4">
+                    <AnimatePresence mode="wait">
+                        {viewMode === 'list' ? (
+                            <motion.div
+                                key="list"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="space-y-6 h-full overflow-y-auto pr-2 scrollbar-cyber"
+                            >
+                                {/* Mission Control Section */}
+                                <div className="glass-card-premium p-6 border-emerald-500/20 relative overflow-hidden min-h-[200px]">
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/20" />
 
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                                        <Activity className="w-4 h-4 text-emerald-500" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Active_Mission_Control</h2>
-                                        <p className="text-[7px] text-emerald-500/60 uppercase font-black tracking-widest">Real-Time Operational Pulse</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-500/5 border border-emerald-500/20">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                        <span className="text-emerald-500 text-[8px] font-black tracking-widest uppercase">Live_Sync</span>
-                                    </div>
-                                    <span className="bg-emerald-500/10 text-emerald-500 text-[8px] font-black px-3 py-1 rounded-md border border-emerald-500/20 tracking-widest uppercase">
-                                        {missions.length} OPS
-                                    </span>
-                                </div>
-                            </div>
-
-                            {isMissionsLoading && missions.length === 0 ? (
-                                <div className="h-24 flex items-center justify-center">
-                                    <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
-                                </div>
-                            ) : missions.length === 0 ? (
-                                <div className="py-12 bg-emerald-500/[0.02] rounded-xl border border-dashed border-emerald-500/10 flex flex-col items-center justify-center gap-3">
-                                    <Shield className="w-8 h-8 text-emerald-500/10" />
-                                    <p className="text-[8px] font-black uppercase text-emerald-500/30 tracking-[0.2em]">All sectors quiet. No active missions assigned.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {missions.map(mission => (
-                                        <div key={mission.id} className="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-3 rounded-xl hover:bg-white/[0.05] hover:border-[#00D1FF]/30 transition-all group">
-                                            <div className="w-8 h-8 rounded-lg bg-[#00D1FF]/10 flex items-center justify-center text-[#00D1FF] border border-[#00D1FF]/20 group-hover:scale-105 transition-transform shrink-0">
-                                                <Navigation className="w-3.5 h-3.5" />
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                                                <Activity className="w-4 h-4 text-emerald-500" />
                                             </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <span className="text-[9px] font-black text-white uppercase tracking-tighter">OP_{mission.id.slice(0, 8)}</span>
-                                                    <span className={`text-[7px] font-black px-1.5 py-0.5 rounded border tracking-[0.15em] uppercase ${mission.priority === 'IMMEDIATE' ? 'bg-red-500/20 text-red-500 border-red-500/20' :
-                                                        mission.priority === 'HIGH' ? 'bg-amber-500/20 text-amber-500 border-amber-500/20' :
-                                                            'bg-blue-500/20 text-blue-500 border-blue-500/20'
-                                                        }`}>
-                                                        {mission.priority}
-                                                    </span>
-                                                </div>
-                                                <p className="text-[8px] text-white/30 uppercase font-black tracking-widest truncate">{mission.description || 'No_Data_Logged'}</p>
-                                            </div>
-
-                                            <div className="flex items-center gap-6 shrink-0">
-                                                <div className="text-right">
-                                                    <p className={`text-[8px] font-black uppercase tracking-widest ${mission.status === 'ASSIGNED' ? 'text-blue-400' :
-                                                        mission.status === 'EN_ROUTE' ? 'text-amber-400' :
-                                                            'text-emerald-400'
-                                                        }`}>{mission.status}</p>
-                                                    {mission.eta_minutes !== null && (
-                                                        <p className="text-[7px] text-white/20 font-mono">ETA: {mission.eta_minutes}m</p>
-                                                    )}
-                                                </div>
-
-                                                <button
-                                                    onClick={async () => {
-                                                        const nextStatus = mission.status === 'ASSIGNED' ? 'EN_ROUTE' : 'ON_SITE';
-                                                        if (mission.status === 'ON_SITE') return;
-                                                        await updateMissionStatus(mission.id, nextStatus);
-                                                        loadMissions();
-                                                    }}
-                                                    className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${mission.status === 'ON_SITE'
-                                                        ? 'border-emerald-500/20 text-emerald-500 bg-emerald-500/5 cursor-default'
-                                                        : 'bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border-emerald-500/30'
-                                                        }`}
-                                                >
-                                                    {mission.status === 'ASSIGNED' ? 'Advance' : mission.status === 'EN_ROUTE' ? 'Arrive' : 'Active'}
-                                                </button>
+                                            <div>
+                                                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Active_Mission_Control</h2>
+                                                <p className="text-[7px] text-emerald-500/60 uppercase font-black tracking-widest">Real-Time Operational Pulse</p>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* View: LIST */}
-                    {viewMode === 'list' && (
-                        <div className="glass-card-premium p-6 border-[#00D1FF]/20 relative overflow-hidden min-h-[300px]">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-[#00D1FF]/20" />
-
-                            <div className="flex items-center justify-between mb-8">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-[#00D1FF]/10 flex items-center justify-center border border-[#00D1FF]/20">
-                                        <Truck className="w-4 h-4 text-[#00D1FF]" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Fleet_Resource_Manifest</h2>
-                                        <p className="text-[7px] text-[#00D1FF]/60 uppercase font-black tracking-widest">Global Asset Distribution</p>
-                                    </div>
-                                </div>
-                                <span className="bg-[#00D1FF]/10 text-[#00D1FF] text-[8px] font-black px-3 py-1 rounded-md border border-[#00D1FF]/20 tracking-widest uppercase">
-                                    {assets.length} UNITS_SYNCED
-                                </span>
-                            </div>
-
-                            {isLoading ? (
-                                <div className="h-48 flex flex-col items-center justify-center gap-4">
-                                    <Loader2 className="w-8 h-8 text-[#00D1FF] animate-spin" />
-                                    <span className="text-[8px] text-white/30 font-black uppercase tracking-widest animate-pulse">Synchronizing_Neural_Link...</span>
-                                </div>
-                            ) : assets.length === 0 ? (
-                                <div className="text-center py-24 bg-white/[0.01] rounded-2xl border border-dashed border-white/5">
-                                    <Truck className="w-12 h-12 text-white/5 mx-auto mb-4" />
-                                    <p className="text-[9px] font-black uppercase text-white/20 tracking-widest">No active deployments found in sector.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {assets.map((asset) => (
-                                        <div key={asset.id} className="bg-white/[0.02] border border-white/5 rounded-xl p-4 hover:border-[#00D1FF]/30 transition-all group relative overflow-hidden">
-                                            {/* Status Glow Tip */}
-                                            <div className={`absolute top-0 right-0 w-16 h-1 bg-gradient-to-l from-transparent to-transparent ${asset.status === 'ACTIVE' ? 'via-emerald-500/40' : 'via-amber-500/40'
-                                                }`} />
-
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="bg-[#00D1FF]/5 p-2 rounded-lg text-[#00D1FF] border border-[#00D1FF]/10 group-hover:scale-105 transition-transform">
-                                                    {asset.type === 'STATION' ? <Building2 className="w-4 h-4" /> :
-                                                        asset.type === 'CHECKPOINT' ? <MapPin className="w-4 h-4" /> :
-                                                            <Truck className="w-4 h-4" />}
-                                                </div>
-                                                <span className={`text-[7px] font-black px-2 py-0.5 rounded border uppercase tracking-[0.2em] ${asset.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.2)]' :
-                                                    'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
-                                                    }`}>
-                                                    {asset.status}
-                                                </span>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-500/5 border border-emerald-500/20">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                                <span className="text-emerald-500 text-[8px] font-black tracking-widest uppercase">Live_Sync</span>
                                             </div>
-
-                                            <h3 className="font-black text-white mb-1 uppercase tracking-tight text-[11px] truncate group-hover:text-[#00D1FF] transition-colors">{(asset.name || 'UNNAMED_UNIT')}</h3>
-                                            <p className="text-[8px] text-white/20 line-clamp-1 font-medium tracking-wide">{(asset.description || 'No sectoral intelligence logged.')}</p>
-
-                                            <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center">
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="w-1 h-1 rounded-full bg-[#00D1FF]/40" />
-                                                    <span className="text-[8px] text-white/40 font-black tracking-widest uppercase">Cap: {asset.capacity_level}%</span>
-                                                </div>
-                                                <span className="text-[7px] text-white/10 font-mono tracking-tighter shrink-0">{asset.id.slice(0, 8)}</span>
-                                            </div>
+                                            <span className="bg-emerald-500/10 text-emerald-500 text-[8px] font-black px-3 py-1 rounded-md border border-emerald-500/20 tracking-widest uppercase">
+                                                {missions.length} OPS
+                                            </span>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                                    </div>
 
-                {/* View: MAP - Overhauled Tactical Spatial View */}
-                {viewMode === 'map' && (
-                    <div className="lg:col-span-4 flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-12 duration-1000">
-                        {/* Unified High-Fidelity Map Container */}
-                        <div className="relative h-[850px] w-full bg-slate-900/40 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-[0_60px_100px_-20px_rgba(0,0,0,0.8)] group ring-1 ring-white/5">
-
-                            {/* The Map Core */}
-                            <MapboxMap
-                                alerts={[]}
-                                resources={assets}
-                                mode="tactical"
-                                primaryColor="#00D1FF"
-                            />
-
-                            {/* Floating HUD Intelligence Overlays */}
-                            <div className="absolute inset-x-0 bottom-0 pointer-events-none p-10 flex justify-between items-end bg-gradient-to-t from-black/80 via-transparent to-transparent">
-
-                                {/* Left Side: Alert Legend & Status */}
-                                <div className="pointer-events-auto flex flex-col gap-4 animate-in slide-in-from-left-8 duration-700">
-                                    <div className="glass-card-premium p-6 border-[#00D1FF]/30 backdrop-blur-2xl">
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <Compass className="w-5 h-5 text-[#00D1FF]" />
-                                            <span className="text-xs font-black text-white uppercase tracking-[0.2em]">Spatial_Legend</span>
+                                    {isMissionsLoading && missions.length === 0 ? (
+                                        <div className="h-24 flex items-center justify-center">
+                                            <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
                                         </div>
-                                        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                                            {[
-                                                { label: 'Asset_Active', color: 'bg-emerald-500' },
-                                                { label: 'HQ_Node', color: 'bg-blue-500' },
-                                                { label: 'Sentinel', color: 'bg-amber-500' },
-                                                { label: 'Critical', color: 'bg-red-500 animate-pulse' }
-                                            ].map(item => (
-                                                <div key={item.label} className="flex items-center gap-2">
-                                                    <div className={`w-2.5 h-2.5 rounded-full ${item.color} shadow-[0_0_10px_rgba(0,0,0,0.5)]`} />
-                                                    <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">{item.label}</span>
+                                    ) : missions.length === 0 ? (
+                                        <div className="py-12 bg-emerald-500/[0.02] rounded-xl border border-dashed border-emerald-500/10 flex flex-col items-center justify-center gap-3">
+                                            <Shield className="w-8 h-8 text-emerald-500/10" />
+                                            <p className="text-[8px] font-black uppercase text-emerald-500/30 tracking-[0.2em]">All sectors quiet. No active missions assigned.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {missions.map(mission => (
+                                                <div key={mission.id} className="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-3 rounded-xl hover:bg-white/[0.05] hover:border-[#00D1FF]/30 transition-all group">
+                                                    <div className="w-8 h-8 rounded-lg bg-[#00D1FF]/10 flex items-center justify-center text-[#00D1FF] border border-[#00D1FF]/20 group-hover:scale-105 transition-transform shrink-0">
+                                                        <Navigation className="w-3.5 h-3.5" />
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-0.5">
+                                                            <span className="text-[9px] font-black text-white uppercase tracking-tighter">OP_{mission.id.slice(0, 8)}</span>
+                                                            <span className={`text-[7px] font-black px-1.5 py-0.5 rounded border tracking-[0.15em] uppercase ${mission.priority === 'IMMEDIATE' ? 'bg-red-500/20 text-red-500 border-red-500/20' :
+                                                                mission.priority === 'HIGH' ? 'bg-amber-500/20 text-amber-500 border-amber-500/20' :
+                                                                    'bg-blue-500/20 text-blue-500 border-blue-500/20'
+                                                                }`}>
+                                                                {mission.priority}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[8px] text-white/30 uppercase font-black tracking-widest truncate">{mission.description || 'No_Data_Logged'}</p>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-6 shrink-0">
+                                                        <div className="text-right">
+                                                            <p className={`text-[8px] font-black uppercase tracking-widest ${mission.status === 'ASSIGNED' ? 'text-blue-400' :
+                                                                mission.status === 'EN_ROUTE' ? 'text-amber-400' :
+                                                                    'text-emerald-400'
+                                                                }`}>{mission.status}</p>
+                                                            {mission.eta_minutes !== null && (
+                                                                <p className="text-[7px] text-white/20 font-mono">ETA: {mission.eta_minutes}m</p>
+                                                            )}
+                                                        </div>
+
+                                                        <button
+                                                            onClick={async () => {
+                                                                const nextStatus = mission.status === 'ASSIGNED' ? 'EN_ROUTE' : 'ON_SITE';
+                                                                if (mission.status === 'ON_SITE') return;
+                                                                await updateMissionStatus(mission.id, nextStatus);
+                                                                loadMissions();
+                                                            }}
+                                                            className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${mission.status === 'ON_SITE'
+                                                                ? 'border-emerald-500/20 text-emerald-500 bg-emerald-500/5 cursor-default'
+                                                                : 'bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border-emerald-500/30'
+                                                                }`}
+                                                        >
+                                                            {mission.status === 'ASSIGNED' ? 'Advance' : mission.status === 'EN_ROUTE' ? 'Arrive' : 'Active'}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
+                                    )}
+                                </div>
+
+                                {/* Fleet Resource Manifest */}
+                                <div className="glass-card-premium p-6 border-[#00D1FF]/20 relative overflow-hidden min-h-[300px]">
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-[#00D1FF]/20" />
+
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-[#00D1FF]/10 flex items-center justify-center border border-[#00D1FF]/20">
+                                                <Truck className="w-4 h-4 text-[#00D1FF]" />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Fleet_Resource_Manifest</h2>
+                                                <p className="text-[7px] text-[#00D1FF]/60 uppercase font-black tracking-widest">Global Asset Distribution</p>
+                                            </div>
+                                        </div>
+                                        <span className="bg-[#00D1FF]/10 text-[#00D1FF] text-[8px] font-black px-3 py-1 rounded-md border border-[#00D1FF]/20 tracking-widest uppercase">
+                                            {assets.length} UNITS_SYNCED
+                                        </span>
                                     </div>
 
-                                    <div className="flex items-center gap-3 px-6 py-3 bg-black/60 rounded-xl border border-white/10 backdrop-blur-xl">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_emerald-500/50]" />
-                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em]">LIVE_SIGNAL_NOMINAL</span>
+                                    {isLoading ? (
+                                        <div className="h-48 flex flex-col items-center justify-center gap-4">
+                                            <Loader2 className="w-8 h-8 text-[#00D1FF] animate-spin" />
+                                            <span className="text-[8px] text-white/30 font-black uppercase tracking-widest animate-pulse">Synchronizing_Neural_Link...</span>
+                                        </div>
+                                    ) : assets.length === 0 ? (
+                                        <div className="text-center py-24 bg-white/[0.01] rounded-2xl border border-dashed border-white/5">
+                                            <Truck className="w-12 h-12 text-white/5 mx-auto mb-4" />
+                                            <p className="text-[9px] font-black uppercase text-white/20 tracking-widest">No active deployments found in sector.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                            {assets.map((asset) => (
+                                                <div key={asset.id} className="bg-white/[0.02] border border-white/5 rounded-xl p-4 hover:border-[#00D1FF]/30 transition-all group relative overflow-hidden">
+                                                    {/* Status Glow Tip */}
+                                                    <div className={`absolute top-0 right-0 w-16 h-1 bg-gradient-to-l from-transparent to-transparent ${asset.status === 'ACTIVE' ? 'via-emerald-500/40' : 'via-amber-500/40'
+                                                        }`} />
+
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="bg-[#00D1FF]/5 p-2 rounded-lg text-[#00D1FF] border border-[#00D1FF]/10 group-hover:scale-105 transition-transform">
+                                                            {asset.type === 'STATION' ? <Building2 className="w-4 h-4" /> :
+                                                                asset.type === 'CHECKPOINT' ? <MapPin className="w-4 h-4" /> :
+                                                                    <Truck className="w-4 h-4" />}
+                                                        </div>
+                                                        <span className={`text-[7px] font-black px-2 py-0.5 rounded border uppercase tracking-[0.2em] ${asset.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.2)]' :
+                                                            'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                                                            }`}>
+                                                            {asset.status}
+                                                        </span>
+                                                    </div>
+
+                                                    <h3 className="font-black text-white mb-1 uppercase tracking-tight text-[11px] truncate group-hover:text-[#00D1FF] transition-colors">{(asset.name || 'UNNAMED_UNIT')}</h3>
+                                                    <p className="text-[8px] text-white/20 line-clamp-1 font-medium tracking-wide">{(asset.description || 'No sectoral intelligence logged.')}</p>
+
+                                                    <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-1 h-1 rounded-full bg-[#00D1FF]/40" />
+                                                            <span className="text-[8px] text-white/40 font-black tracking-widest uppercase">Cap: {asset.capacity_level}%</span>
+                                                        </div>
+                                                        <span className="text-[7px] text-white/10 font-mono tracking-tighter shrink-0">{asset.id.slice(0, 8)}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="map"
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.98 }}
+                                className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-12 duration-1000"
+                            >
+                                {/* Left Side: Tactical Sidebar */}
+                                <div className="lg:col-span-1 flex flex-col gap-6">
+                                    <div className="glass-card-premium p-6 border-[#00D1FF]/30 backdrop-blur-2xl">
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <Compass className="w-5 h-5 text-[#00D1FF]" />
+                                            <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-white">Tactical_Spatial_Overlay</h2>
+                                        </div>
+                                        <p className="text-[7px] text-[#00D1FF]/60 uppercase font-black tracking-widest mb-6 px-8">Geographic Asset Visualization</p>
+
+                                        {/* Map Layer Toggles */}
+                                        <div className="flex bg-black/40 rounded-lg p-1 border border-white/5 mb-8">
+                                            {(['street', 'satellite', 'terrain'] as const).map((style) => (
+                                                <button
+                                                    key={style}
+                                                    onClick={() => setMapLayer(style)}
+                                                    className={`flex-1 py-2 rounded-md text-[8px] font-black uppercase tracking-widest transition-all ${mapLayer === style
+                                                        ? 'bg-[#00D1FF] text-black shadow-lg shadow-[#00D1FF]/20'
+                                                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                                        }`}
+                                                >
+                                                    {style}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Stats Cards */}
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-3 bg-[#00D1FF]/10 border border-[#00D1FF]/30 p-4 rounded-xl">
+                                                <div className="w-2 h-2 rounded-full bg-[#00D1FF] shadow-[0_0_10px_#00D1FF]" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[14px] font-black text-white leading-none">{assets.length} Assets</span>
+                                                    <span className="text-[8px] font-black text-[#00D1FF]/60 uppercase tracking-widest">Tracked</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl">
+                                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[14px] font-black text-white leading-none">Live</span>
+                                                    <span className="text-[8px] font-black text-emerald-500/60 uppercase tracking-widest">Tracking</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl relative overflow-hidden">
+                                                <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_#f59e0b]" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-white uppercase leading-none">Last Update:</span>
+                                                    <span className="text-[12px] font-black text-amber-500 uppercase tracking-tight">Just Now</span>
+                                                </div>
+                                                <Clock className="absolute -right-2 -bottom-2 w-8 h-8 text-amber-500/10 -rotate-12" />
+                                            </div>
+                                        </div>
+
+                                        {/* Asset Legend Box */}
+                                        <div className="mt-8 pt-6 border-t border-white/10">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <Target className="w-3.5 h-3.5 text-[#00D1FF]" />
+                                                <span className="text-[10px] font-black text-white/90 uppercase tracking-[0.1em]">Asset Legend</span>
+                                            </div>
+                                            <div className="space-y-3 px-1">
+                                                {[
+                                                    { label: 'Patrol Vehicle', color: 'bg-emerald-500' },
+                                                    { label: 'Station', color: 'bg-blue-500' },
+                                                    { label: 'Checkpoint', color: 'bg-amber-500' },
+                                                    { label: 'Active Incident', color: 'bg-red-500 animate-pulse' }
+                                                ].map(item => (
+                                                    <div key={item.label} className="flex items-center gap-3 group/item cursor-pointer">
+                                                        <div className={`w-2.5 h-2.5 rounded-full ${item.color} shadow-[0_0_10px_rgba(0,0,0,0.5)] group-hover/item:scale-125 transition-transform`} />
+                                                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest group-hover/item:text-white/80 transition-colors">{item.label}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="mt-8 flex items-center justify-between">
+                                                <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Coverage</span>
+                                                <span className="text-[9px] font-black text-[#00D1FF] uppercase tracking-tighter">Abuja Metro</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Right Side: Satellite Telemetry HUD (Reintegrated) */}
-                                <div className="pointer-events-auto w-80 animate-in slide-in-from-right-8 duration-700">
-                                    <SatelliteDetails />
-                                </div>
-                            </div>
+                                {/* Right Side: Expanded Map Viewport */}
+                                <div className="lg:col-span-3">
+                                    <div className="relative h-[850px] w-full bg-slate-900/40 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-[0_60px_100px_-20px_rgba(0,0,0,0.8)] group ring-1 ring-white/5">
+                                        {/* The Map Core */}
+                                        <MapboxMap
+                                            alerts={[]}
+                                            resources={assets}
+                                            mode="tactical"
+                                            mapLayer={mapLayer}
+                                            primaryColor="#00D1FF"
+                                        />
 
-                            {/* Tactical HUD Header */}
-                            <div className="absolute top-8 left-8 pointer-events-none flex flex-col gap-2">
-                                <div className="flex items-center gap-4 animate-in slide-in-from-top-4 duration-500">
-                                    <div className="w-12 h-12 rounded-2xl bg-black/60 backdrop-blur-2xl border border-[#00D1FF]/30 flex items-center justify-center shadow-2xl">
-                                        <MapIcon className="w-6 h-6 text-[#00D1FF]" />
+                                        {/* Floating HUD Intelligence Overlays */}
+                                        <div className="absolute inset-x-0 bottom-0 pointer-events-none p-10 flex justify-end items-end">
+                                            {/* Right Side: Satellite Telemetry HUD */}
+                                            <div className="pointer-events-auto w-80 animate-in slide-in-from-right-8 duration-700">
+                                                <SatelliteDetails />
+                                            </div>
+                                        </div>
+
+                                        {/* Viewport Accents */}
+                                        <div className="absolute top-0 left-0 w-32 h-32 border-t-[3px] border-l-[3px] border-[#00D1FF]/40 rounded-tl-[2.5rem] pointer-events-none filter drop-shadow-[0_0_15px_rgba(0,209,255,0.4)]" />
+                                        <div className="absolute top-0 right-0 w-32 h-32 border-t-[3px] border-r-[3px] border-[#00D1FF]/40 rounded-tr-[2.5rem] pointer-events-none filter drop-shadow-[0_0_15px_rgba(0,209,255,0.4)]" />
+                                        <div className="absolute bottom-0 left-0 w-32 h-32 border-b-[3px] border-l-[3px] border-[#00D1FF]/40 rounded-bl-[2.5rem] pointer-events-none filter drop-shadow(0 0 15px rgba(0,209,255,0.4))" />
+                                        <div className="absolute bottom-0 right-0 w-32 h-32 border-b-[3px] border-r-[3px] border-[#00D1FF]/40 rounded-br-[2.5rem] pointer-events-none filter drop-shadow(0 0 15px rgba(0,209,255,0.4))" />
+
+                                        {/* Subtle Inner Glow */}
+                                        <div className="absolute inset-0 pointer-events-none rounded-[2.5rem] shadow-[inset_0_0_100px_rgba(0,209,255,0.05)]" />
                                     </div>
-                                    <div>
-                                        <h2 className="text-sm font-black text-white uppercase tracking-[0.3em]">Sector_Awareness_Center</h2>
-                                        <p className="text-[8px] text-[#00D1FF] font-black uppercase tracking-[0.1em] flex items-center gap-2">
-                                            <Radio className="w-3 h-3 animate-pulse" />
-                                            Active_Geographic_Arbitrage_Engine
-                                        </p>
-                                    </div>
                                 </div>
-                            </div>
-
-                            {/* Viewport Accents (Pure Aesthetic "Good Size" Framing) */}
-                            <div className="absolute top-0 left-0 w-32 h-32 border-t-[3px] border-l-[3px] border-[#00D1FF]/40 rounded-tl-[2.5rem] pointer-events-none filter drop-shadow-[0_0_15px_rgba(0,209,255,0.4)]" />
-                            <div className="absolute top-0 right-0 w-32 h-32 border-t-[3px] border-r-[3px] border-[#00D1FF]/40 rounded-tr-[2.5rem] pointer-events-none filter drop-shadow-[0_0_15px_rgba(0,209,255,0.4)]" />
-                            <div className="absolute bottom-0 left-0 w-32 h-32 border-b-[3px] border-l-[3px] border-[#00D1FF]/40 rounded-bl-[2.5rem] pointer-events-none filter drop-shadow-[0_0_15px_rgba(0,209,255,0.4)]" />
-                            <div className="absolute bottom-0 right-0 w-32 h-32 border-b-[3px] border-r-[3px] border-[#00D1FF]/40 rounded-br-[2.5rem] pointer-events-none filter drop-shadow-[0_0_15px_rgba(0,209,255,0.4)]" />
-
-                            {/* Subtle Inner Glow */}
-                            <div className="absolute inset-0 pointer-events-none rounded-[2.5rem] shadow-[inset_0_0_100px_rgba(0,209,255,0.05)]" />
-                        </div>
-                    </div>
-                )}
-            </main>
-        </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </main >
+        </div >
     );
 }
