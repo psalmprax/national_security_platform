@@ -1,16 +1,18 @@
-# Feature 5: NLP Report Analysis
-# Analyzes alert descriptions using spaCy to extract structured intelligence
-
+import logging
 import spacy
-from typing import Dict, List
+from typing import Dict, List, Optional
 import re
+import asyncio
+from llm_provider import get_llm_provider
+
+# Initialize Logger
+logger = logging.getLogger("nlp_analyzer")
 
 # Load spaCy model
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
     # Fallback if model not found (though it should be baked into Docker)
-    logger = logging.getLogger("nlp_analyzer")
     logger.warning("spaCy model 'en_core_web_sm' not found, attempting last-resort download...")
     import subprocess
     import sys
@@ -22,6 +24,7 @@ class NLPAnalyzer:
     
     def __init__(self):
         self.nlp = nlp
+        self.llm = get_llm_provider()
         
         # Nigerian-specific entity patterns
         self.nigerian_locations = self.load_nigerian_locations()
@@ -34,13 +37,7 @@ class NLPAnalyzer:
     
     def analyze_alert(self, description: str) -> Dict:
         """
-        Analyze alert description and extract intelligence
-        
-        Args:
-            description: Raw alert description text
-            
-        Returns:
-            Dictionary with extracted entities, keywords, and urgency level
+        Tier 1: Fast spaCy Analysis (Instant, Local)
         """
         if not description or len(description) < 10:
             return self._empty_result()
@@ -123,8 +120,30 @@ class NLPAnalyzer:
             'keywords': keywords,
             'urgency_level': urgency,
             'word_count': len(doc),
-            'auto_categorized': True
+            'auto_categorized': True,
+            'analysis_tier': 'FAST_SPACY'
         }
+
+    async def deep_analyze(self, description: str) -> Dict:
+        """
+        Tier 2: LLM Deep Analysis (Asynchronous, Advanced Reasoning)
+        """
+        if not self.llm:
+            return {"error": "No LLM provider configured"}
+
+        system_prompt = """
+        You are the 'Deep Analyst' for the National Security Platform. 
+        Your goal is to extract refined intelligence from alert descriptions.
+        Output MUST be a JSON object with:
+        - refined_severity: float (0.0 to 1.0)
+        - threat_actors: list of strings
+        - weapon_details: list of strings
+        - tactical_prediction: string (short prediction of next likely event)
+        - confidence: float
+        """
+
+        logger.info("Triggering Tier 2: LLM Deep Analysis...")
+        return await self.llm.analyze(description, system_prompt)
     
     def _classify_urgency(self, text: str) -> str:
         """Classify urgency level based on keyword presence"""
@@ -181,3 +200,9 @@ def analyze_alert_description(description: str) -> Dict:
     Called by the IntelligenceService when processing new alerts
     """
     return analyzer.analyze_alert(description)
+
+async def deep_analyze(description: str) -> Dict:
+    """
+    Public API for performing deep LLM analysis on alert descriptions.
+    """
+    return await analyzer.deep_analyze(description)

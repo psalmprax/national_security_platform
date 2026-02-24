@@ -90,12 +90,21 @@ async def run_nats_listener():
     except Exception as e:
         logger.error(f"Failed to connect to NATS: {e}")
 
-from nlp_analyzer import analyze_alert_description
+from nlp_analyzer import analyze_alert_description, deep_analyze
+from llm_provider import get_llm_provider
+from agents import CrisisAgent, DispatchAgent, SentinelAnalyst, SysAdminSentinel
 
 # ... (rest of imports)
 
+# Initialize Agent Stacks
+llm = get_llm_provider()
+crisis_agent = CrisisAgent(llm) if llm else None
+dispatch_agent = DispatchAgent(llm) if llm else None
+sentinel_analyst = SentinelAnalyst(llm) if llm else None
+sysadmin_sentinel = SysAdminSentinel(llm) if llm else None
+
 async def analyze_alert(alert_data):
-    # AI Analysis logic using spaCy NLP Analyzer
+    # Tier 1: Fast AI Analysis using spaCy
     content = alert_data.get('content_text', "")
     alert_id = alert_data.get('id')
     
@@ -103,33 +112,66 @@ async def analyze_alert(alert_data):
         logger.warning(f"Empty content for alert {alert_id}, skipping detailed NLP.")
         return
 
-    # Use the advanced NLP analyzer
+    # Use the fast NLP analyzer (spaCy) - Local & Instant
     analysis = analyze_alert_description(content)
     
-    severity_score = analysis.get('urgency_level_score', 0.1)
-    # Map urgency string to score if needed
     urgency_map = {'critical': 0.95, 'high': 0.75, 'medium': 0.5, 'low': 0.2}
-    if 'urgency_level' in analysis:
-        severity_score = urgency_map.get(analysis['urgency_level'], 0.1)
+    severity_score = urgency_map.get(analysis.get('urgency_level', 'low'), 0.1)
     
-    # Flatten entities into prefixed risk_keywords
+    # Flatten entities into risk_keywords
     risk_keywords = analysis.get('keywords', [])
     entities = analysis.get('entities', {})
     
-    for person in entities.get('people', []):
-        risk_keywords.append(f"PERSON:{person}")
-    for location in entities.get('locations', []):
-        risk_keywords.append(f"LOC:{location}")
-    for vehicle in entities.get('vehicles', []):
-        risk_keywords.append(f"VEHICLE:{vehicle}")
-    for weapon in entities.get('weapons', []):
-        risk_keywords.append(f"WEAPON:{weapon}")
-    for org in entities.get('organizations', []):
-        risk_keywords.append(f"ORG:{org}")
+    for key, items in entities.items():
+        if key == 'other': continue
+        for item in items:
+            risk_keywords.append(f"{key.upper()}:{item}")
 
-    logger.info(f"✅ AI Analysis complete for Alert {alert_id}: Score={severity_score}, Keywords={len(risk_keywords)}")
+    logger.info(f"✅ Tier 1 Analysis (spaCy) complete for Alert {alert_id}: Score={severity_score}")
     
-    # Update database
+    # Initial Database Update (Fast Path)
+    await update_alert_metadata(alert_id, severity_score, risk_keywords)
+
+    # Tier 2 & 3: Specialized Agent Review (Background/Async)
+    if llm:
+        asyncio.create_task(run_agent_review(alert_data, analysis))
+
+async def run_agent_review(alert_data: Dict, tier1_analysis: Dict):
+    """Run specialized agents in the background to avoid blocking the NATS listener"""
+    alert_id = alert_data.get('id')
+    content = alert_data.get('content_text', "")
+
+    try:
+        # LLM Deep Analysis
+        deep_res = await deep_analyze(content)
+        if deep_res and 'refined_severity' in deep_res:
+            logger.info(f"🤖 Tier 2 (LLM) refined Alert {alert_id} severity to {deep_res['refined_severity']}")
+            # Optional: trigger re-dispatch if severity jumps significantly
+
+        # Crisis Agent (Option 1)
+        if crisis_agent:
+            broadcast = await crisis_agent.generate_broadcast(alert_data, tier1_analysis)
+            if broadcast:
+                logger.info(f"📢 CrisisAgent: Broadcast generated for Alert {alert_id}")
+                # Future: Push to Push Notification service
+
+        # Dispatch Agent (Option 2)
+        if dispatch_agent:
+            suggestion = await dispatch_agent.suggest_deployment(alert_data, tier1_analysis)
+            if suggestion:
+                logger.info(f"🚁 DispatchAgent: Tactical suggestion for Alert {alert_id}: {suggestion.get('recommended_asset_types')}")
+
+        # Sentinel Analyst (Option 3A)
+        if sentinel_analyst:
+            # We would typically pass historical context here
+            correlation = await sentinel_analyst.correlate_threat(alert_data)
+            if correlation:
+                logger.info(f"📊 SentinelAnalyst: Threat correlation score for Alert {alert_id}: {correlation.get('correlation_score')}")
+
+    except Exception as e:
+        logger.error(f"Error in Multi-Agent review for Alert {alert_id}: {e}")
+
+async def update_alert_metadata(alert_id, severity_score, risk_keywords):
     if hasattr(app.state, 'db_pool'):
         try:
             async with app.state.db_pool.acquire() as conn:
@@ -137,27 +179,9 @@ async def analyze_alert(alert_data):
                     "UPDATE alerts SET severity_score = $1, risk_keywords = $2 WHERE id = $3",
                     severity_score, risk_keywords, alert_id
                 )
-                logger.info(f"💾 Updated alert {alert_id} in database with enriched metadata.")
+                logger.info(f"💾 Updated alert {alert_id} metadata.")
         except Exception as e:
-            logger.error(f"❌ Failed to update alert in database: {e}")
-    else:
-        logger.warning("⚠️ Database pool not available, skipping update.")
-
-    logger.info(f"✅ AI Analysis complete for Alert {alert_id}: Score={severity_score}, Keywords={risk_keywords}")
-    
-    # Update database
-    if hasattr(app.state, 'db_pool'):
-        try:
-            async with app.state.db_pool.acquire() as conn:
-                await conn.execute(
-                    "UPDATE alerts SET severity_score = $1, risk_keywords = $2 WHERE id = $3",
-                    severity_score, risk_keywords, alert_id
-                )
-                logger.info(f"💾 Updated alert {alert_id} in database.")
-        except Exception as e:
-            logger.error(f"❌ Failed to update alert in database: {e}")
-    else:
-        logger.warning("⚠️ Database pool not available, skipping update.")
+            logger.error(f"❌ Database error updating alert {alert_id}: {e}")
 
 @app.get("/")
 def read_root():
