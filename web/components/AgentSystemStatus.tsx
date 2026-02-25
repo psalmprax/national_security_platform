@@ -4,7 +4,8 @@
  * with premium visual styling
  */
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import Portal from './Portal';
 
 interface HybridSystemStatus {
     basic_hybrid: {
@@ -38,6 +39,7 @@ export default function AgentSystemStatus() {
     const [error, setError] = useState<string | null>(null);
     const [expanded, setExpanded] = useState(true);
     const [position, setPosition] = useState({ x: 0, y: 0 });
+    const dragControls = useDragControls();
 
     useEffect(() => {
         fetchAgentStatus();
@@ -102,174 +104,179 @@ export default function AgentSystemStatus() {
     }
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, x: position.x, y: position.y }}
-            drag
-            dragMomentum={false}
-            onDragEnd={(_: any, info: any) => {
-                setPosition({ x: position.x + info.offset.x, y: position.y + info.offset.y });
-            }}
-            className="fixed top-20 right-4 z-50 w-80 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 overflow-hidden"
-        >
-            {/* Header - Drag Handle */}
+        <Portal>
             <motion.div
-                onClick={() => setExpanded(!expanded)}
-                className="bg-gradient-to-r from-cyan-900/60 via-blue-900/60 to-cyan-900/60 px-5 py-4 cursor-grab active:cursor-grabbing border-b border-cyan-500/10"
-                whileHover={{ backgroundColor: 'rgba(8, 145, 178, 0.3)' }}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, x: position.x, y: position.y }}
+                drag
+                dragControls={dragControls}
+                dragListener={false}
+                dragMomentum={false}
+                onDragEnd={(_: any, info: any) => {
+                    setPosition({ x: position.x + info.offset.x, y: position.y + info.offset.y });
+                }}
+                className="fixed top-4 right-4 z-[9999] w-80 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 overflow-hidden"
             >
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <motion.div
-                            animate={{ rotate: [0, 10, -10, 0] }}
-                            transition={{ repeat: Infinity, duration: 3 }}
-                            className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/30"
-                        >
-                            <span className="text-xl">🤖</span>
-                        </motion.div>
-                        <div>
-                            <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                                AI Agent System
-                                <motion.span
-                                    animate={{ opacity: [0.5, 1, 0.5] }}
-                                    transition={{ repeat: Infinity, duration: 2 }}
-                                    className="w-2 h-2 bg-green-400 rounded-full inline-block"
-                                ></motion.span>
-                            </h3>
-                            <p className="text-slate-400 text-xs">Hybrid Intelligence Engine</p>
+                {/* Header - Drag Handle */}
+                <motion.div
+                    onPointerDown={(e) => dragControls.start(e)}
+                    onClick={() => setExpanded(!expanded)}
+                    className="bg-gradient-to-r from-cyan-900/60 via-blue-900/60 to-cyan-900/60 px-5 py-4 cursor-grab active:cursor-grabbing border-b border-cyan-500/10"
+                    whileHover={{ backgroundColor: 'rgba(8, 145, 178, 0.3)' }}
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <motion.div
+                                animate={{ rotate: [0, 10, -10, 0] }}
+                                transition={{ repeat: Infinity, duration: 3 }}
+                                className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/30"
+                            >
+                                <span className="text-xl">🤖</span>
+                            </motion.div>
+                            <div>
+                                <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                                    AI Agent System
+                                    <motion.span
+                                        animate={{ opacity: [0.5, 1, 0.5] }}
+                                        transition={{ repeat: Infinity, duration: 2 }}
+                                        className="w-2 h-2 bg-green-400 rounded-full inline-block"
+                                    ></motion.span>
+                                </h3>
+                                <p className="text-slate-400 text-xs">Hybrid Intelligence Engine</p>
+                            </div>
                         </div>
+                        <motion.div
+                            animate={{ rotate: expanded ? 180 : 0 }}
+                            className="text-slate-400"
+                        >
+                            ▼
+                        </motion.div>
                     </div>
-                    <motion.div
-                        animate={{ rotate: expanded ? 180 : 0 }}
-                        className="text-slate-400"
-                    >
-                        ▼
-                    </motion.div>
-                </div>
-            </motion.div>
+                </motion.div>
 
-            <AnimatePresence>
-                {expanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="p-5 space-y-5">
-                            {/* Basic Hybrid System */}
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                                    <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest">
-                                        Core Engine
-                                    </h4>
-                                </div>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <EnhancedStatusCard
-                                        label="OpenClaw"
-                                        sublabel="Orchestration"
-                                        value={status?.basic_hybrid?.by_framework?.openclaw || 0}
-                                        icon="⚙️"
-                                        color="blue"
-                                    />
-                                    <EnhancedStatusCard
-                                        label="Agent Zero"
-                                        sublabel="Adaptive"
-                                        value={status?.basic_hybrid?.by_framework?.agentzero || 0}
-                                        icon="🔷"
-                                        color="purple"
-                                    />
-                                    <EnhancedStatusCard
-                                        label="Native"
-                                        sublabel="Domain"
-                                        value={status?.basic_hybrid?.by_framework?.existing || 0}
-                                        icon="🛡️"
-                                        color="slate"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Divider with glow */}
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center">
-                                    <div className="w-full border-t border-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
-                                </div>
-                                <div className="relative flex justify-center">
-                                    <span className="bg-slate-900 px-3 text-cyan-500 text-xs">● ◕ ●</span>
-                                </div>
-                            </div>
-
-                            {/* Ultimate Hybrid System */}
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
-                                    <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">
-                                        Intelligence Layer
-                                    </h4>
-                                </div>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <EnhancedStatusCard
-                                        label="RAG"
-                                        sublabel="Memory"
-                                        value={status?.ultimate_hybrid?.langchain?.documents || 0}
-                                        icon="📚"
-                                        color="green"
-                                    />
-                                    <EnhancedStatusCard
-                                        label="CrewAI"
-                                        sublabel="Multi-Agent"
-                                        value={status?.ultimate_hybrid?.crewai?.agents?.length || 0}
-                                        icon="👥"
-                                        color="amber"
-                                    />
-                                    <EnhancedStatusCard
-                                        label="Actions"
-                                        sublabel="Executed"
-                                        value={status?.ultimate_hybrid?.actions?.executions || 0}
-                                        icon="⚡"
-                                        color="cyan"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Crew Agents List */}
-                            {status?.ultimate_hybrid?.crewai?.agents && status.ultimate_hybrid.crewai.agents.length > 0 && (
-                                <div className="pt-3 border-t border-slate-800">
-                                    <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">
-                                        Active Crew
-                                    </h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {status.ultimate_hybrid.crewai.agents.map((agent: string, idx: number) => (
-                                            <motion.div
-                                                key={agent}
-                                                initial={{ opacity: 0, scale: 0.8 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                transition={{ delay: idx * 0.1 }}
-                                                className="px-3 py-2 bg-gradient-to-r from-slate-800/80 to-slate-800/40 border border-slate-600/30 text-slate-300 text-xs rounded-xl flex items-center gap-2"
-                                            >
-                                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                                                {agent}
-                                            </motion.div>
-                                        ))}
+                <AnimatePresence>
+                    {expanded && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="p-5 space-y-5">
+                                {/* Basic Hybrid System */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
+                                        <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest">
+                                            Core Engine
+                                        </h4>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <EnhancedStatusCard
+                                            label="OpenClaw"
+                                            sublabel="Orchestration"
+                                            value={status?.basic_hybrid?.by_framework?.openclaw || 0}
+                                            icon="⚙️"
+                                            color="blue"
+                                        />
+                                        <EnhancedStatusCard
+                                            label="Agent Zero"
+                                            sublabel="Adaptive"
+                                            value={status?.basic_hybrid?.by_framework?.agentzero || 0}
+                                            icon="🔷"
+                                            color="purple"
+                                        />
+                                        <EnhancedStatusCard
+                                            label="Native"
+                                            sublabel="Domain"
+                                            value={status?.basic_hybrid?.by_framework?.existing || 0}
+                                            icon="🛡️"
+                                            color="slate"
+                                        />
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Footer */}
-                            <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                                    <span>All Systems Operational</span>
+                                {/* Divider with glow */}
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
+                                    </div>
+                                    <div className="relative flex justify-center">
+                                        <span className="bg-slate-900 px-3 text-cyan-500 text-xs">● ◕ ●</span>
+                                    </div>
                                 </div>
-                                <span>Updated: {new Date().toLocaleTimeString()}</span>
+
+                                {/* Ultimate Hybrid System */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
+                                        <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">
+                                            Intelligence Layer
+                                        </h4>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <EnhancedStatusCard
+                                            label="RAG"
+                                            sublabel="Memory"
+                                            value={status?.ultimate_hybrid?.langchain?.documents || 0}
+                                            icon="📚"
+                                            color="green"
+                                        />
+                                        <EnhancedStatusCard
+                                            label="CrewAI"
+                                            sublabel="Multi-Agent"
+                                            value={status?.ultimate_hybrid?.crewai?.agents?.length || 0}
+                                            icon="👥"
+                                            color="amber"
+                                        />
+                                        <EnhancedStatusCard
+                                            label="Actions"
+                                            sublabel="Executed"
+                                            value={status?.ultimate_hybrid?.actions?.executions || 0}
+                                            icon="⚡"
+                                            color="cyan"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Crew Agents List */}
+                                {status?.ultimate_hybrid?.crewai?.agents && status.ultimate_hybrid.crewai.agents.length > 0 && (
+                                    <div className="pt-3 border-t border-slate-800">
+                                        <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">
+                                            Active Crew
+                                        </h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {status.ultimate_hybrid.crewai.agents.map((agent: string, idx: number) => (
+                                                <motion.div
+                                                    key={agent}
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ delay: idx * 0.1 }}
+                                                    className="px-3 py-2 bg-gradient-to-r from-slate-800/80 to-slate-800/40 border border-slate-600/30 text-slate-300 text-xs rounded-xl flex items-center gap-2"
+                                                >
+                                                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                                                    {agent}
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Footer */}
+                                <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                                        <span>All Systems Operational</span>
+                                    </div>
+                                    <span>Updated: {new Date().toLocaleTimeString()}</span>
+                                </div>
                             </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
+        </Portal>
     );
 }
 
