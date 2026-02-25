@@ -210,16 +210,25 @@ services:
 
   # Backup Runner (Automated Disaster Recovery)
   backup-runner:
-    image: ubuntu:latest
+    build:
+      context: ./backend/backup-runner
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=verify-ca&sslrootcert=/etc/ssl/certs/ca.crt&sslcert=/etc/ssl/certs/client.root.crt&sslkey=/etc/ssl/certs/client.root.key
+      - MINIO_URL=http://minio:9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     volumes:
-      - ./scripts:/scripts # Removed :ro to allow chmod if necessary, though host chmod is better
-      - ./scripts/backups:/scripts/backups
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: /scripts/backup_runner.sh
+      - ./scripts/backups:/app/backups
+      - ./cockroach-certs/ca.crt:/etc/ssl/certs/ca.crt:ro
+      - ./cockroach-certs/client.root.crt:/etc/ssl/certs/client.root.crt:ro
+      - ./cockroach-certs/client.root.key:/etc/ssl/certs/client.root.key:ro
     restart: always
     networks:
       - national-security-net
-    entrypoint: [ "/bin/bash", "-c", "apt-get update && apt-get install -y cron docker.io && chmod +x /scripts/*.sh && /scripts/backup_runner.sh" ]
+    depends_on:
+      - cockroachdb
+      - minio
 
   # Prometheus (Metrics Collection)
   prometheus:

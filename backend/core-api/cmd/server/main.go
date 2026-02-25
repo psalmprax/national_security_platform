@@ -127,6 +127,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// Run Database Migrations
+	if err := db.RunMigrations(); err != nil {
+		log.Fatalf("Failed to run database migrations: %v", err)
+	}
+
 	// Essential Security Check
 	if os.Getenv("JWT_SECRET") == "" {
 		log.Fatalf("FATAL ERROR: JWT_SECRET environment variable is not set. Refusing to start in insecure state.")

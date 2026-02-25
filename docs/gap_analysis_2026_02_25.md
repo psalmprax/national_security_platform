@@ -22,17 +22,19 @@ This gap analysis provides an updated assessment of the National Security Platfo
 | Vault Secrets | 🟡 Partial | ✅ IMPLEMENTED | [`docker-compose.yml:199-210`](docker-compose.yml:199) |
 | Prometheus Metrics | 🟡 Partial | ✅ IMPLEMENTED | All services have `/metrics` |
 | Grafana Dashboards | 🟡 Partial | ✅ IMPLEMENTED | 2 dashboards configured |
+| JWT Secret | ❌ Insecure default | ✅ FIXED - Generated in .env | [.env:2](.env:2) |
 
 ### ⚠️ Still Outstanding:
 
 | Gap | Severity | Status | Location |
 |-----|----------|--------|----------|
-| JWT Secret Default | 🔴 Critical | ❌ Still `insecure_default_secret_for_dev_only` | [.env.example:9](.env.example:9) |
+| JWT Secret Default | 🔴 Critical | ❌ Fixed in .env, still default in .env.example | [.env.example:9](.env.example:9) |
 | Test Coverage (Backend) | 🟡 Medium | ❌ Limited - only 2 test files | [`backend/core-api/handlers/`](backend/core-api/handlers/) |
 | Test Coverage (Mobile) | 🔴 Critical | ❌ Only 1 basic widget test | [`mobile/test/`](mobile/test/) |
 | Data Encryption at Rest | 🔴 Critical | ❌ Not fully implemented | - |
 | NDPR User Data Export | 🟡 Medium | ❌ Not implemented | - |
 | NDPR Account Deletion | 🟡 Medium | ❌ Not implemented | - |
+| Database Migration System | 🟡 Medium | ❌ Manual scripts only | [`seed_database.sh`](seed_database.sh) |
 | Penetration Testing | 🔴 Critical | ❌ Not performed | - |
 
 ---
@@ -51,6 +53,7 @@ This gap analysis provides an updated assessment of the National Security Platfo
 | NATS Message Bus | ✅ Implemented | [`internal/mq/`](backend/core-api/internal/mq/) |
 | Storage (MinIO) | ✅ Implemented | [`internal/storage/`](backend/core-api/internal/storage/) |
 | Telemetry | ✅ Implemented | OTEL configured |
+| **Database Migrations** | ⚠️ **Manual** | 30 SQL files in [`platform/schema/`](platform/schema/) - no built-in migration system |
 
 ### Test Coverage - Gap: 🟡 MEDIUM
 
@@ -186,7 +189,8 @@ This gap analysis provides an updated assessment of the National Security Platfo
 
 | Gap | Severity | Status | Action Required |
 |-----|----------|--------|-----------------|
-| JWT Secret | 🔴 Critical | ❌ Default value | Generate strong secret |
+| JWT Secret | 🔴 Critical | ✅ Fixed in .env, default in .env.example | Generate strong secret for production |
+| Database Migrations | 🟡 Medium | Manual scripts only | Implement Go migration system |
 | TLS Certificates | 🔴 Critical | Self-signed | Get production CA |
 | Data Encryption at Rest | 🔴 Critical | Not implemented | Implement AES-256 |
 | Penetration Testing | 🔴 Critical | Not done | Schedule regular tests |
@@ -227,13 +231,14 @@ This gap analysis provides an updated assessment of the National Security Platfo
 
 ### Immediate (0-1 month) - Critical Path
 
-1. 🔴 Generate and configure production JWT_SECRET
+1. 🔴 Fix hardcoded Vault credentials in docker-compose
 2. 🔴 Replace self-signed TLS certificates with CA-signed certs
-3. 🟡 Expand backend unit tests (handlers, services, middleware)
-4. 🟡 Add mobile unit/widget tests
-5. 🟡 Implement data encryption at rest
-6. 🟡 Implement NDPR data export endpoint
-7. 🟡 Implement NDPR account deletion endpoint
+3. 🔴 Fix CockroachDB `--accept-sql-without-tls` security issue
+4. 🟡 Expand backend unit tests (handlers, services, middleware)
+5. 🟡 Add mobile unit/widget tests
+6. 🟡 Implement data encryption at rest
+7. 🟡 Implement NDPR data export endpoint
+8. 🟡 Implement NDPR account deletion endpoint
 
 ### Short-term (1-3 months)
 
@@ -241,7 +246,8 @@ This gap analysis provides an updated assessment of the National Security Platfo
 2. 🟡 Complete K8s production setup
 3. 🟡 Configure automated backup testing
 4. 🟡 Add Dependabot for dependency scanning
-5. 🔴 Begin ISO 27001 compliance preparation
+5. 🟡 Implement database migration system (Go)
+6. 🔴 Begin ISO 27001 compliance preparation
 
 ### Medium-term (3-6 months)
 
@@ -280,6 +286,10 @@ This gap analysis provides an updated assessment of the National Security Platfo
 
 10. 🟡 **Vault Dev Mode** - Running in dev mode with root token exposed ([`VAULT_DEV_ROOT_TOKEN_ID: root`](docker-compose.yml:205)).
 
+11. 🟡 **Schema Migration System** - No built-in migration system in Go app. 30 SQL files in [`platform/schema/`](platform/schema/) must be executed manually via [`seed_database.sh`](seed_database.sh). No version tracking or rollback capability.
+
+12. 🟡 **Schema Inconsistency** - [`backend/core-api/migrations/`](backend/core-api/migrations/) only has 1 file (`agency_rbac.sql`) while [`platform/schema/`](platform/schema/) has 30 files. The backend doesn't manage its own migrations.
+
 ---
 
 ## Conclusion
@@ -297,13 +307,14 @@ The National Security Platform has made significant progress since the previous 
 - Risk calculation endpoints
 
 **🔴 Remaining Critical Priorities:**
-1. Generate production JWT_SECRET
-2. Replace self-signed TLS certificates
-3. Fix hardcoded Vault credentials in docker-compose
-4. Implement data encryption at rest
-5. Expand backend/mobile test coverage
-6. Implement NDPR data export/deletion
-7. Conduct penetration testing
+1. Replace self-signed TLS certificates
+2. Fix hardcoded Vault credentials in docker-compose
+3. Implement data encryption at rest
+4. Expand backend/mobile test coverage
+5. Implement NDPR data export/deletion
+6. Conduct penetration testing
+7. Implement database migration system (Go)
+8. Fix CockroachDB `--accept-sql-without-tls` security issue
 8. Begin compliance framework preparation
 
 ---

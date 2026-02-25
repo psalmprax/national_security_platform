@@ -1,3 +1,0 @@
-0 2 * * * /scripts/backup_cockroachdb.sh >> /var/log/backup_database.log 2>&1
-0 3 * * * /scripts/backup_minio.sh >> /var/log/backup_minio.log 2>&1
-0 4 * * 0 /scripts/backup_config.sh >> /var/log/backup_config.log 2>&1
