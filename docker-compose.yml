@@ -15,10 +15,9 @@ services:
       - MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY}
       - ALLOWED_ORIGINS=http://localhost:8085,http://localhost:3000,http://130.61.26.105:8086,http://130.61.26.105:3000,http://130.61.26.105:3001
       # Vault Integration (AppRole)
-      - VAULT_ADDR=http://vault:8200
-      - VAULT_ROLE_ID=16296aec-baed-fee5-e859-21daf3afc67e
-      - VAULT_SECRET_ID=1a497874-91b0-79d2-89bc-add1621ebc74
-      - VAULT_SECRET_ID=1a497874-91b0-79d2-89bc-add1621ebc74
+      - VAULT_ADDR=${VAULT_ADDR:-http://vault:8200}
+      - VAULT_ROLE_ID=${VAULT_ROLE_ID}
+      - VAULT_SECRET_ID=${VAULT_SECRET_ID}
       # Removed Root Token for better security demo
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
       - OTEL_SERVICE_NAME=core-api
@@ -71,7 +70,7 @@ services:
   # CockroachDB (Distributed SQL Engine)
   cockroachdb:
     image: cockroachdb/cockroach:latest-v23.1
-    command: start-single-node --certs-dir=/cockroach/cockroach-data/certs --accept-sql-without-tls
+    command: start-single-node --certs-dir=/cockroach/cockroach-data/certs
     # Ports removed: Database only accessible through internal network
     # ports:
     #   - "26257:26257"
@@ -106,7 +105,7 @@ services:
       - "9001:9001" # Console
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-change_this_password_123}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
     networks:
@@ -115,7 +114,7 @@ services:
   # NATS JetStream (Message Bus)
   nats:
     image: nats:alpine
-    command: "--js --sd=/data --auth ${NATS_TOKEN:-nats_token_change_immediately}"
+    command: "--js --sd=/data --auth ${NATS_TOKEN}"
     ports:
       - "4222:4222" # Client
       - "8222:8222" # Monitoring
@@ -202,7 +201,7 @@ services:
     ports:
       - "8200:8200"
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN:-root}
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
     cap_add:
       - IPC_LOCK
