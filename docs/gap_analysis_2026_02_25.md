@@ -31,9 +31,9 @@ This gap analysis provides an updated assessment of the National Security Platfo
 | Vault Token Hardcoded | 🔴 Critical | ✅ FIXED - Moved to environment variables | [`docker-compose.yml:19-20`](docker-compose.yml:19) |
 | CockroachDB TLS | 🔴 Critical | ✅ FIXED - Enforced TLS | [`docker-compose.yml:73`](docker-compose.yml:73) |
 | Database Migration System | 🟡 Medium | ✅ FIXED - Enforced SSL and removed fallback | [`migrations.go:19`](backend/core-api/internal/db/migrations.go:19) |
-| NDPR User Data Export | 🟡 Medium | ✅ IMPLEMENTED | [`user_data.go`](backend/core-api/handlers/user_data.go) |
-| NDPR Account Deletion | 🟡 Medium | ✅ IMPLEMENTED | [`user_data.go`](backend/core-api/handlers/user_data.go) |
-| Penetration Testing | 🔴 Critical | ❌ Not performed | - |
+| Penetration Testing | � Critical | ✅ COMPLETED | [`penetration_test.py`](backend/security-sentinel/penetration_test.py) |
+| Rate Limiting | 🟡 Medium | ❌ FAILED - Scanner made 20 requests without block | [`penetration_test.py`](backend/security-sentinel/penetration_test.py) |
+| SSL/TLS Verification | 🟡 Medium | ❌ FAILED - Connection refused on port 8443 | [`penetration_test.py`](backend/security-sentinel/penetration_test.py) |
 | CI/CD Environment Variables | 🔴 Critical | ✅ FIXED - Jenkinsfile generates missing vars | [`Jenkinsfile.remote:46`](Jenkinsfile.remote:46) |
 
 ---
@@ -307,13 +307,14 @@ The National Security Platform has made significant progress since the previous 
 - Database migration system (golang-migrate)
 - Backup runner service
 - Data encryption at rest (AES-256-GCM)
-- Penetration testing automation script
+- Penetration testing automation script (✅ **Run on Feb 26, 2026**)
 - ISO 27001 compliance framework documentation
 - Expanded test coverage
 
 **🔴 Remaining Critical Priorities:**
 1. Replace self-signed TLS certificates (for production launch)
-2. Conduct first penetration test using [`penetration_test.py`](backend/security-sentinel/penetration_test.py) and review findings
+2. **Review & Fix Scanner Findings**: Address missing rate limiting on `/api/v1/public-alerts`.
+3. **Verify Port Exposure**: Ensure port 8443 is properly serving TLS for external verification.
 
 ---
 
