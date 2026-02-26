@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/cockroachdb"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
@@ -28,11 +29,11 @@ func RunMigrations() error {
 		return fmt.Errorf("unable to create iofs driver: %w", err)
 	}
 
-	// Replace scheme for migrate library (needs pgx5://)
+	// Replace scheme for migrate library (needs cockroachdb:// for better compatibility)
 	if strings.HasPrefix(dbURL, "postgresql://") {
-		dbURL = strings.Replace(dbURL, "postgresql://", "pgx5://", 1)
+		dbURL = strings.Replace(dbURL, "postgresql://", "cockroachdb://", 1)
 	} else if strings.HasPrefix(dbURL, "postgres://") {
-		dbURL = strings.Replace(dbURL, "postgres://", "pgx5://", 1)
+		dbURL = strings.Replace(dbURL, "postgres://", "cockroachdb://", 1)
 	}
 
 	// Initialize the migrator
