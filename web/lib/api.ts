@@ -1121,3 +1121,85 @@ export async function fetchAgencyAssets(agencyId: string): Promise<any[]> {
         return [];
     }
 }
+
+// Phase 28: Evidence Ledger (Immutable Chain-Linked Audit)
+
+export interface EvidenceLedgerEntry {
+    id: string;
+    entity_type: string;
+    entity_id: string;
+    content_hash: string;
+    previous_hash: string;
+    recorded_by?: string;
+    metadata?: Record<string, any>;
+    created_at: string;
+}
+
+export async function fetchEvidenceLedger(entityType?: string, entityId?: string): Promise<EvidenceLedgerEntry[]> {
+    try {
+        let url = `/api/v1/evidence/ledger`;
+        if (entityType && entityId) {
+            url += `?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`;
+        }
+        const response = await apiFetch(url);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return data.entries || [];
+    } catch (error) {
+        console.error('Failed to fetch evidence ledger:', error);
+        return [];
+    }
+}
+
+export async function recordEvidence(entityType: string, entityId: string, content: string, metadata?: Record<string, any>): Promise<any> {
+    try {
+        const response = await apiFetch(`/api/v1/evidence/record`, {
+            method: 'POST',
+            body: JSON.stringify({ entity_type: entityType, entity_id: entityId, content, metadata }),
+        });
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to record evidence:', error);
+        return null;
+    }
+}
+
+export async function verifyEvidenceHash(hash: string): Promise<any> {
+    try {
+        const response = await apiFetch(`/api/v1/evidence/verify/${encodeURIComponent(hash)}`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to verify evidence:', error);
+        return null;
+    }
+}
+
+// Phase 28: Semantic Search
+
+export interface SearchResult {
+    id: string;
+    alert_type: string;
+    content_text?: string;
+    status: string;
+    priority_class: string;
+    severity_score?: number;
+    state_name?: string;
+    lga_name?: string;
+    created_at: string;
+    rank: number;
+}
+
+export async function searchAlerts(query: string): Promise<SearchResult[]> {
+    try {
+        const response = await apiFetch(`/api/v1/search/alerts?q=${encodeURIComponent(query)}`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return data.results || [];
+    } catch (error) {
+        console.error('Failed to search alerts:', error);
+        return [];
+    }
+}
+

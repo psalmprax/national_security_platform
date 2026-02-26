@@ -25,6 +25,7 @@ import CyberSidebar from './cyber/CyberSidebar';
 import CyberHUD from './cyber/CyberHUD';
 import CyberAlertTriage from './cyber/CyberAlertTriage';
 import CyberAuditLog from './cyber/CyberAuditLog';
+import EvidenceLedger from './cyber/EvidenceLedger';
 import CyberCompliance from './cyber/CyberCompliance';
 import CyberAnalytics from './cyber/CyberAnalytics';
 
@@ -46,7 +47,7 @@ interface CyberDashboardProps {
 
 export default function CyberDashboard({ alerts, currentTime, securityStatus, user, logout, displayMode, setDisplayMode }: CyberDashboardProps) {
     // const { user, logout } = useAuth(); // Redundant, passed as props
-    const [activeView, setActiveView] = useState<'map' | 'alerts' | 'data' | 'analytics' | 'profile' | 'registry' | 'compliance'>('map');
+    const [activeView, setActiveView] = useState<'map' | 'alerts' | 'data' | 'analytics' | 'profile' | 'registry' | 'compliance' | 'evidence'>('map');
     const [filterMode, setFilterMode] = useState<'all' | 'secure' | 'active' | 'signal'>('all');
     const [operationMode, setOperationMode] = useState<'NOMINAL' | 'SURGICAL' | 'TACTICAL' | 'DARK_OPS'>('NOMINAL');
     const [showNotifications, setShowNotifications] = useState(false);
@@ -441,6 +442,11 @@ export default function CyberDashboard({ alerts, currentTime, securityStatus, us
                             {/* VIEW: Analytics */}
                             {activeView === 'analytics' && (
                                 <CyberAnalytics />
+                            )}
+
+                            {/* VIEW: Evidence Ledger */}
+                            {activeView === 'evidence' && (
+                                <EvidenceLedger />
                             )}
                         </div>
 

@@ -6,7 +6,8 @@ import {
     Database,
     Cpu,
     Activity,
-    Bell
+    Bell,
+    Link2
 } from 'lucide-react';
 import { User as UserType } from '../../../lib/AuthContext';
 
@@ -91,6 +92,18 @@ export default function CyberSidebar({
                         Analytics
                     </div>
                 </div>
+                {(user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN' || user?.role === 'SECURITY_OFFICER') && (
+                    <div className="relative group">
+                        <Link2
+                            onClick={() => setActiveView('evidence')}
+                            className={`w-5 h-5 transition-colors cursor-pointer ${activeView === 'evidence' ? 'text-amber-400' : 'text-zinc-600 hover:text-white'
+                                }`}
+                        />
+                        <div className="absolute left-full ml-3 px-3 py-2 bg-black/90 border border-amber-500/20 rounded-lg text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                            Evidence Ledger
+                        </div>
+                    </div>
+                )}
                 {(user?.role === 'ADMIN' || user?.role === 'SYSTEM_ADMIN') && (
                     <div className="relative group">
                         <Activity
