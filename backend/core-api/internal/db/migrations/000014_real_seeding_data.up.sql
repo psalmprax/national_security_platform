@@ -64,7 +64,7 @@ ON CONFLICT (hwid) DO NOTHING;
 INSERT INTO media_attachments (alert_id, storage_path, content_hash_sha256, mime_type, file_size_bytes)
 SELECT id, 'alerts/2026/01/kidnap_scene_01.jpg', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'image/jpeg', 1048576
 FROM alerts WHERE id = '4b23dadc-da14-4eb4-9944-55b2a1c31d3f'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (alert_id, storage_path) DO NOTHING;
 
 -- 6. Additional Corroboration
 INSERT INTO corroborations (alert_id, verifier_id, confidence_score, comments)

@@ -308,21 +308,21 @@ ON CONFLICT (state_id, name) DO NOTHING;
 INSERT INTO villages (lga_id, name, location, population_est)
 SELECT id, 'Garki', ST_GeomFromText('POINT(7.53 9.03)', 4326), 15000
 FROM lgas WHERE name = 'Abuja Municipal'
-ON CONFLICT DO NOTHING; -- Assuming village names unique per LGA or UUIDs handled
+ON CONFLICT (lga_id, name) DO NOTHING; -- Assuming village names unique per LGA or UUIDs handled
 
 INSERT INTO villages (lga_id, name, location, population_est)
 SELECT id, 'Wuse', ST_GeomFromText('POINT(7.47 9.06)', 4326), 25000
 FROM lgas WHERE name = 'Abuja Municipal'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (lga_id, name) DO NOTHING;
 
 INSERT INTO villages (lga_id, name, location, population_est)
 SELECT id, 'Maitama', ST_GeomFromText('POINT(7.50 9.08)', 4326), 10000
 FROM lgas WHERE name = 'Abuja Municipal'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (lga_id, name) DO NOTHING;
 
 INSERT INTO villages (lga_id, name, location, population_est)
 SELECT id, 'Asokoro', ST_GeomFromText('POINT(7.52 9.04)', 4326), 8000
 FROM lgas WHERE name = 'Abuja Municipal'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (lga_id, name) DO NOTHING;
 
 -- Further village data should be loaded via external CSV/ETL processes.

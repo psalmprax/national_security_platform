@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS villages (
     name STRING NOT NULL,
     location GEOMETRY(POINT, 4326),
     population_est INT,
-    created_at TIMESTAMP DEFAULT current_timestamp()
+    created_at TIMESTAMP DEFAULT current_timestamp(),
+    UNIQUE (lga_id, name)
 );
 
 -- 2. Trusted Device Registry (PKI)
@@ -53,7 +54,8 @@ CREATE TABLE IF NOT EXISTS media_attachments (
     file_size_bytes INT,
     is_encrypted BOOLEAN DEFAULT TRUE,
     encryption_metadata JSONB, -- IV, algorithm version, etc.
-    created_at TIMESTAMP DEFAULT current_timestamp()
+    created_at TIMESTAMP DEFAULT current_timestamp(),
+    UNIQUE (alert_id, storage_path)
 );
 
 -- 4. Corroboration & Verification (Web of Trust)
@@ -76,3 +78,7 @@ CREATE INDEX IF NOT EXISTS villages_loc_idx ON villages USING GIST(location);
 -- Ensure columns exist for regional identification (added in v1.1)
 ALTER TABLE states ADD COLUMN IF NOT EXISTS code STRING UNIQUE;
 ALTER TABLE lgas ADD COLUMN IF NOT EXISTS code STRING UNIQUE;
+
+-- Ensure unique constraints exist for conflict handling in later migrations
+ALTER TABLE villages ADD CONSTRAINT IF NOT EXISTS villages_lga_id_name_key UNIQUE (lga_id, name);
+ALTER TABLE media_attachments ADD CONSTRAINT IF NOT EXISTS media_attachments_alert_id_storage_path_key UNIQUE (alert_id, storage_path);

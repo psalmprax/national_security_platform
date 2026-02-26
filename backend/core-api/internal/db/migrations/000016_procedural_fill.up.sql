@@ -7,7 +7,7 @@ SELECT
     name || ' Central District', 
     ST_Buffer(ST_Centroid(boundary_geom)::geography, 15000)::geometry 
 FROM states
-ON CONFLICT DO NOTHING;
+ON CONFLICT (state_id, name) DO NOTHING;
 
 -- 2. Generate Synthetic Villages (50 per State)
 -- Using generate_series and calculating random offsets from Centroid
@@ -24,7 +24,7 @@ SELECT
 FROM states s
 JOIN lgas l ON l.state_id = s.id AND l.name LIKE '%Central District'
 CROSS JOIN generate_series(1, 50) as i
-ON CONFLICT DO NOTHING;
+ON CONFLICT (lga_id, name) DO NOTHING;
 
 -- 3. Specific Forest Locations
 INSERT INTO villages (lga_id, name, location, population_est)
