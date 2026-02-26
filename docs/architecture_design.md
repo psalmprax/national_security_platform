@@ -142,7 +142,7 @@ C4Context
 
 ### 2.3 Database Entity Relationship Diagram (ERD)
 
-The platform currently maintains **14 core tables** across operational, geospatial, and security domains:
+The platform currently maintains **21 core tables** across operational, geospatial, security, and monetization domains:
 
 ```mermaid
 erDiagram
@@ -155,16 +155,22 @@ erDiagram
     ALERTS ||--o{ MEDIA_ATTACHMENTS : "contains"
     ALERTS ||--o{ CORROBORATIONS : "receives"
     ALERTS ||--o{ MISSIONS : "triggers"
+    ALERTS ||--o{ PUBLIC_ALERTS : "broadcasts"
 
     AGENCIES ||--o{ ASSETS : "owns"
     AGENCIES ||--o{ AGENCY_PERSONNEL : "employs"
+    AGENCIES ||--o{ AGENCY_ALERT_TYPES : "subscribes_to"
     
     ASSETS ||--o{ MISSIONS : "dispatched_for"
     
     USERS ||--o{ MISSIONS : "commands"
+    USERS ||--o{ SUBSCRIPTIONS : "has"
+    USERS ||--o{ ANONYMOUS_TIPS : "submits"
+    USERS ||--o{ EMERGENCY_SOS : "triggers"
     
     STATES ||--o{ LGAS : "contains"
     LGAS ||--o{ VILLAGES : "contains"
+    LGAS ||--o{ SAFETY_SCORES : "measured_by"
     STATES ||--o{ USERS : "located_in"
     LGAS ||--o{ USERS : "located_in"
     
@@ -316,6 +322,73 @@ erDiagram
         string status "PASS | FAIL"
         jsonb findings "Vulnerability details"
         jsonb meta_data "Scanner config"
+    }
+
+    PUBLIC_ALERTS {
+        uuid id PK
+        uuid created_by FK
+        string title
+        string message
+        string severity "LOW | MEDIUM | HIGH | CRITICAL"
+        float latitude
+        float longitude
+        float radius_km
+        timestamp created_at
+    }
+
+    SAFETY_SCORES {
+        uuid id PK
+        uuid lga_id FK
+        float score "0.0 to 1.0"
+        int total_alerts
+        int resolved_alerts
+        timestamp calculated_at
+    }
+
+    ANONYMOUS_TIPS {
+        uuid id PK
+        string tip_type
+        string content
+        float latitude
+        float longitude
+        string status "PENDING | VERIFIED | DISMISSED"
+        timestamp created_at
+    }
+
+    MISSING_PERSONS {
+        uuid id PK
+        uuid reported_by FK
+        string full_name
+        string description
+        string last_seen_location
+        string status "MISSING | FOUND | CLOSED"
+        timestamp reported_at
+    }
+
+    EMERGENCY_SOS {
+        uuid id PK
+        uuid user_id FK
+        float latitude
+        float longitude
+        string status "ACTIVE | RESPONDED | RESOLVED"
+        timestamp triggered_at
+    }
+
+    SUBSCRIPTIONS {
+        uuid id PK
+        uuid user_id FK UK
+        string tier "community | guardian | enterprise"
+        string status "active | expired | cancelled"
+        string transaction_id
+        string platform "ios | android | web"
+        timestamp expires_at
+    }
+
+    AGENCY_ALERT_TYPES {
+        uuid id PK
+        uuid agency_id FK
+        string alert_type
+        bool is_active
     }
 ```
 
@@ -673,3 +746,45 @@ Hardening of core infrastructure and implementation of national data privacy man
 
 ### 17.3 Automated Security Sentinel (DAST Expansion)
 - **Continuous Penetration Scouting**: Integrated `penetration_test.py` into the security stack. This tool provides automated coverage for SQLi, XSS, and authentication bypass, reporting real-time risk scores to the National Security Dashboard.
+
+## 18. Phase 27: Monetization & Ad Integration (Feb 2026)
+Introduction of a freemium subscription model with ad-supported content for community-tier users.
+
+### 18.1 Subscription Infrastructure
+- **Database Schema**: `subscriptions` table tracks user tiers (`community`, `guardian`, `enterprise`), expiration dates, and transaction metadata.
+- **API Surface**:
+    - `GET /api/v1/subscriptions/status` — Retrieves current tier and expiration.
+    - `POST /api/v1/subscriptions/upgrade` — Simulated upgrade (IAP validation deferred).
+    - `POST /api/v1/subscriptions/cancel` — Simulated cancellation.
+- **CockroachDB Compatibility**: DDL and DML operations are separated across migration boundaries to avoid in-transaction schema reference errors.
+
+### 18.2 Mobile Ad Integration
+- **AdService**: Initialized in `main.dart` on startup. Uses `google_mobile_ads` with tier-aware enable/disable logic.
+- **Ad Placement**: `AdBannerWidget` integrated into `PanicScreen` for community-tier users. Guardian and Enterprise tiers suppress ads automatically.
+
+## 19. Extended Features (Cross-Phase)
+Features implemented across multiple phases that were not previously documented in the architecture.
+
+### 19.1 Missing Persons Registry
+- **API Surface**:
+    - `GET /api/v1/missing-persons` — List reported missing persons.
+    - `POST /api/v1/missing-persons` — Submit a missing person report.
+- **Handler**: `missing_persons.go`
+
+### 19.2 Emergency SOS
+- **Database Schema**: `emergency_sos` table with real-time geolocation and status tracking.
+- **API Surface**: Registered via `RegisterSOSRoutes()` for authenticated users.
+- **Handler**: `sos.go`
+
+### 19.3 Risk Assessment Engine
+- **Module**: `risks.go` — Comprehensive risk profiling and threat prediction per LGA/region.
+- **API Surface**: Registered via `RegisterRiskRoutes()` with database pool access.
+
+### 19.4 Backup Runner (Disaster Recovery Service)
+- **Architecture**: Containerized backup service (`backup-runner`) using CockroachDB CLI and MinIO client.
+- **Function**: Automated database dumps to S3-compatible object storage on a scheduled basis.
+- **Security**: Uses TLS-secured connections to CockroachDB and MinIO via mounted certificates.
+
+### 19.5 AI Agent System HUD
+- **Component**: `AgentSystemStatus.tsx` — Floating, draggable panel displaying Core Engine (OpenClaw, Agent Zero, Native) and Intelligence Layer (RAG, CrewAI, Actions) metrics.
+- **Design**: Military-grade tactical aesthetic with angular cut-corner geometry, animated scan lines, and SVG hex icon containers.
