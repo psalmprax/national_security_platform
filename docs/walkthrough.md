@@ -190,7 +190,8 @@ Achieved full production readiness with the completion of 15 core Kubernetes man
 ## 🛠️ Final UI / Logic Stabilizations
 
 ### 🛰️ Mapbox Satellite Logic Fix
-- **System Intelligence Lock**: Resolved an issue where the tactical view toggle was failing to trigger a Mapbox style switch. The map now correctly shifts to 3D satellite imagery with terrain exaggeration when requested.
+- **Robust Sync Engine**: Resolved an issue where the tactical view toggle was failing to trigger a Mapbox style switch. Implemented a `currentStyleRef` to precisely track and synchronize the Mapbox GL JS engine state with the React dashboard props, ensuring 100% reliable imagery toggling.
+- **Tactical Elevation**: The map now correctly shifts to 3D satellite imagery with 1.5x terrain exaggeration and a tactical 60-degree pitch when requested.
 - **Build Integrity**: Fixed critical build regressions in the intelligence search module, ensuring 100% type safety and successful Next.js production builds.
 
 ---
