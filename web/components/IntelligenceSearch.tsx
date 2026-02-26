@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Search, X, Loader2, MapPin, Clock, AlertTriangle, ArrowRight, Zap } from 'lucide-react';
-import { searchAlerts, SearchResult, formatLabel } from '../../lib/api';
+import { searchAlerts, SearchResult, formatLabel } from '../lib/api';
 
 interface IntelligenceSearchProps {
     onSelectAlert?: (alertId: string) => void;
@@ -15,7 +15,7 @@ export default function IntelligenceSearch({ onSelectAlert }: IntelligenceSearch
     const [totalResults, setTotalResults] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleSearch = useCallback(async (q: string) => {
         if (q.length < 2) { setResults([]); setTotalResults(0); return; }

@@ -65,7 +65,8 @@ export default function MapboxMap({
 
         mapboxgl.accessToken = token;
 
-        const getMapStyle = (layer: string) => {
+        const getMapStyle = (layer: string, useSatellite: boolean) => {
+            if (useSatellite) return 'mapbox://styles/mapbox/satellite-v9';
             switch (layer) {
                 case 'satellite': return 'mapbox://styles/mapbox/satellite-v9';
                 case 'terrain': return 'mapbox://styles/mapbox/outdoors-v12';
@@ -76,10 +77,10 @@ export default function MapboxMap({
         try {
             const map = new mapboxgl.Map({
                 container: mapContainerRef.current,
-                style: getMapStyle(mapLayer),
+                style: getMapStyle(mapLayer, showSatellite),
                 center: [8.6753, 9.0820], // Nigeria center
                 zoom: 5.5,
-                pitch: isCyber ? 45 : (mapLayer === 'satellite' ? 60 : 0),
+                pitch: isCyber ? 45 : ((showSatellite || mapLayer === 'satellite') ? 60 : 0),
                 antialias: true
             });
 
@@ -139,7 +140,8 @@ export default function MapboxMap({
     useEffect(() => {
         if (!isMapSupported || !mapRef.current) return;
 
-        const getMapStyle = (layer: string) => {
+        const getMapStyle = (layer: string, useSatellite: boolean) => {
+            if (useSatellite) return 'mapbox://styles/mapbox/satellite-v9';
             switch (layer) {
                 case 'satellite': return 'mapbox://styles/mapbox/satellite-v9';
                 case 'terrain': return 'mapbox://styles/mapbox/outdoors-v12';
@@ -147,7 +149,8 @@ export default function MapboxMap({
             }
         };
 
-        const newStyle = getMapStyle(mapLayer);
+        const newStyle = getMapStyle(mapLayer, showSatellite);
+        const effectiveLayer = showSatellite ? 'satellite' : mapLayer;
 
         try {
             const currentStyle = mapRef.current.getStyle();
@@ -167,7 +170,7 @@ export default function MapboxMap({
                                 'tileSize': 512
                             });
                         }
-                        if (mapLayer === 'satellite' || mapLayer === 'terrain') {
+                        if (effectiveLayer === 'satellite' || effectiveLayer === 'terrain') {
                             mapRef.current.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
                         } else {
                             mapRef.current.setTerrain(null);
@@ -176,11 +179,11 @@ export default function MapboxMap({
                     setTimeout(() => setIsSwitching(false), 800);
                 });
             }
-            mapRef.current.setPitch(mapLayer === 'satellite' || mapLayer === 'terrain' ? 60 : (isCyber ? 45 : 0));
+            mapRef.current.setPitch(effectiveLayer === 'satellite' || effectiveLayer === 'terrain' ? 60 : (isCyber ? 45 : 0));
         } catch (error) {
             setIsSwitching(false);
         }
-    }, [mapLayer, isCyber, isMapSupported]);
+    }, [mapLayer, showSatellite, isCyber, isMapSupported]);
 
     // Handle Alert Markers
     useEffect(() => {
