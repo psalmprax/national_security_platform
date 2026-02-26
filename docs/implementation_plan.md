@@ -118,3 +118,27 @@ Resolution of cross-project resource conflicts and implementation of automated d
 - **File**: `viral_forge/Jenkinsfile.remote`.
 - **Auth**: SSH-key based authentication for `130.61.26.105`.
 - **Process**: Git checkout -> SSH rsync -> Docker Compose build/up -> Automated DB Seeding.
+
+## Phase 25: Security Hardening & NDPR Compliance
+
+The goal is to address critical security gaps identified in the February 25, 2026 report, including insecure database connection fallbacks, hardcoded credentials, and missing data privacy features.
+
+### Proposed Changes
+
+#### Backend (Go Core API)
+- **Enforced SSL**: Modified `migrations.go` to fail if `DATABASE_URL` is missing and ensure secure connections.
+- **NDPR Endpoints**: 
+    - `GET /api/v1/user/export`: Compiles user profile and alerts into a compliance JSON package.
+    - `DELETE /api/v1/user/delete`: Synchronously scrubs user record and anonymizes associated data.
+- **Unit Testing**: Added `handlers/user_data_test.go` to verify authorization and validation logic.
+
+#### Infrastructure
+- **Vault Hardening**: Removed hardcoded credentials from `docker-compose.yml`.
+- **CockroachDB Security**: Removed `--accept-sql-without-tls` and tightened network exposure.
+- **Jenkins Fix**: Escaped shell variables in `Jenkinsfile.remote` to resolve Groovy interpolation errors during deployment.
+- **Automated Penetration Testing**: Implemented `penetration_test.py` as a self-healing security sentinel tool.
+
+## Verification Plan
+### Automated Tests
+- `go test -v ./handlers/user_data*`
+- `python3 ./backend/security-sentinel/penetration_test.py`

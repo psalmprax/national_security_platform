@@ -659,3 +659,17 @@ To prevent resource contention on shared OCI nodes, a tiered port strategy is en
 The CI/CD layer leverages Jenkins with SSH-based remote orchestration:
 - **Symmetric Deployment**: Jenkins agents utilize specialized `Jenkinsfile.remote` patterns to manage container lifecycles across distinct OCI instances.
 - **Data Integrity Gates**: Automated seeding stages are integrated into the pipeline to ensure that intelligence databases are never in an uninitialized state following infrastructure rotations.
+
+## 17. Phase 25: Security & NDPR Compliance (Feb 2026)
+Hardening of core infrastructure and implementation of national data privacy mandates.
+
+### 17.1 Hardened Ingestion Lifecycle
+- **Secure Migration Protocol**: The database migration system (`migrations.go`) now enforces SSL and rejects unencrypted connections, mitigating MITM risks during schema rotations.
+- **Secrets Orchestration**: Transitioned infrastructure configuration to a zero-hardcoded-credential model. `docker-compose.yml` now utilizes dynamic environment variable injection for Vault and CockroachDB authentication.
+
+### 17.2 NDPR Compliance Architecture
+- **Right to Portability**: Implemented atomic JSON export capability for user-centric intelligence packets.
+- **Right to Erasure (Scrubbing)**: Developed a multi-stage data erasure protocol that removes identifiable PII while maintaining the integrity of anonymous threat signals.
+
+### 17.3 Automated Security Sentinel (DAST Expansion)
+- **Continuous Penetration Scouting**: Integrated `penetration_test.py` into the security stack. This tool provides automated coverage for SQLi, XSS, and authentication bypass, reporting real-time risk scores to the National Security Dashboard.

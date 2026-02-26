@@ -143,3 +143,25 @@ To resolve the "Identity file not accessible" error, the pipeline now uses Jenki
 ---
 **National Security Platform & Viral Forge // Infrastructure Harmonization Complete**
 **Scalable. Harmonized. Automated.**
+
+## 12. Phase 25: Security Hardening & NDPR Compliance
+We have addressed critical security findings and implemented data privacy controls required by NDPR.
+
+### 🔒 Core Security Hardening
+- **Forced SSL Migrations**: Removed the insecure `sslmode=disable` fallback. The platform now refuses to start without a secure database connection.
+- **Infrastructure Sealing**: Hardened Vault and CockroachDB by removing hardcoded credentials and enforcing TLS for SQL/HTTP interfaces.
+- **CI/CD Fixes**: Resolved a critical Groovy syntax error in `Jenkinsfile.remote`, enabling seamless remote deployments of the viral-forge component.
+
+### 📜 NDPR Compliance (Data Privacy)
+Implemented "Right to Data Portability" and "Right to be Forgotten":
+- **Data Export**: `GET /api/v1/user/export` provides a signed JSON export of all user-associated intelligence and profile data.
+- **Account Deletion**: `DELETE /api/v1/user/delete` performs a complete scrub of identifiable user records while maintaining anonymized intelligence data for national security continuity.
+
+### 🛡️ Automated Penetration Testing
+Introduced `penetration_test.py`, an automated scanner that identified:
+- **Zero Criticals**: SQLi, XSS, and Auth remain secure.
+- **Improved Monitoring**: Findings related to rate-limiting thresholds and port reachability have been prioritized for the next sprint.
+
+---
+**National Security Platform // Security Hardening & NDPR Compliance Complete**
+**Secure. Compliant. Hardened.**
