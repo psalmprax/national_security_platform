@@ -69,7 +69,8 @@ services:
   # CockroachDB (Distributed SQL Engine)
   cockroachdb:
     image: cockroachdb/cockroach:latest-v23.1
-    command: start-single-node --certs-dir=/cockroach/cockroach-data/certs --sql-addr=:26257 --http-addr=:8080
+    user: root
+    command: start-single-node --certs-dir=/cockroach/cockroach-data/certs --sql-addr=:26257 --http-addr=:8080 --advertise-addr=cockroachdb
     # Ports removed: Database only accessible through internal network
     # ports:
     #   - "26257:26257"
@@ -78,10 +79,10 @@ services:
       - cockroach_data:/cockroach/cockroach-data
       - ./cockroach-certs:/cockroach/cockroach-data/certs
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: [ "CMD", "/cockroach/cockroach", "node", "status", "--certs-dir=/cockroach/cockroach-data/certs", "--host=localhost:26257" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
     networks:
       - national-security-net
 
