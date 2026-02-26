@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-dashboard
+  namespace: national-security
+  labels:
+    app: web-dashboard
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-dashboard
+  template:
+    metadata:
+      labels:
+        app: web-dashboard
+        tier: frontend
+    spec:
+      containers:
+      - name: dashboard
+        image: national-security-platform-web-dashboard:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: core-api-config
+              key: PUBLIC_API_URL
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: core-api-secrets
+              key: JWT_SECRET
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-dashboard
+  namespace: national-security
+spec:
+  selector:
+    app: web-dashboard
+  ports:
+  - port: 80
+    targetPort: 3000

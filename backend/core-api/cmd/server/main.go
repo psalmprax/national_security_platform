@@ -372,6 +372,12 @@ func main() {
 			// Simulated cancel
 			respondJSON(w, http.StatusOK, map[string]bool{"success": true})
 		})
+
+		// Evidence Ledger (Immutable Chain-Linked Audit)
+		handlers.RegisterEvidenceLedgerRoutes(r, db.Pool)
+
+		// Semantic Search
+		handlers.RegisterSearchRoutes(r, db.Pool)
 	})
 
 	// --- SYSTEM ADMIN ROUTES (Infrastructure & Health) ---

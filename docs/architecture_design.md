@@ -788,3 +788,35 @@ Features implemented across multiple phases that were not previously documented 
 ### 19.5 AI Agent System HUD
 - **Component**: `AgentSystemStatus.tsx` — Floating, draggable panel displaying Core Engine (OpenClaw, Agent Zero, Native) and Intelligence Layer (RAG, CrewAI, Actions) metrics.
 - **Design**: Military-grade tactical aesthetic with angular cut-corner geometry, animated scan lines, and SVG hex icon containers.
+
+## 20. Phase 28: Closing Architecture Audit Gaps (Feb 2026)
+Implementation of all remaining architectural promises to achieve full parity between documentation and code.
+
+### 20.1 Immutable Evidence Ledger
+- **Architecture**: Chain-linked SHA-256 evidence records simulating blockchain immutability. Each entry references the `previous_hash` of the preceding record, forming a tamper-evident chain.
+- **Database Schema**: `evidence_ledger` table (migration `000033`) with append-only design.
+- **API Surface**:
+    - `POST /api/v1/evidence/record` — Record evidence with chain link
+    - `GET /api/v1/evidence/ledger` — Query chain entries
+    - `GET /api/v1/evidence/verify/{hash}` — Verify hash integrity and chain validity
+- **Handler**: `evidence_ledger.go`
+
+### 20.2 Semantic Search (Vector Search Interface)
+- **Architecture**: CockroachDB `tsvector` full-text search with GIN indexing on the `alerts` table (migration `000034`).
+- **API Surface**: `GET /api/v1/search/alerts?q=...` — Ranked search results with `ts_rank` scoring and `ILIKE` fallback.
+- **Handler**: `semantic_search.go`
+
+### 20.3 Mesh Relay Scaffold (Mobile)
+- **Architecture**: Flutter service scaffold for offline P2P alert relay via Bluetooth LE and Wi-Fi Direct.
+- **Implementation**: `mesh_relay_service.dart` — Interface-ready stubs with peer discovery, relay queue, and flush mechanisms.
+- **Integration Points**: Prepared for `flutter_blue_plus` (BLE) and `nearby_connections` (Wi-Fi Direct).
+
+### 20.4 Kubernetes Manifests (Complete)
+Production-grade K8s manifests now cover all platform services:
+- **Gateway**: Nginx deployment with LoadBalancer service (`32-deployment-gateway.yaml`)
+- **Security Sentinel**: Scanner deployment (`33-deployment-sentinel.yaml`)
+- **CockroachDB**: 3-replica StatefulSet with PVCs and TLS (`34-statefulset-cockroachdb.yaml`)
+- **Redis**: StatefulSet with persistent storage (`35-statefulset-redis.yaml`)
+- **NATS**: JetStream StatefulSet with persistent storage (`36-statefulset-nats.yaml`)
+- **Dashboard**: Next.js deployment with readiness probes (`37-deployment-dashboard.yaml`)
+

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-sentinel
+  namespace: national-security
+  labels:
+    app: security-sentinel
+    tier: security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: security-sentinel
+  template:
+    metadata:
+      labels:
+        app: security-sentinel
+        tier: security
+    spec:
+      containers:
+      - name: sentinel
+        image: national-security-platform-security-sentinel:latest
+        ports:
+        - containerPort: 8001
+        envFrom:
+        - configMapRef:
+            name: core-api-config
+        - secretRef:
+            name: core-api-secrets
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-sentinel
+  namespace: national-security
+spec:
+  selector:
+    app: security-sentinel
+  ports:
+  - port: 8001
+    targetPort: 8001

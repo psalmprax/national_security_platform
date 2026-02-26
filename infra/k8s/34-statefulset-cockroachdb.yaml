@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cockroachdb
+  namespace: national-security
+  labels:
+    app: cockroachdb
+    tier: data
+spec:
+  serviceName: cockroachdb
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cockroachdb
+  template:
+    metadata:
+      labels:
+        app: cockroachdb
+        tier: data
+    spec:
+      containers:
+      - name: cockroachdb
+        image: cockroachdb/cockroach:latest-v23.1
+        command:
+        - /cockroach/cockroach
+        - start
+        - --certs-dir=/cockroach/certs
+        - --advertise-addr=$(POD_NAME).cockroachdb.national-security.svc.cluster.local
+        - --join=cockroachdb-0.cockroachdb,cockroachdb-1.cockroachdb,cockroachdb-2.cockroachdb
+        - --cache=25%
+        - --max-sql-memory=25%
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        ports:
+        - containerPort: 26257
+          name: grpc
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: cockroach-data
+          mountPath: /cockroach/cockroach-data
+        - name: cockroach-certs
+          mountPath: /cockroach/certs
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health?ready=1
+            port: 8080
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2
+            memory: 4Gi
+      volumes:
+      - name: cockroach-certs
+        secret:
+          secretName: cockroachdb-certs
+  volumeClaimTemplates:
+  - metadata:
+      name: cockroach-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cockroachdb
+  namespace: national-security
+spec:
+  clusterIP: None
+  selector:
+    app: cockroachdb
+  ports:
+  - name: grpc
+    port: 26257
+    targetPort: 26257
+  - name: http
+    port: 8080
+    targetPort: 8080
