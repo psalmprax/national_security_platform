@@ -119,8 +119,8 @@ export default function EvidenceLedger() {
                                         onClick={(e) => { e.stopPropagation(); handleVerify(entry.content_hash); }}
                                         disabled={verifying === entry.content_hash}
                                         className={`flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-all ${verifiedHashes[entry.content_hash] === true ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                                verifiedHashes[entry.content_hash] === false ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                                                    'bg-white/5 text-white/40 border border-white/10 hover:text-amber-400 hover:border-amber-500/30'
+                                            verifiedHashes[entry.content_hash] === false ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                                                'bg-white/5 text-white/40 border border-white/10 hover:text-amber-400 hover:border-amber-500/30'
                                             }`}
                                     >
                                         {verifying === entry.content_hash ? <RefreshCw className="w-3 h-3 animate-spin" /> :
