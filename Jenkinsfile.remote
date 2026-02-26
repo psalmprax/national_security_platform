@@ -49,25 +49,25 @@ pipeline {
                                 fi
                                 # Generate secrets if missing in .env
                                 source .env 2>/dev/null || true
-                                if [ -z "${JWT_SECRET}" ]; then
-                                    echo "JWT_SECRET=$(openssl rand -base64 32)" >> .env
+                                if [ -z "\${JWT_SECRET}" ]; then
+                                    echo "JWT_SECRET=\$(openssl rand -base64 32)" >> .env
                                 fi
-                                if [ -z "${MASTER_ENCRYPTION_KEY}" ]; then
-                                    echo "MASTER_ENCRYPTION_KEY=$(openssl rand -hex 16 | base64)" >> .env
+                                if [ -z "\${MASTER_ENCRYPTION_KEY}" ]; then
+                                    echo "MASTER_ENCRYPTION_KEY=\$(openssl rand -hex 16 | base64)" >> .env
                                 fi
-                                if [ -z "${VAULT_ROLE_ID}" ]; then
+                                if [ -z "\${VAULT_ROLE_ID}" ]; then
                                     echo "VAULT_ROLE_ID=16296aec-baed-fee5-e859-21daf3afc67e" >> .env
                                 fi
-                                if [ -z "${VAULT_SECRET_ID}" ]; then
+                                if [ -z "\${VAULT_SECRET_ID}" ]; then
                                     echo "VAULT_SECRET_ID=1a497874-91b0-79d2-89bc-add1621ebc74" >> .env
                                 fi
-                                if [ -z "${VAULT_DEV_ROOT_TOKEN}" ]; then
+                                if [ -z "\${VAULT_DEV_ROOT_TOKEN}" ]; then
                                     echo "VAULT_DEV_ROOT_TOKEN=root" >> .env
                                 fi
-                                if [ -z "${MINIO_ROOT_PASSWORD}" ]; then
+                                if [ -z "\${MINIO_ROOT_PASSWORD}" ]; then
                                     echo "MINIO_ROOT_PASSWORD=change_this_password_123" >> .env
                                 fi
-                                if [ -z "${NATS_TOKEN}" ]; then
+                                if [ -z "\${NATS_TOKEN}" ]; then
                                     echo "NATS_TOKEN=nats_token_change_immediately" >> .env
                                 fi
                                 docker-compose down --remove-orphans
