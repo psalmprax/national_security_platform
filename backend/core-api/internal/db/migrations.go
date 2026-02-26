@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
@@ -27,8 +28,14 @@ func RunMigrations() error {
 		return fmt.Errorf("unable to create iofs driver: %w", err)
 	}
 
+	// Replace scheme for migrate library (needs pgx5://)
+	if strings.HasPrefix(dbURL, "postgresql://") {
+		dbURL = strings.Replace(dbURL, "postgresql://", "pgx5://", 1)
+	} else if strings.HasPrefix(dbURL, "postgres://") {
+		dbURL = strings.Replace(dbURL, "postgres://", "pgx5://", 1)
+	}
+
 	// Initialize the migrator
-	// Note: We use pgx5 driver as specified in go.mod
 	m, err := migrate.NewWithSourceInstance("iofs", d, dbURL)
 	if err != nil {
 		return fmt.Errorf("unable to create migrator: %w", err)

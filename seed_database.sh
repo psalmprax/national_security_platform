@@ -43,7 +43,7 @@ FILES=(
 for file in "${FILES[@]}"; do
     if [ -f "$file" ]; then
         echo "📄 Applying $file..."
-        docker exec -i "$CONTAINER_NAME" ./cockroach sql --certs-dir=/cockroach/cockroach-data/certs --host=localhost --database=defaultdb < "$file"
+        docker exec -i "$CONTAINER_NAME" ./cockroach sql --certs-dir=/cockroach/certs --host=localhost --database=defaultdb < "$file"
     else
         echo "⚠️ Warning: $file not found!"
     fi

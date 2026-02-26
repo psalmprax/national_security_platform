@@ -47,7 +47,7 @@ func InitRedis() error {
 func InitDB() error {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgresql://root@cockroachdb:26257/defaultdb?sslmode=disable"
+		return fmt.Errorf("DATABASE_URL environment variable is not set")
 	}
 
 	config, err := pgxpool.ParseConfig(dbURL)

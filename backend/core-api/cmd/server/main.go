@@ -117,8 +117,7 @@ func main() {
 	}
 	// Reconstruct DATABASE_URL if password is provided
 	if pwd := config.GetSecret("DB_PASSWORD"); pwd != "" {
-		dbURL := fmt.Sprintf("postgresql://root:%s@cockroachdb:26257/defaultdb?sslmode=disable", pwd)
-		os.Setenv("DATABASE_URL", dbURL)
+		log.Printf("⚠️  Warning: DB_PASSWORD from Vault detected, but manual reconstruction is deprecated in favor of secure environment variables.")
 	}
 
 	// Initialize database
