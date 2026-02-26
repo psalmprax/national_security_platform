@@ -176,7 +176,7 @@ services:
       context: ./backend/security-sentinel
       dockerfile: Dockerfile
     environment:
-      - CORE_API_URL=https://core-api:8080
+      - CORE_API_URL=http://core-api:8080
       - DATABASE_URL=postgresql://root@cockroachdb:26257/defaultdb?sslmode=verify-ca&sslrootcert=/etc/ssl/certs/ca.crt&sslcert=/etc/ssl/certs/client.root.crt&sslkey=/etc/ssl/certs/client.root.key
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
       - OTEL_SERVICE_NAME=security-sentinel
