@@ -9,6 +9,8 @@ import 'services/sync_service.dart';
 import 'services/auth_service.dart';
 import 'services/biometric_service.dart';
 import 'services/settings_service.dart';
+import 'services/ads_service.dart';
+import 'services/subscription_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +25,12 @@ void main() async {
 
   final settingsService = SettingsService();
   await settingsService.init();
+
+  final subscriptionService = SubscriptionService();
+  await subscriptionService.initialize();
+
+  final adService = AdService();
+  await adService.initialize();
 
   final syncService = SyncService(persistenceService, apiService, authService);
   syncService.startAutoSync();

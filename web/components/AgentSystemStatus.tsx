@@ -1,9 +1,10 @@
+"use client";
 /**
- * Enhanced Agent System Status Component
- * Displays status of OpenClaw, Agent Zero, LangChain, and CrewAI hybrid system
- * with premium visual styling
+ * AgentSystemStatus – Premium Tactical Intelligence HUD
+ * Redesigned with military-grade aesthetics: angular geometry, scanlines,
+ * real-time pulse animations, and a glassmorphic dark theme.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import Portal from './Portal';
 
@@ -33,76 +34,258 @@ interface HybridSystemStatus {
     };
 }
 
+// ─── Hex Icon Ring ───────────────────────────────────────────────────
+function HexIcon({ children, color, pulse = false }: { children: React.ReactNode; color: string; pulse?: boolean }) {
+    return (
+        <div className="relative flex items-center justify-center w-11 h-11">
+            {/* Outer hexagonal glow */}
+            {pulse && (
+                <motion.div
+                    animate={{ opacity: [0.15, 0.4, 0.15], scale: [1, 1.15, 1] }}
+                    transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+                    className="absolute inset-0 rounded-lg"
+                    style={{ background: `radial-gradient(circle, ${color}40, transparent 70%)` }}
+                />
+            )}
+            {/* Core hex */}
+            <div
+                className="relative w-10 h-10 flex items-center justify-center rounded-lg border"
+                style={{
+                    background: `linear-gradient(135deg, ${color}18, ${color}08)`,
+                    borderColor: `${color}40`,
+                    boxShadow: `inset 0 1px 0 ${color}15, 0 0 20px ${color}10`,
+                }}
+            >
+                {children}
+            </div>
+        </div>
+    );
+}
+
+// ─── Micro Progress Bar ──────────────────────────────────────────────
+function MicroBar({ value, max, color }: { value: number; max: number; color: string }) {
+    const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+    return (
+        <div className="w-full h-[3px] bg-white/5 rounded-full overflow-hidden mt-1.5">
+            <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
+                className="h-full rounded-full"
+                style={{ background: `linear-gradient(90deg, ${color}90, ${color})` }}
+            />
+        </div>
+    );
+}
+
+// ─── Metric Card ─────────────────────────────────────────────────────
+function MetricCard({
+    label,
+    sublabel,
+    value,
+    icon,
+    color,
+    maxValue = 10,
+}: {
+    label: string;
+    sublabel?: string;
+    value: number;
+    icon: React.ReactNode;
+    color: string;
+    maxValue?: number;
+}) {
+    return (
+        <motion.div
+            whileHover={{ scale: 1.04, y: -1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            className="relative group overflow-hidden"
+        >
+            {/* Card body */}
+            <div
+                className="relative p-3 rounded-lg border text-center"
+                style={{
+                    background: `linear-gradient(160deg, ${color}08, transparent)`,
+                    borderColor: `${color}20`,
+                }}
+            >
+                {/* Hover highlight line */}
+                <div
+                    className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
+                />
+
+                <HexIcon color={color} pulse={value > 0}>{icon}</HexIcon>
+
+                <motion.div
+                    className="text-2xl font-black tabular-nums mt-1"
+                    style={{ color }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                >
+                    {value}
+                </motion.div>
+
+                <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/50 mt-0.5">{label}</div>
+                {sublabel && <div className="text-[8px] text-white/25 uppercase tracking-wider">{sublabel}</div>}
+
+                <MicroBar value={value} max={maxValue} color={color} />
+            </div>
+        </motion.div>
+    );
+}
+
+// ─── Crew Badge ──────────────────────────────────────────────────────
+function CrewBadge({ name, idx }: { name: string; idx: number }) {
+    const colors = ['#22d3ee', '#a78bfa', '#f59e0b', '#10b981', '#f43f5e', '#6366f1'];
+    const c = colors[idx % colors.length];
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: idx * 0.06 }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded border"
+            style={{
+                background: `${c}08`,
+                borderColor: `${c}25`,
+            }}
+        >
+            <motion.span
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ repeat: Infinity, duration: 2, delay: idx * 0.3 }}
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: c }}
+            />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">{name}</span>
+        </motion.div>
+    );
+}
+
+// ─── Section Divider ─────────────────────────────────────────────────
+function SectionDivider() {
+    return (
+        <div className="relative flex items-center my-4">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <div className="mx-3 flex items-center gap-1.5">
+                <div className="w-1 h-1 bg-cyan-500/50 rotate-45" />
+                <div className="w-1.5 h-1.5 bg-cyan-500/30 rotate-45" />
+                <div className="w-1 h-1 bg-cyan-500/50 rotate-45" />
+            </div>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        </div>
+    );
+}
+
+// ─── Section Header ──────────────────────────────────────────────────
+function SectionHeader({ label, color }: { label: string; color: string }) {
+    return (
+        <div className="flex items-center gap-2 mb-3">
+            <div className="w-0.5 h-3.5 rounded-full" style={{ background: color }} />
+            <span
+                className="text-[10px] font-black uppercase tracking-[0.25em]"
+                style={{ color }}
+            >
+                {label}
+            </span>
+            <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${color}30, transparent)` }} />
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── Main Component ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
 export default function AgentSystemStatus() {
     const [status, setStatus] = useState<HybridSystemStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expanded, setExpanded] = useState(true);
     const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const dragControls = useDragControls();
 
-    useEffect(() => {
-        fetchAgentStatus();
-        const interval = setInterval(fetchAgentStatus, 30000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const fetchAgentStatus = async () => {
+    const fetchAgentStatus = useCallback(async () => {
         try {
             const response = await fetch('/api/hybrid-status');
             if (!response.ok) throw new Error('Failed to fetch agent status');
             const data = await response.json();
             setStatus(data);
             setError(null);
+            setLastUpdated(new Date());
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Unknown error');
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
+    useEffect(() => {
+        fetchAgentStatus();
+        const interval = setInterval(fetchAgentStatus, 30000);
+        return () => clearInterval(interval);
+    }, [fetchAgentStatus]);
+
+    // ─── Loading State ───────────────────────────────────────────────
     if (loading) {
         return (
-            <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 overflow-hidden">
-                <div className="animate-pulse p-5 space-y-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-800 rounded-xl"></div>
-                        <div className="h-6 bg-slate-800 rounded w-32"></div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="h-20 bg-slate-800/50 rounded-xl"></div>
-                        <div className="h-20 bg-slate-800/50 rounded-xl"></div>
-                        <div className="h-20 bg-slate-800/50 rounded-xl"></div>
+            <Portal>
+                <div className="fixed top-4 right-4 z-[9999] w-[310px]">
+                    <div className="bg-[#0c0e14]/95 backdrop-blur-2xl rounded-none border border-cyan-500/10 overflow-hidden"
+                        style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))' }}
+                    >
+                        <div className="animate-pulse p-5 space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-white/5 rounded-lg" />
+                                <div className="space-y-2 flex-1">
+                                    <div className="h-4 bg-white/5 rounded w-28" />
+                                    <div className="h-2.5 bg-white/5 rounded w-20" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white/5 rounded-lg" />)}
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </Portal>
         );
     }
 
+    // ─── Error State ─────────────────────────────────────────────────
     if (error) {
         return (
-            <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-red-500/20 shadow-2xl overflow-hidden">
-                <div className="p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
-                            <span className="text-red-400">⚠️</span>
-                        </div>
-                        <div>
-                            <h3 className="text-red-400 font-bold">Agent System Offline</h3>
-                            <p className="text-slate-500 text-xs">{error}</p>
+            <Portal>
+                <div className="fixed top-4 right-4 z-[9999] w-[310px]">
+                    <div className="bg-[#0c0e14]/95 backdrop-blur-2xl border border-red-500/20 overflow-hidden"
+                        style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))' }}
+                    >
+                        <div className="p-5">
+                            <div className="flex items-center gap-3 mb-4">
+                                <HexIcon color="#ef4444">
+                                    <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </HexIcon>
+                                <div>
+                                    <h3 className="text-red-400 font-black text-xs uppercase tracking-widest">System Offline</h3>
+                                    <p className="text-white/20 text-[9px] mt-0.5 font-mono">{error}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={fetchAgentStatus}
+                                className="w-full py-2 bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-red-500/20 transition-all"
+                            >
+                                ↻ Retry Connection
+                            </button>
                         </div>
                     </div>
-                    <button
-                        onClick={fetchAgentStatus}
-                        className="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl text-sm font-medium hover:from-cyan-500 hover:to-blue-500 transition-all"
-                    >
-                        Retry Connection
-                    </button>
                 </div>
-            </div>
+            </Portal>
         );
     }
 
+    // ─── Main Panel ──────────────────────────────────────────────────
     return (
         <Portal>
             <motion.div
@@ -115,209 +298,214 @@ export default function AgentSystemStatus() {
                 onDragEnd={(_: any, info: any) => {
                     setPosition({ x: position.x + info.offset.x, y: position.y + info.offset.y });
                 }}
-                className="fixed top-4 right-4 z-[9999] w-80 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 overflow-hidden"
+                className="fixed top-4 right-4 z-[9999] w-[310px]"
             >
-                {/* Header - Drag Handle */}
-                <motion.div
-                    onPointerDown={(e) => dragControls.start(e)}
-                    onClick={() => setExpanded(!expanded)}
-                    className="bg-gradient-to-r from-cyan-900/60 via-blue-900/60 to-cyan-900/60 px-5 py-4 cursor-grab active:cursor-grabbing border-b border-cyan-500/10"
-                    whileHover={{ backgroundColor: 'rgba(8, 145, 178, 0.3)' }}
+                {/* Outer Shell – Angular Cut Corners */}
+                <div
+                    className="relative bg-[#0a0c12]/95 backdrop-blur-2xl border border-cyan-400/10 overflow-hidden shadow-[0_0_60px_rgba(0,200,255,0.04)]"
+                    style={{ clipPath: 'polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))' }}
                 >
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <motion.div
-                                animate={{ rotate: [0, 10, -10, 0] }}
-                                transition={{ repeat: Infinity, duration: 3 }}
-                                className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/30"
-                            >
-                                <span className="text-xl">🤖</span>
-                            </motion.div>
-                            <div>
-                                <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                                    AI Agent System
-                                    <motion.span
-                                        animate={{ opacity: [0.5, 1, 0.5] }}
-                                        transition={{ repeat: Infinity, duration: 2 }}
-                                        className="w-2 h-2 bg-green-400 rounded-full inline-block"
-                                    ></motion.span>
-                                </h3>
-                                <p className="text-slate-400 text-xs">Hybrid Intelligence Engine</p>
-                            </div>
-                        </div>
-                        <motion.div
-                            animate={{ rotate: expanded ? 180 : 0 }}
-                            className="text-slate-400"
-                        >
-                            ▼
-                        </motion.div>
-                    </div>
-                </motion.div>
+                    {/* Animated top scan line */}
+                    <motion.div
+                        animate={{ x: ['-100%', '200%'] }}
+                        transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
+                        className="absolute top-0 left-0 w-1/3 h-[1px]"
+                        style={{ background: 'linear-gradient(90deg, transparent, #22d3ee, transparent)' }}
+                    />
 
-                <AnimatePresence>
-                    {expanded && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="overflow-hidden"
-                        >
-                            <div className="p-5 space-y-5">
-                                {/* Basic Hybrid System */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                                        <h4 className="text-xs font-bold text-blue-400 uppercase tracking-widest">
-                                            Core Engine
-                                        </h4>
+                    {/* ── Header / Drag Handle ── */}
+                    <motion.div
+                        onPointerDown={(e) => dragControls.start(e)}
+                        onClick={() => setExpanded(!expanded)}
+                        className="relative px-4 py-3 cursor-grab active:cursor-grabbing select-none border-b border-white/5"
+                        style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.08), rgba(59,130,246,0.04), transparent)' }}
+                    >
+                        {/* Corner accents */}
+                        <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-cyan-500/30" />
+                        <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-cyan-500/10" />
+
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                {/* Animated core icon */}
+                                <div className="relative">
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
+                                        className="absolute inset-0 rounded-lg border border-cyan-500/20"
+                                        style={{ background: 'conic-gradient(from 0deg, transparent, rgba(6,182,212,0.15), transparent)' }}
+                                    />
+                                    <div className="relative w-9 h-9 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-lg flex items-center justify-center border border-cyan-500/20">
+                                        <svg className="w-4.5 h-4.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082h4.5m-4.5 0a15.154 15.154 0 014.5 0m0 0c.251.023.501.05.75.082M14.25 3.104v5.714c0 .597.237 1.17.659 1.591L19.5 14.5M14.25 3.104c.251.023.501.05.75.082m0 0a48.534 48.534 0 012.75.352M17.25 8.5v-5m0 0A48.536 48.536 0 0014.5 3.104m2.75 0v5" />
+                                        </svg>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <EnhancedStatusCard
+                                </div>
+                                <div>
+                                    <h3 className="text-white/90 font-black text-[11px] uppercase tracking-[0.2em] flex items-center gap-2">
+                                        Agent System
+                                        <motion.span
+                                            animate={{ opacity: [0.3, 1, 0.3], boxShadow: ['0 0 2px #22d3ee', '0 0 8px #22d3ee', '0 0 2px #22d3ee'] }}
+                                            transition={{ repeat: Infinity, duration: 2 }}
+                                            className="w-1.5 h-1.5 bg-cyan-400 rounded-full"
+                                        />
+                                    </h3>
+                                    <p className="text-[8px] text-white/25 uppercase tracking-[0.3em] font-bold mt-0.5">
+                                        Hybrid Intelligence Engine
+                                    </p>
+                                </div>
+                            </div>
+
+                            <motion.div
+                                animate={{ rotate: expanded ? 0 : -90 }}
+                                transition={{ type: 'spring', stiffness: 300 }}
+                                className="text-white/20 text-[10px]"
+                            >
+                                ▾
+                            </motion.div>
+                        </div>
+                    </motion.div>
+
+                    {/* ── Expandable Content ── */}
+                    <AnimatePresence>
+                        {expanded && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.35, ease: 'easeInOut' }}
+                                className="overflow-hidden"
+                            >
+                                <div className="px-4 py-4 space-y-1">
+                                    {/* ── Core Engine Section ── */}
+                                    <SectionHeader label="Core Engine" color="#3b82f6" />
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <MetricCard
                                             label="OpenClaw"
                                             sublabel="Orchestration"
                                             value={status?.basic_hybrid?.by_framework?.openclaw || 0}
-                                            icon="⚙️"
-                                            color="blue"
+                                            color="#3b82f6"
+                                            maxValue={10}
+                                            icon={
+                                                <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077l1.41-.513m14.095-5.13l1.41-.513M5.106 17.785l1.15-.964m11.49-9.642l1.149-.964M7.501 19.795l.75-1.3m7.5-12.99l.75-1.3m-6.063 16.658l.26-1.477m2.605-14.772l.26-1.477m0 17.726l-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205L12 12" />
+                                                </svg>
+                                            }
                                         />
-                                        <EnhancedStatusCard
+                                        <MetricCard
                                             label="Agent Zero"
                                             sublabel="Adaptive"
                                             value={status?.basic_hybrid?.by_framework?.agentzero || 0}
-                                            icon="🔷"
-                                            color="purple"
+                                            color="#a855f7"
+                                            maxValue={10}
+                                            icon={
+                                                <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                                                </svg>
+                                            }
                                         />
-                                        <EnhancedStatusCard
+                                        <MetricCard
                                             label="Native"
                                             sublabel="Domain"
                                             value={status?.basic_hybrid?.by_framework?.existing || 0}
-                                            icon="🛡️"
-                                            color="slate"
+                                            color="#64748b"
+                                            maxValue={10}
+                                            icon={
+                                                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                                                </svg>
+                                            }
                                         />
                                     </div>
-                                </div>
 
-                                {/* Divider with glow */}
-                                <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <div className="w-full border-t border-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
-                                    </div>
-                                    <div className="relative flex justify-center">
-                                        <span className="bg-slate-900 px-3 text-cyan-500 text-xs">● ◕ ●</span>
-                                    </div>
-                                </div>
+                                    <SectionDivider />
 
-                                {/* Ultimate Hybrid System */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1 h-4 bg-emerald-500 rounded-full"></div>
-                                        <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">
-                                            Intelligence Layer
-                                        </h4>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <EnhancedStatusCard
+                                    {/* ── Intelligence Layer Section ── */}
+                                    <SectionHeader label="Intelligence Layer" color="#10b981" />
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <MetricCard
                                             label="RAG"
                                             sublabel="Memory"
                                             value={status?.ultimate_hybrid?.langchain?.documents || 0}
-                                            icon="📚"
-                                            color="green"
+                                            color="#10b981"
+                                            maxValue={50}
+                                            icon={
+                                                <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                                                </svg>
+                                            }
                                         />
-                                        <EnhancedStatusCard
+                                        <MetricCard
                                             label="CrewAI"
                                             sublabel="Multi-Agent"
                                             value={status?.ultimate_hybrid?.crewai?.agents?.length || 0}
-                                            icon="👥"
-                                            color="amber"
+                                            color="#f59e0b"
+                                            maxValue={15}
+                                            icon={
+                                                <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                                                </svg>
+                                            }
                                         />
-                                        <EnhancedStatusCard
+                                        <MetricCard
                                             label="Actions"
                                             sublabel="Executed"
                                             value={status?.ultimate_hybrid?.actions?.executions || 0}
-                                            icon="⚡"
-                                            color="cyan"
+                                            color="#06b6d4"
+                                            maxValue={100}
+                                            icon={
+                                                <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                                                </svg>
+                                            }
                                         />
                                     </div>
-                                </div>
 
-                                {/* Crew Agents List */}
-                                {status?.ultimate_hybrid?.crewai?.agents && status.ultimate_hybrid.crewai.agents.length > 0 && (
-                                    <div className="pt-3 border-t border-slate-800">
-                                        <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">
-                                            Active Crew
-                                        </h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {status.ultimate_hybrid.crewai.agents.map((agent: string, idx: number) => (
-                                                <motion.div
-                                                    key={agent}
-                                                    initial={{ opacity: 0, scale: 0.8 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    transition={{ delay: idx * 0.1 }}
-                                                    className="px-3 py-2 bg-gradient-to-r from-slate-800/80 to-slate-800/40 border border-slate-600/30 text-slate-300 text-xs rounded-xl flex items-center gap-2"
-                                                >
-                                                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                                                    {agent}
-                                                </motion.div>
-                                            ))}
+                                    {/* ── Active Crew ── */}
+                                    {status?.ultimate_hybrid?.crewai?.agents && status.ultimate_hybrid.crewai.agents.length > 0 && (
+                                        <>
+                                            <SectionDivider />
+                                            <SectionHeader label="Active Crew" color="#8b5cf6" />
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {status.ultimate_hybrid.crewai.agents.map((agent, idx) => (
+                                                    <CrewBadge key={agent} name={agent} idx={idx} />
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* ── Footer ── */}
+                                    <div className="pt-3 mt-3 border-t border-white/5 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                            <motion.span
+                                                animate={{ opacity: [0.3, 1, 0.3] }}
+                                                transition={{ repeat: Infinity, duration: 2 }}
+                                                className="w-1 h-1 bg-emerald-400 rounded-full"
+                                            />
+                                            <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">
+                                                All Systems Nominal
+                                            </span>
                                         </div>
+                                        <span className="text-[8px] font-mono text-white/15 tabular-nums">
+                                            {lastUpdated.toLocaleTimeString('en-US', { hour12: false })}
+                                        </span>
                                     </div>
-                                )}
-
-                                {/* Footer */}
-                                <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                                        <span>All Systems Operational</span>
-                                    </div>
-                                    <span>Updated: {new Date().toLocaleTimeString()}</span>
                                 </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Bottom scan line */}
+                    <motion.div
+                        animate={{ x: ['200%', '-100%'] }}
+                        transition={{ repeat: Infinity, duration: 5, ease: 'linear' }}
+                        className="absolute bottom-0 left-0 w-1/4 h-[1px]"
+                        style={{ background: 'linear-gradient(90deg, transparent, #3b82f6, transparent)' }}
+                    />
+
+                    {/* Corner accent - bottom right */}
+                    <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-cyan-500/10" />
+                </div>
             </motion.div>
         </Portal>
-    );
-}
-
-function EnhancedStatusCard({
-    label,
-    sublabel,
-    value,
-    icon,
-    color
-}: {
-    label: string;
-    sublabel?: string;
-    value: number;
-    icon: string;
-    color: string;
-}) {
-    const colorStyles: Record<string, { bg: string; border: string; text: string; glow: string; iconBg: string }> = {
-        blue: { bg: 'bg-blue-900/20', border: 'border-blue-500/30', text: 'text-blue-300', glow: 'shadow-blue-500/10', iconBg: 'from-blue-500 to-cyan-400' },
-        purple: { bg: 'bg-purple-900/20', border: 'border-purple-500/30', text: 'text-purple-300', glow: 'shadow-purple-500/10', iconBg: 'from-purple-500 to-pink-400' },
-        slate: { bg: 'bg-slate-800/50', border: 'border-slate-600/30', text: 'text-slate-300', glow: 'shadow-slate-500/5', iconBg: 'from-slate-600 to-slate-400' },
-        green: { bg: 'bg-green-900/20', border: 'border-green-500/30', text: 'text-green-300', glow: 'shadow-green-500/10', iconBg: 'from-green-500 to-emerald-400' },
-        amber: { bg: 'bg-amber-900/20', border: 'border-amber-500/30', text: 'text-amber-300', glow: 'shadow-amber-500/10', iconBg: 'from-amber-500 to-orange-400' },
-        cyan: { bg: 'bg-cyan-900/20', border: 'border-cyan-500/30', text: 'text-cyan-300', glow: 'shadow-cyan-500/10', iconBg: 'from-cyan-500 to-blue-400' },
-    };
-
-    const styles = colorStyles[color] || colorStyles.slate;
-
-    return (
-        <motion.div
-            whileHover={{ scale: 1.03, y: -2 }}
-            className={`p-4 rounded-xl border ${styles.bg} ${styles.border} ${styles.glow} shadow-lg text-center transition-all`}
-        >
-            <motion.div
-                whileHover={{ rotate: [0, -10, 10, 0] }}
-                className={`text-2xl mb-2 w-10 h-10 mx-auto bg-gradient-to-br ${styles.iconBg} rounded-lg flex items-center justify-center shadow-md`}
-            >
-                {icon}
-            </motion.div>
-            <div className={`text-3xl font-bold ${styles.text} drop-shadow-lg`}>{value}</div>
-            <div className="text-xs text-slate-400 mt-1 font-medium">{label}</div>
-            {sublabel && <div className="text-[10px] text-slate-500">{sublabel}</div>}
-        </motion.div>
     );
 }

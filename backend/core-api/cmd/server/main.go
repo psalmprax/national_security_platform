@@ -364,6 +364,14 @@ func main() {
 		// NDPR Compliance Endpoints
 		r.Get("/api/v1/user/export", h.ExportUserData)
 		r.Delete("/api/v1/user/delete", h.DeleteUserAccount)
+
+		// Monetization & Subscriptions
+		r.Get("/api/v1/subscriptions/status", handlers.GetSubscriptionStatusHandler)
+		r.Post("/api/v1/subscriptions/upgrade", handlers.UpgradeSubscriptionHandler)
+		r.Post("/api/v1/subscriptions/cancel", func(w http.ResponseWriter, r *http.Request) {
+			// Simulated cancel
+			respondJSON(w, http.StatusOK, map[string]bool{"success": true})
+		})
 	})
 
 	// --- SYSTEM ADMIN ROUTES (Infrastructure & Health) ---

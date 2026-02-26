@@ -13,12 +13,6 @@ import (
 )
 
 // respondJSON is a helper to write JSON responses
-func respondJSON(w http.ResponseWriter, status int, payload interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(payload)
-}
-
 // Agency represents a security agency
 type Agency struct {
 	ID                string   `json:"id"`

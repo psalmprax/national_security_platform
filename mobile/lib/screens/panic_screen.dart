@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/persistence_service.dart';
 import '../services/sync_service.dart';
 import '../services/auth_service.dart';
+import '../services/ads_service.dart';
 import 'settings_screen.dart';
 
 class PanicScreen extends StatefulWidget {
@@ -92,6 +93,7 @@ class _PanicScreenState extends State<PanicScreen> {
           children: [
             _buildHeader(),
             Expanded(child: _buildPanicGrid()),
+            AdBannerWidget(),
             _buildFooter(),
           ],
         ),
