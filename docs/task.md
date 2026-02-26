@@ -244,3 +244,13 @@
     - [x] Fix HUD overlap with right sidebar
     - [x] Fix map control interactivity (pointer-events-none bug)
     - [x] Implement missing CyberAnalytics view
+
+- [x] **Phase 25: Security & Compliance Hardening** - COMPLETE
+    - [x] Enforce SSL in database migrations (remove insecure fallback)
+    - [x] Remove hardcoded Vault credentials from docker-compose
+    - [x] Enforce TLS for CockroachDB SQL/HTTP interfaces
+    - [x] Implement NDPR Data Export endpoint (JSON portability)
+    - [x] Implement NDPR Account Deletion endpoint (Data scrubbing)
+    - [x] Add unit tests for NDPR compliance handlers
+    - [x] Fix Jenkins pipeline Groovy syntax error
+    - [x] Execute automated penetration test and log findings
