@@ -361,6 +361,10 @@ func main() {
 		// Missing Persons Registry
 		r.Get("/api/v1/missing-persons", h.GetMissingPersons)
 		r.Post("/api/v1/missing-persons", h.ReportMissingPerson)
+
+		// NDPR Compliance Endpoints
+		r.Get("/api/v1/user/export", h.ExportUserData)
+		r.Delete("/api/v1/user/delete", h.DeleteUserAccount)
 	})
 
 	// --- SYSTEM ADMIN ROUTES (Infrastructure & Health) ---

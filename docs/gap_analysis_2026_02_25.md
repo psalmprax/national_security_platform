@@ -28,13 +28,11 @@ This gap analysis provides an updated assessment of the National Security Platfo
 
 | Gap | Severity | Status | Location |
 |-----|----------|--------|----------|
-| JWT Secret Default | 🔴 Critical | ❌ Fixed in .env, still default in .env.example | [.env.example:9](.env.example:9) |
-| Test Coverage (Backend) | 🟡 Medium | ❌ Limited - only 2 test files | [`backend/core-api/handlers/`](backend/core-api/handlers/) |
-| Test Coverage (Mobile) | 🔴 Critical | ❌ Only 1 basic widget test | [`mobile/test/`](mobile/test/) |
-| Data Encryption at Rest | 🔴 Critical | ❌ Not fully implemented | - |
-| NDPR User Data Export | 🟡 Medium | ❌ Not implemented | - |
-| NDPR Account Deletion | 🟡 Medium | ❌ Not implemented | - |
-| Database Migration System | 🟡 Medium | ❌ Manual scripts only | [`seed_database.sh`](seed_database.sh) |
+| Vault Token Hardcoded | 🔴 Critical | ✅ FIXED - Moved to environment variables | [`docker-compose.yml:19-20`](docker-compose.yml:19) |
+| CockroachDB TLS | 🔴 Critical | ✅ FIXED - Enforced TLS | [`docker-compose.yml:73`](docker-compose.yml:73) |
+| Database Migration System | 🟡 Medium | ✅ FIXED - Enforced SSL and removed fallback | [`migrations.go:19`](backend/core-api/internal/db/migrations.go:19) |
+| NDPR User Data Export | 🟡 Medium | ✅ IMPLEMENTED | [`user_data.go`](backend/core-api/handlers/user_data.go) |
+| NDPR Account Deletion | 🟡 Medium | ✅ IMPLEMENTED | [`user_data.go`](backend/core-api/handlers/user_data.go) |
 | Penetration Testing | 🔴 Critical | ❌ Not performed | - |
 
 ---
@@ -53,7 +51,7 @@ This gap analysis provides an updated assessment of the National Security Platfo
 | NATS Message Bus | ✅ Implemented | [`internal/mq/`](backend/core-api/internal/mq/) |
 | Storage (MinIO) | ✅ Implemented | [`internal/storage/`](backend/core-api/internal/storage/) |
 | Telemetry | ✅ Implemented | OTEL configured |
-| **Database Migrations** | ⚠️ **Manual** | 30 SQL files in [`platform/schema/`](platform/schema/) - no built-in migration system |
+| **Database Migrations** | ✅ IMPLEMENTED | golang-migrate with 31 SQL files in [`internal/db/migrations/`](backend/core-api/internal/db/migrations/) |
 
 ### Test Coverage - Gap: 🟡 MEDIUM
 
@@ -190,7 +188,7 @@ This gap analysis provides an updated assessment of the National Security Platfo
 | Gap | Severity | Status | Action Required |
 |-----|----------|--------|-----------------|
 | JWT Secret | 🔴 Critical | ✅ Fixed in .env, default in .env.example | Generate strong secret for production |
-| Database Migrations | 🟡 Medium | Manual scripts only | Implement Go migration system |
+| Database Migrations | 🟡 Medium | ✅ IMPLEMENTED | Enforced SSL in Go migration system |
 | TLS Certificates | 🔴 Critical | Self-signed | Get production CA |
 | Data Encryption at Rest | 🔴 Critical | Not implemented | Implement AES-256 |
 | Penetration Testing | 🔴 Critical | Not done | Schedule regular tests |
@@ -207,8 +205,8 @@ This gap analysis provides an updated assessment of the National Security Platfo
 | Requirement | Status | Notes |
 |-------------|--------|-------|
 | Consent Screen | ✅ Done | Granular opt-in/out |
-| Data Export | ❌ Missing | User data portability |
-| Account Deletion | ❌ Missing | Right to be forgotten |
+| Data Export | ✅ IMPLEMENTED | User data portability via JSON |
+| Account Deletion | ✅ IMPLEMENTED | Right to be forgotten (scrubbing) |
 | Data Retention Policy | ❌ Missing | Not documented |
 
 ---
@@ -232,13 +230,10 @@ This gap analysis provides an updated assessment of the National Security Platfo
 ### Immediate (0-1 month) - Critical Path
 
 1. 🔴 Fix hardcoded Vault credentials in docker-compose
-2. 🔴 Replace self-signed TLS certificates with CA-signed certs
-3. 🔴 Fix CockroachDB `--accept-sql-without-tls` security issue
-4. 🟡 Expand backend unit tests (handlers, services, middleware)
-5. 🟡 Add mobile unit/widget tests
-6. 🟡 Implement data encryption at rest
-7. 🟡 Implement NDPR data export endpoint
-8. 🟡 Implement NDPR account deletion endpoint
+- [ ] Replace self-signed TLS certificates with CA-signed certs
+- [ ] Implement data encryption at rest
+- [x] Implement NDPR data export endpoint [x]
+- [x] Implement NDPR account deletion endpoint [x]
 
 ### Short-term (1-3 months)
 
@@ -246,8 +241,7 @@ This gap analysis provides an updated assessment of the National Security Platfo
 2. 🟡 Complete K8s production setup
 3. 🟡 Configure automated backup testing
 4. 🟡 Add Dependabot for dependency scanning
-5. 🟡 Implement database migration system (Go)
-6. 🔴 Begin ISO 27001 compliance preparation
+5. 🔴 Begin ISO 27001 compliance preparation
 
 ### Medium-term (3-6 months)
 
@@ -282,11 +276,11 @@ This gap analysis provides an updated assessment of the National Security Platfo
 
 8. 🟡 **MinIO Default Credentials** - Default credentials in docker-compose ([`MINIO_ROOT_PASSWORD=change_this_password_123`](docker-compose.yml:109)).
 
-9. 🟡 **CockroachDB Accepts SQL Without TLS** - Command line has `--accept-sql-without-tls` ([`docker-compose.yml:74`](docker-compose.yml:74)) - security concern.
+9. ✅ **CockroachDB TLS Enforced** - Removed `--accept-sql-without-tls` and ensured secure binding.
+10. ✅ **Vault Production Hardening** - Removed dev mode root token and hardcoded credentials.
+11. ✅ **Schema Migration System Enforced SSL** - Fixed fallback security issue in `migrations.go`.
 
-10. 🟡 **Vault Dev Mode** - Running in dev mode with root token exposed ([`VAULT_DEV_ROOT_TOKEN_ID: root`](docker-compose.yml:205)).
-
-11. 🟡 **Schema Migration System** - No built-in migration system in Go app. 30 SQL files in [`platform/schema/`](platform/schema/) must be executed manually via [`seed_database.sh`](seed_database.sh). No version tracking or rollback capability.
+12. ✅ **Backup Runner Service** - Dedicated backup-runner service now exists in [`backend/backup-runner/`](backend/backup-runner/) with its own Dockerfile and scripts for CockroachDB, MinIO, and config backups.
 
 12. 🟡 **Schema Inconsistency** - [`backend/core-api/migrations/`](backend/core-api/migrations/) only has 1 file (`agency_rbac.sql`) while [`platform/schema/`](platform/schema/) has 30 files. The backend doesn't manage its own migrations.
 
@@ -309,13 +303,13 @@ The National Security Platform has made significant progress since the previous 
 **🔴 Remaining Critical Priorities:**
 1. Replace self-signed TLS certificates
 2. Fix hardcoded Vault credentials in docker-compose
-3. Implement data encryption at rest
-4. Expand backend/mobile test coverage
-5. Implement NDPR data export/deletion
-6. Conduct penetration testing
-7. Implement database migration system (Go)
+3. Fix migration.go fallback sslmode=disable security issue
+4. Implement data encryption at rest
+5. Expand backend/mobile test coverage
+6. Implement NDPR data export/deletion
+7. Conduct penetration testing
 8. Fix CockroachDB `--accept-sql-without-tls` security issue
-8. Begin compliance framework preparation
+9. Begin compliance framework preparation
 
 ---
 

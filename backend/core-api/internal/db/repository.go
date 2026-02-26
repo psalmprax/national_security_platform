@@ -1056,3 +1056,66 @@ func GetMissingPersons(ctx context.Context, limit int, offset int) ([]models.Mis
 	}
 	return persons, nil
 }
+
+// GetUserAlerts retrieves all alerts reported by a specific user
+func GetUserAlerts(ctx context.Context, userID uuid.UUID) ([]models.Alert, error) {
+	query := `
+		SELECT id, user_id, status, priority_class, 
+		       ST_X(location::geometry) as longitude, ST_Y(location::geometry) as latitude,
+		       impact_radius_meters, alert_type, content_text, content_media_url,
+		       verification_count, location_source, classification_level, created_at, updated_at
+		FROM alerts
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`
+	rows, err := Pool.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var alerts []models.Alert
+	for rows.Next() {
+		var a models.Alert
+		err := rows.Scan(
+			&a.ID, &a.UserID, &a.Status, &a.PriorityClass,
+			&a.Longitude, &a.Latitude, &a.ImpactRadiusMeters, &a.AlertType,
+			&a.ContentText, &a.ContentMediaURL, &a.VerificationCount,
+			&a.LocationSource, &a.ClassificationLevel, &a.CreatedAt, &a.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		alerts = append(alerts, a)
+	}
+	return alerts, nil
+}
+
+// DeleteUserData scrubs all identifiable data for a user (NDPR "Right to be Forgotten")
+func DeleteUserData(ctx context.Context, userID uuid.UUID) error {
+	tx, err := Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Delete devices
+	_, err = tx.Exec(ctx, "DELETE FROM devices WHERE user_id = $1", userID)
+	if err != nil {
+		return err
+	}
+
+	// 2. Anonymize alerts (keep the data for intelligence, but remove user link)
+	_, err = tx.Exec(ctx, "UPDATE alerts SET user_id = '00000000-0000-0000-0000-000000000000' WHERE user_id = $1", userID)
+	if err != nil {
+		return err
+	}
+
+	// 3. Delete user record
+	_, err = tx.Exec(ctx, "DELETE FROM users WHERE id = $1", userID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
