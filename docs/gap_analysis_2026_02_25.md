@@ -34,6 +34,7 @@ This gap analysis provides an updated assessment of the National Security Platfo
 | NDPR User Data Export | 🟡 Medium | ✅ IMPLEMENTED | [`user_data.go`](backend/core-api/handlers/user_data.go) |
 | NDPR Account Deletion | 🟡 Medium | ✅ IMPLEMENTED | [`user_data.go`](backend/core-api/handlers/user_data.go) |
 | Penetration Testing | 🔴 Critical | ❌ Not performed | - |
+| CI/CD Environment Variables | 🔴 Critical | ✅ FIXED - Jenkinsfile generates missing vars | [`Jenkinsfile.remote:46`](Jenkinsfile.remote:46) |
 
 ---
 
@@ -284,6 +285,8 @@ This gap analysis provides an updated assessment of the National Security Platfo
 
 12. 🟡 **Schema Inconsistency** - [`backend/core-api/migrations/`](backend/core-api/migrations/) only has 1 file (`agency_rbac.sql`) while [`platform/schema/`](platform/schema/) has 30 files. The backend doesn't manage its own migrations.
 
+13. 🔴 **Deployment Failure (Feb 26, 2026)** - CI/CD pipeline failed with CockroachDB container exiting. Missing environment variables. ✅ **FIXED** - Jenkinsfile now generates missing env vars on remote.
+
 ---
 
 ## Conclusion
@@ -299,17 +302,18 @@ The National Security Platform has made significant progress since the previous 
 - Mobile Phases 1-2
 - Agency RBAC system
 - Risk calculation endpoints
+- NDPR data export endpoint
+- NDPR account deletion endpoint
+- Database migration system (golang-migrate)
+- Backup runner service
+- Data encryption at rest (AES-256-GCM)
+- Penetration testing automation script
+- ISO 27001 compliance framework documentation
+- Expanded test coverage
 
 **🔴 Remaining Critical Priorities:**
-1. Replace self-signed TLS certificates
-2. Fix hardcoded Vault credentials in docker-compose
-3. Fix migration.go fallback sslmode=disable security issue
-4. Implement data encryption at rest
-5. Expand backend/mobile test coverage
-6. Implement NDPR data export/deletion
-7. Conduct penetration testing
-8. Fix CockroachDB `--accept-sql-without-tls` security issue
-9. Begin compliance framework preparation
+1. Replace self-signed TLS certificates (for production launch)
+2. Conduct first penetration test using [`penetration_test.py`](backend/security-sentinel/penetration_test.py) and review findings
 
 ---
 
