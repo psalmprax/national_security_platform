@@ -49,6 +49,7 @@ export default function MapboxMap({
     const [tokenError, setTokenError] = useState(false);
     const [isStyleLoaded, setIsStyleLoaded] = useState(false);
     const hasAttemptedInit = useRef(false);
+    const currentStyleRef = useRef<string | null>(null);
     const isCyber = mode === 'cyber';
 
     // Map Initialization
@@ -75,9 +76,12 @@ export default function MapboxMap({
         };
 
         try {
+            const styleUrl = getMapStyle(mapLayer, showSatellite);
+            currentStyleRef.current = styleUrl;
+
             const map = new mapboxgl.Map({
                 container: mapContainerRef.current,
-                style: getMapStyle(mapLayer, showSatellite),
+                style: styleUrl,
                 center: [8.6753, 9.0820], // Nigeria center
                 zoom: 5.5,
                 pitch: isCyber ? 45 : ((showSatellite || mapLayer === 'satellite') ? 60 : 0),
@@ -153,10 +157,10 @@ export default function MapboxMap({
         const effectiveLayer = showSatellite ? 'satellite' : mapLayer;
 
         try {
-            const currentStyle = mapRef.current.getStyle();
-            if (currentStyle && currentStyle.sprite !== newStyle) {
+            if (currentStyleRef.current !== newStyle) {
                 setIsSwitching(true);
                 setIsStyleLoaded(false);
+                currentStyleRef.current = newStyle;
                 mapRef.current.setStyle(newStyle);
 
                 // Re-add terrain after style load if in satellite or terrain mode
@@ -559,7 +563,7 @@ export default function MapboxMap({
                 </button>
                 <div className="h-4"></div> {/* Spacer */}
                 <button
-                    onClick={() => { }}
+                    onClick={() => onToggleSatellite?.(!showSatellite)}
                     title="Toggle Map Layers"
                     className={`p-3 border backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ${mapLayer === 'satellite' || mapLayer === 'terrain'
                         ? (isCyber ? '' : 'border-cyan-500 bg-cyan-500 text-white shadow-lg')
