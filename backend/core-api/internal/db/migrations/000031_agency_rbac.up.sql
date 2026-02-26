@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS agencies (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE agencies ADD CONSTRAINT IF NOT EXISTS agencies_acronym_key UNIQUE (acronym);
 
 -- Agency alert types (which alert types this agency handles)
 CREATE TABLE IF NOT EXISTS agency_alert_types (
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS agency_alert_types (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(agency_id, alert_type)
 );
+ALTER TABLE agency_alert_types ADD CONSTRAINT IF NOT EXISTS agency_alert_types_agency_id_alert_type_key UNIQUE (agency_id, alert_type);
 
 -- User agency assignments
 CREATE TABLE IF NOT EXISTS user_agency_assignments (
@@ -30,6 +32,7 @@ CREATE TABLE IF NOT EXISTS user_agency_assignments (
     assigned_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id, agency_id)
 );
+ALTER TABLE user_agency_assignments ADD CONSTRAINT IF NOT EXISTS user_agency_assignments_user_id_agency_id_key UNIQUE (user_id, agency_id);
 
 -- Alert assignments to agencies
 CREATE TABLE IF NOT EXISTS alert_assignments (
@@ -42,6 +45,7 @@ CREATE TABLE IF NOT EXISTS alert_assignments (
     resolved_at TIMESTAMPTZ,
     UNIQUE(alert_id, agency_id)
 );
+ALTER TABLE alert_assignments ADD CONSTRAINT IF NOT EXISTS alert_assignments_alert_id_agency_id_key UNIQUE (alert_id, agency_id);
 
 -- User locations (for tracking)
 CREATE TABLE IF NOT EXISTS user_locations (
