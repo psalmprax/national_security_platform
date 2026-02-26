@@ -62,7 +62,7 @@ class AdService {
       maxAdContentRating: MaxAdContentRating.ma,
       tagForChildDirectedTreatment: TagForChildDirectedTreatment.unspecified,
     );
-    await MobileAds.setRequestConfiguration(requestConfiguration);
+    await MobileAds.instance.updateRequestConfiguration(requestConfiguration);
 
     // Preload ads
     await _loadBannerAd();
@@ -123,7 +123,7 @@ class AdService {
     RewardedAd.load(
       adUnitId: _rewardedAdUnitId,
       request: const AdRequest(),
-      adLoadCallback: RewardedAdLoadCallback(
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
           _rewardedAdLoaded = true;
           _rewardedAd = ad;
