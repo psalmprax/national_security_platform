@@ -44,10 +44,12 @@ ON CONFLICT (state_id, name) DO UPDATE SET boundary_geom = EXCLUDED.boundary_geo
 
 -- 3. Villages
 INSERT INTO villages (lga_id, name, location, population_est) 
-SELECT id, 'Oregun Village', ST_GeomFromText('POINT(3.36 6.61)', 4326), 15000 FROM lgas WHERE name = 'Ikeja' LIMIT 1;
+SELECT id, 'Oregun Village', ST_GeomFromText('POINT(3.36 6.61)', 4326), 15000 FROM lgas WHERE name = 'Ikeja' LIMIT 1
+ON CONFLICT (lga_id, name) DO NOTHING;
 
 INSERT INTO villages (lga_id, name, location, population_est) 
-SELECT id, 'Sabon Gari', ST_GeomFromText('POINT(8.53 12.01)', 4326), 45000 FROM lgas WHERE name = 'Dala' LIMIT 1;
+SELECT id, 'Sabon Gari', ST_GeomFromText('POINT(8.53 12.01)', 4326), 45000 FROM lgas WHERE name = 'Dala' LIMIT 1
+ON CONFLICT (lga_id, name) DO NOTHING;
 
 -- 4. Trusted Devices for Traditional Rulers
 INSERT INTO devices (user_id, hwid, public_key, device_model, os_version, status)
