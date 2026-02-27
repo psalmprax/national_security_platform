@@ -34,7 +34,8 @@ SELECT
     ST_SetSRID(ST_MakePoint(13.25, 11.53), 4326), 
     50 
 FROM lgas WHERE name = 'Borno Central District' 
-LIMIT 1;
+LIMIT 1
+ON CONFLICT (lga_id, name) DO NOTHING;
 
 INSERT INTO villages (lga_id, name, location, population_est)
 SELECT 
@@ -43,4 +44,5 @@ SELECT
     ST_SetSRID(ST_MakePoint(6.92, 10.66), 4326), 
     120 
 FROM lgas WHERE name = 'Kaduna Central District' 
-LIMIT 1;
+LIMIT 1
+ON CONFLICT (lga_id, name) DO NOTHING;
