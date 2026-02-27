@@ -200,7 +200,8 @@ Fixed critical compilation errors in the `mobile-client` identified during remot
 1. **Dependency Cleanup**: Removed the invalid and unused `flutter_iap` import in `subscription_service.dart`.
 2. **Ad SDK Synchronization**: Updated `ads_service.dart` to match `google_mobile_ads` v3.1.0 API patterns:
    - Migrated `MobileAds.setRequestConfiguration` to `MobileAds.instance.updateRequestConfiguration`.
-   - Updated `adLoadCallback` to `rewardedAdLoadCallback` and `interstitialAdLoadCallback`.
+   - Updated `adLoadCallback` to `rewardedAdLoadCallback` for **RewardedAds**.
+   - Kept `adLoadCallback` for **InterstitialAds** (as required by v3.1.0 API specification).
 
 These changes ensure the Flutter web compiler can successfully resolve the package structure and API members.
 
