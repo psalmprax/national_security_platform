@@ -59,7 +59,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- Infrastructure integrity data points
 CREATE TABLE IF NOT EXISTS mock_data_points (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    timestamp TIMESTAMP DEFAULT current_timestamp(),
+    timestamp TIMESTAMPTZ DEFAULT current_timestamp(),
     value FLOAT,
     location GEOMETRY(POINT, 4326)
 );

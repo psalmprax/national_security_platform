@@ -19,9 +19,8 @@ CREATE TABLE IF NOT EXISTS agency_alert_types (
     agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
     alert_type VARCHAR(50) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(agency_id, alert_type)
+    CONSTRAINT agency_alert_types_agency_id_alert_type_key UNIQUE (agency_id, alert_type)
 );
-ALTER TABLE agency_alert_types ADD CONSTRAINT IF NOT EXISTS agency_alert_types_agency_id_alert_type_key UNIQUE (agency_id, alert_type);
 
 -- User agency assignments
 CREATE TABLE IF NOT EXISTS user_agency_assignments (
